@@ -1,0 +1,34 @@
+{
+  "name": "retention-dashboard",
+  "version": "1.0.0",
+  "description": "Пульт удержания — дашборд удержания учеников (репетитор + админ)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server/index.js",
+    "postinstall": "node scripts/vendor.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tankistik17-del/1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/tankistik17-del/1/issues"
+  },
+  "homepage": "https://github.com/tankistik17-del/1#readme",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.22.2",
+    "vue": "^3.5.41",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  },
+  "engines": {
+    "node": ">=22.5"
+  }
+}

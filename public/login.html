@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт удержания · вход</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231F1B16'/%3E%3Crect x='9' y='9' width='14' height='14' rx='3' fill='url(%23g)'/%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23E25A4C'/%3E%3Cstop offset='.5' stop-color='%23E2A24C'/%3E%3Cstop offset='1' stop-color='%236FA86B'/%3E%3C/linearGradient%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  :root {
+    --bg: #ECE6D9; --panel: #F4EFE6; --text: #1F1B16;
+    --text-soft: rgba(31,27,22,.7); --text-muted: rgba(31,27,22,.55); --text-faint: rgba(31,27,22,.5);
+    --border: rgba(31,27,22,.08); --border-faint: rgba(31,27,22,.12);
+    --chip: rgba(31,27,22,.05); --hover-strong: rgba(31,27,22,.06);
+    --invert-bg: #1F1B16; --invert-fg: #F4EFE6; --invert-hover: #3A332A;
+    --accent-italic: #C2654C;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18130F; --panel: #221C16; --text: #ECE6D9;
+      --text-soft: rgba(236,230,217,.78); --text-muted: rgba(236,230,217,.6); --text-faint: rgba(236,230,217,.5);
+      --border: rgba(236,230,217,.1); --border-faint: rgba(236,230,217,.14);
+      --chip: rgba(236,230,217,.08); --hover-strong: rgba(236,230,217,.09);
+      --invert-bg: #F4EFE6; --invert-fg: #1F1B16; --invert-hover: #E0D8C5;
+      --accent-italic: #E68B6E;
+    }
+  }
+  html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; color: inherit; }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 36px; width: 100%; max-width: 400px; }
+  .role-btn { flex: 1; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-soft); background: transparent; border: 1px solid var(--border-faint); transition: all .15s; }
+  .role-btn.active { background: var(--invert-bg); color: var(--invert-fg); border-color: var(--invert-bg); }
+  input { width: 100%; padding: 12px 14px; background: var(--hover-strong); border: 1px solid var(--border); border-radius: 9px; font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text); outline: none; }
+  input:focus { border-color: var(--border-faint); }
+  .submit { width: 100%; padding: 13px; background: var(--invert-bg); color: var(--invert-fg); border-radius: 10px; font-size: 14px; font-weight: 500; transition: background .15s; }
+  .submit:hover { background: var(--invert-hover); }
+  .err { min-height: 18px; font-size: 12px; color: var(--accent-italic); margin: 10px 0 0; }
+</style>
+</head>
+<body>
+  <form class="card" id="form">
+    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 26px;">
+      <div style="width: 30px; height: 30px; border-radius: 8px; background: var(--invert-bg); display: grid; place-items: center;">
+        <div style="width: 15px; height: 15px; border-radius: 3px; background: linear-gradient(135deg, #E25A4C 0%, #E2A24C 50%, #6FA86B 100%);"></div>
+      </div>
+      <div style="font-family: 'Instrument Serif', serif; font-size: 24px; letter-spacing: -.01em;">Пульт удержания</div>
+    </div>
+
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;">Кто входит</div>
+    <div style="display: flex; gap: 8px; margin-bottom: 18px;">
+      <button type="button" class="role-btn active" data-user="tutor">Репетитор</button>
+      <button type="button" class="role-btn" data-user="admin">Администратор</button>
+    </div>
+
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px;">Пароль</div>
+    <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" autofocus>
+    <div class="err" id="err"></div>
+
+    <button class="submit" type="submit" style="margin-top: 14px;">Войти</button>
+  </form>
+
+<script>
+  let username = 'tutor';
+  document.querySelectorAll('.role-btn').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.role-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    username = b.dataset.user;
+    document.getElementById('password').focus();
+  }));
+  document.getElementById('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const err = document.getElementById('err');
+    err.textContent = '';
+    try {
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password: document.getElementById('password').value }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) { err.textContent = data.error || 'Ошибка входа'; return; }
+      location.href = '/';
+    } catch (e2) {
+      err.textContent = 'Сервер недоступен';
+    }
+  });
+</script>
+</body>
+</html>

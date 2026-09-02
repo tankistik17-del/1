@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пульт удержания</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231F1B16'/%3E%3Crect x='9' y='9' width='14' height='14' rx='3' fill='url(%23g)'/%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%23E25A4C'/%3E%3Cstop offset='.5' stop-color='%23E2A24C'/%3E%3Cstop offset='1' stop-color='%236FA86B'/%3E%3C/linearGradient%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { font-family: inherit; cursor: pointer; border: none; background: none; padding: 0; color: inherit; }
+  [v-cloak] { display: none; }
+
+  /* === THEME TOKENS === */
+  :root, html[data-theme="light"] {
+    --bg: #ECE6D9;
+    --bg-blur: rgba(236,230,217,.92);
+    --panel: #F4EFE6;
+    --text: #1F1B16;
+    --text-soft: rgba(31,27,22,.7);
+    --text-muted: rgba(31,27,22,.55);
+    --text-faint: rgba(31,27,22,.5);
+    --text-dim: rgba(31,27,22,.4);
+    --border: rgba(31,27,22,.08);
+    --border-soft: rgba(31,27,22,.06);
+    --border-faint: rgba(31,27,22,.12);
+    --hover: rgba(31,27,22,.03);
+    --hover-strong: rgba(31,27,22,.06);
+    --chip: rgba(31,27,22,.05);
+    --chip-soft: rgba(31,27,22,.04);
+    --invert-bg: #1F1B16;
+    --invert-fg: #F4EFE6;
+    --invert-hover: #3A332A;
+    --accent-italic: #C2654C;
+    --bar-bg: rgba(31,27,22,.06);
+    --scale-red: rgba(194,101,76,.18);
+    --scale-amber: rgba(217,162,74,.18);
+    --scale-green: rgba(111,168,107,.18);
+  }
+  html[data-theme="dark"] {
+    --bg: #18130F;
+    --bg-blur: rgba(24,19,15,.92);
+    --panel: #221C16;
+    --text: #ECE6D9;
+    --text-soft: rgba(236,230,217,.78);
+    --text-muted: rgba(236,230,217,.6);
+    --text-faint: rgba(236,230,217,.5);
+    --text-dim: rgba(236,230,217,.4);
+    --border: rgba(236,230,217,.1);
+    --border-soft: rgba(236,230,217,.07);
+    --border-faint: rgba(236,230,217,.14);
+    --hover: rgba(236,230,217,.04);
+    --hover-strong: rgba(236,230,217,.09);
+    --chip: rgba(236,230,217,.08);
+    --chip-soft: rgba(236,230,217,.05);
+    --invert-bg: #F4EFE6;
+    --invert-fg: #1F1B16;
+    --invert-hover: #E0D8C5;
+    --accent-italic: #E68B6E;
+    --bar-bg: rgba(236,230,217,.08);
+    --scale-red: rgba(226,108,82,.24);
+    --scale-amber: rgba(232,175,74,.24);
+    --scale-green: rgba(133,194,127,.24);
+  }
+  body { background: var(--bg); color: var(--text); transition: background .25s ease, color .25s ease; }
+
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .fade-up { animation: fadeUp .35s ease both; }
+
+  /* hover-эффекты (заменяют style-hover из прототипа) */
+  .hov-strong:hover { background: var(--hover-strong) !important; }
+  .hov-invert:hover { background: var(--invert-hover) !important; }
+  .hov-soft:hover   { background: var(--hover) !important; }
+  .hov-chip:hover   { background: var(--chip) !important; }
+  .hov-text:hover   { color: var(--text) !important; }
+
+  .hist-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; cursor: default; }
+  .hist-col .hist-bar { width: 100%; border-radius: 2px 2px 0 0; opacity: .9; transition: opacity .15s; }
+  .hist-col:hover .hist-bar { opacity: 1; }
+  .hist-col .hist-tip {
+    position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+    padding: 5px 9px; background: var(--invert-bg); color: var(--invert-fg);
+    border-radius: 6px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity .12s;
+    z-index: 10;
+  }
+  .hist-col:hover .hist-tip { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="app" v-cloak>
+<div style="min-height: 100vh; background: var(--bg); color: var(--text); transition: background .25s ease, color .25s ease;">
+
+  <div v-if="!state.booted" style="min-height: 100vh; display: grid; place-items: center;">
+    <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text-muted);">Загружаю данные…</div>
+  </div>
+
+  <template v-if="state.booted">
+
+  <!-- ===================== TOP BAR ===================== -->
+  <div style="position: sticky; top: 0; z-index: 50; background: var(--bg-blur); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);">
+    <div style="max-width: 1440px; margin: 0 auto; padding: 14px 32px; display: flex; align-items: center; gap: 32px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="width: 28px; height: 28px; border-radius: 7px; background: var(--invert-bg); display: grid; place-items: center;">
+          <div style="width: 14px; height: 14px; border-radius: 3px; background: linear-gradient(135deg, #E25A4C 0%, #E2A24C 50%, #6FA86B 100%);"></div>
+        </div>
+        <div style="font-family: 'Instrument Serif', serif; font-size: 22px; letter-spacing: -.01em;">Пульт удержания</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 3px 7px; border-radius: 4px; background: var(--hover-strong); color: var(--text-muted); letter-spacing: .04em;">v0.5 · ПРОТОТИП</div>
+      </div>
+
+      <div style="flex: 1; display: flex; align-items: center; gap: 4px; justify-content: center;">
+        <button v-for="tab in R.tabs" :key="tab.key" @click="tab.onClick()" :class="tab.hoverClass" :style="`padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: ${tab.color}; background: ${tab.bg}; display: flex; align-items: center; gap: 8px; transition: background .15s;`">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: .55;">{{ tab.num }}</span>
+          <span>{{ tab.label }}</span>
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 12px; background: var(--chip); border-radius: 8px;">
+          <div style="width: 7px; height: 7px; border-radius: 50%; background: #6FA86B; animation: pulseDot 2.4s ease infinite;"></div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted);">live · {{ R.clock }}</div>
+        </div>
+
+        <!-- THEME TOGGLE -->
+        <button @click="R.toggleTheme()" :title="R.themeTitle" class="hov-strong" style="display: flex; align-items: center; gap: 4px; padding: 4px; background: var(--chip); border-radius: 999px; transition: background .15s;">
+          <div :style="`width: 28px; height: 28px; border-radius: 50%; background: ${R.themeLightBg}; color: ${R.themeLightFg}; display: grid; place-items: center; font-size: 14px; transition: all .2s;`">☀</div>
+          <div :style="`width: 28px; height: 28px; border-radius: 50%; background: ${R.themeDarkBg}; color: ${R.themeDarkFg}; display: grid; place-items: center; font-size: 13px; transition: all .2s;`">☾</div>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 1px;">
+          <button @click="R.gsButton.onClick($event)" :title="R.gsButton.title" class="hov-strong" :style="`padding: 7px 12px; background: ${R.gsButton.bg}; color: ${R.gsButton.fg}; border-radius: 8px 0 0 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; border: 1px solid var(--border); transition: background .15s;`">{{ R.gsButton.label }}</button>
+          <button @click="R.openGsModal()" title="Настройки Google Sheets" class="hov-strong" style="padding: 7px 9px; background: var(--chip); color: var(--text-soft); border-radius: 0 8px 8px 0; font-size: 12px; border: 1px solid var(--border); border-left: none;">⚙</button>
+        </div>
+        <button @click="R.openFilePicker()" class="hov-invert" style="padding: 7px 14px; background: var(--invert-bg); color: var(--invert-fg); border-radius: 8px; font-size: 12px; font-weight: 500; display: flex; align-items: center; gap: 6px; transition: background .15s;">↑ {{ R.uploadBtnLabel }}</button>
+        <div style="display: flex; align-items: center; gap: 10px; padding: 4px 10px 4px 4px; background: var(--chip); border-radius: 999px;">
+          <div style="width: 26px; height: 26px; border-radius: 50%; background: #C2956B; color: #FFF; display: grid; place-items: center; font-size: 11px; font-weight: 600;">{{ R.meInitials }}</div>
+          <div style="padding-right: 2px;">
+            <div style="font-size: 12px; color: var(--text-soft); line-height: 1.2;">{{ R.meName }}</div>
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-faint); letter-spacing: .05em;">{{ R.meRole }}</div>
+          </div>
+          <button @click="R.logout()" title="Выйти" class="hov-strong" style="padding: 5px 9px; border-radius: 999px; font-size: 11px; color: var(--text-muted);">выйти</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 1: OVERVIEW ===================== -->
+  <div v-if="R.isOverview" class="fade-up" style="max-width: 1440px; margin: 0 auto; padding: 40px 32px 80px;">
+
+    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: end; margin-bottom: 40px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); letter-spacing: .08em; text-transform: uppercase;">01 · обзор</div>
+          <div style="height: 1px; flex: 1; background: var(--border-faint); max-width: 60px;"></div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);">{{ R.weekLabel }}</div>
+        </div>
+        <h1 style="font-family: 'Instrument Serif', serif; font-size: 64px; line-height: 1; letter-spacing: -.02em; margin: 0 0 16px; font-weight: 400;">{{ R.headlineMain }}<br><em style="font-style: italic; color: var(--accent-italic);">{{ R.headlineSub }}</em></h1>
+        <div style="font-size: 15px; color: var(--text-soft); max-width: 560px; line-height: 1.5;">Шкала удержания собирает посещаемость, сдачу домашек, активность в чате и оплату в одно число от 0 до 100. Чем ниже — тем выше риск, что ученик не доучится до пробника.</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden;">
+        <div style="background: var(--panel); padding: 18px 20px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 8px;">УЧЕНИКОВ</div>
+          <div style="font-family: 'Instrument Serif', serif; font-size: 38px; line-height: 1;">{{ R.totalStudents }}</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); margin-top: 6px;">{{ R.studentsDelta }}</div>
+        </div>
+        <div style="background: var(--panel); padding: 18px 20px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 8px;">СРЕДНИЙ&nbsp;ИНДЕКС</div>
+          <div style="font-family: 'Instrument Serif', serif; font-size: 38px; line-height: 1;">{{ R.avgIndex }}<span style="font-size: 22px; color: var(--text-dim);">/100</span></div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); margin-top: 6px;">{{ R.avgIndexDelta }}</div>
+        </div>
+        <div style="background: var(--panel); padding: 18px 20px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 8px;">В&nbsp;ЗОНЕ&nbsp;РИСКА</div>
+          <div style="font-family: 'Instrument Serif', serif; font-size: 38px; line-height: 1; color: var(--accent-italic);">{{ R.atRiskCount }}</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); margin-top: 6px;">{{ R.atRiskOf }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px 28px; margin-bottom: 32px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px;">
+        <div style="font-family: 'Instrument Serif', serif; font-size: 22px; letter-spacing: -.01em;">Распределение по&nbsp;шкале</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);">{{ R.totalStudents }} точек · по одному ученику</div>
+      </div>
+
+      <div style="position: relative; height: 80px;">
+        <div style="position: absolute; inset: 0; display: flex; gap: 2px; align-items: flex-end;">
+          <div v-for="(bar, bi) in R.histogram" :key="bi" class="hist-col">
+            <div class="hist-bar" :style="`height: ${bar.h}; background: ${bar.color};`"></div>
+            <div class="hist-tip">{{ bar.tip }}</div>
+          </div>
+        </div>
+      </div>
+      <div style="position: relative; height: 44px; margin-top: 6px; border-top: 1px solid var(--border-faint);">
+        <div style="position: absolute; left: 0; width: 40%; top: 0; height: 2px; background: #C2654C;"></div>
+        <div style="position: absolute; left: 40%; width: 30%; top: 0; height: 2px; background: #D9A24A;"></div>
+        <div style="position: absolute; left: 70%; width: 30%; top: 0; height: 2px; background: #6FA86B;"></div>
+        <div style="position: absolute; left: 0; top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint);">0</div>
+        <div style="position: absolute; left: 25%; top: 6px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint);">25</div>
+        <div style="position: absolute; left: 50%; top: 6px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint);">50</div>
+        <div style="position: absolute; left: 75%; top: 6px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint);">75</div>
+        <div style="position: absolute; right: 0; top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint);">100</div>
+        <div style="position: absolute; left: 20%; top: 26px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #C2654C; letter-spacing: .06em; white-space: nowrap;">УХОДИТ · 0–40</div>
+        <div style="position: absolute; left: 55%; top: 26px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #B88625; letter-spacing: .06em; white-space: nowrap;">ШАТКО · 40–70</div>
+        <div style="position: absolute; left: 85%; top: 26px; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #4E8C4A; letter-spacing: .06em; white-space: nowrap;">ДЕРЖИТСЯ · 70–100</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 16px;">
+      <div style="font-family: 'Instrument Serif', serif; font-size: 28px; letter-spacing: -.01em;">Группы</div>
+      <div style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted);">
+        <span>Сортировать:</span>
+        <button v-for="gs in R.groupSorts" :key="gs.key" @click="gs.onClick()" :style="`padding: 4px 10px; border-radius: 6px; font-size: 12px; color: ${gs.color}; background: ${gs.bg};`">{{ gs.label }}</button>
+      </div>
+    </div>
+
+    <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: 80px 1.4fr 90px 1.6fr 90px 100px 80px; gap: 16px; padding: 14px 24px; background: var(--chip-soft); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .06em; color: var(--text-muted); text-transform: uppercase;">
+        <div>Группа</div>
+        <div>Уровень · формат</div>
+        <div style="text-align: right;">Учеников</div>
+        <div>Индекс удержания</div>
+        <div style="text-align: right;">Δ&nbsp;неделя</div>
+        <div style="text-align: right;">В риске</div>
+        <div></div>
+      </div>
+      <button v-for="g in R.groupRows" :key="g.code" @click="g.onClick()" class="hov-soft" style="display: grid; grid-template-columns: 80px 1.4fr 90px 1.6fr 90px 100px 80px; gap: 16px; padding: 18px 24px; align-items: center; width: 100%; text-align: left; border-top: 1px solid var(--border-soft); transition: background .12s;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600;">{{ g.code }}</div>
+        <div>
+          <div style="font-size: 14px; font-weight: 500;">{{ g.level }}</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">{{ g.schedule ? 'Математика ОГЭ · ' + g.schedule : 'Математика ОГЭ' }}</div>
+        </div>
+        <div style="text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 14px;">{{ g.size }}</div>
+        <div>
+          <div style="position: relative; height: 28px; background: var(--bar-bg); border-radius: 6px; overflow: hidden;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: var(--scale-red);"></div>
+            <div style="position: absolute; left: 40%; top: 0; bottom: 0; width: 30%; background: var(--scale-amber);"></div>
+            <div style="position: absolute; left: 70%; top: 0; bottom: 0; width: 30%; background: var(--scale-green);"></div>
+            <div :style="`position: absolute; left: 0; top: 0; bottom: 0; width: ${g.indexPct}; background: ${g.indexColor}; border-radius: 6px 0 0 6px;`"></div>
+            <div :style="`position: absolute; left: ${g.indexPct}; top: -2px; bottom: -2px; width: 2px; background: var(--text);`"></div>
+            <div style="position: absolute; inset: 0; display: flex; align-items: center; padding: 0 10px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: var(--text);">{{ g.index }}</div>
+          </div>
+        </div>
+        <div :style="`text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: ${g.deltaColor};`">{{ g.delta }}</div>
+        <div style="text-align: right;">
+          <span :style="`font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 4px 8px; border-radius: 6px; background: ${g.riskBg}; color: ${g.riskColor};`">{{ g.atRisk }}</span>
+        </div>
+        <div style="text-align: right; font-size: 16px; color: var(--text-dim);">→</div>
+      </button>
+    </div>
+
+    <div style="margin-top: 16px; font-size: 12px; color: var(--text-faint); display: flex; gap: 24px;">
+      <span>Δ&nbsp;неделя — изменение среднего индекса группы за 7 дней.</span>
+      <span>В&nbsp;риске — ученики с индексом ниже 40.</span>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 2: GROUP ===================== -->
+  <div v-if="R.isGroup" class="fade-up" style="max-width: 1440px; margin: 0 auto; padding: 32px 32px 80px;">
+
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+      <button @click="R.goOverview()" class="hov-text" style="font-size: 12px; color: var(--text-muted);">← Обзор</button>
+      <span>/</span>
+      <span style="font-family: 'JetBrains Mono', monospace;">группа {{ R.currentGroup.code }}</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 32px; align-items: end; margin-bottom: 28px;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 4px 10px; border-radius: 6px; background: var(--invert-bg); color: var(--invert-fg);">{{ R.currentGroup.code }}</div>
+          <button @click="R.renameCurrentGroup()" title="Переименовать группу" class="hov-strong hov-text" style="padding: 4px 8px; background: var(--chip); color: var(--text-muted); border-radius: 6px; font-size: 12px;">✎</button>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); letter-spacing: .06em;">{{ R.currentGroup.schedule }}</div>
+        </div>
+        <h1 style="font-family: 'Instrument Serif', serif; font-size: 48px; line-height: 1.05; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 400;">{{ R.currentGroup.level }}</h1>
+        <div style="font-size: 14px; color: var(--text-soft);">{{ R.groupSubline }}</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 6px;">ИНДЕКС</div>
+          <div :style="`font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; color: ${R.currentGroup.indexColor};`">{{ R.currentGroup.index }}</div>
+        </div>
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 6px;">УЧЕНИКОВ</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600;">{{ R.currentGroup.size }}</div>
+        </div>
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 6px;">В РИСКЕ</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 600; color: var(--accent-italic);">{{ R.currentGroup.atRisk }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 6px; padding: 4px; background: var(--chip); border-radius: 10px; margin-bottom: 28px; width: fit-content;">
+      <button v-for="c in R.groupChips" :key="c.code" @click="c.onClick()" :style="`padding: 6px 12px; border-radius: 7px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500; background: ${c.bg}; color: ${c.color}; transition: background .15s;`">{{ c.code }}</button>
+    </div>
+
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 16px; flex-wrap: wrap;">
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-size: 12px; color: var(--text-muted); margin-right: 4px;">Зона:</span>
+        <button v-for="f in R.zoneFilters" :key="f.key" @click="f.onClick()" :style="`display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 7px; font-size: 12px; background: ${f.bg}; color: ${f.color}; border: 1px solid ${f.border};`">
+          <span :style="`width: 7px; height: 7px; border-radius: 50%; background: ${f.dot};`"></span>
+          {{ f.label }}
+          <span style="font-family: 'JetBrains Mono', monospace; opacity: .6;">{{ f.count }}</span>
+        </button>
+      </div>
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-size: 12px; color: var(--text-muted); margin-right: 4px;">Сортировка:</span>
+        <button v-for="ss in R.studentSorts" :key="ss.key" @click="ss.onClick()" :style="`padding: 6px 10px; border-radius: 7px; font-size: 12px; color: ${ss.color}; background: ${ss.bg}; display: flex; align-items: center; gap: 4px;`">
+          {{ ss.label }} <span style="opacity: .5; font-size: 10px;">{{ ss.arrow }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: 32px 1.4fr 110px 1.4fr 110px 100px 130px 70px; gap: 14px; padding: 12px 20px; background: var(--chip-soft); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .06em; color: var(--text-muted); text-transform: uppercase;">
+        <div></div>
+        <div>Ученик</div>
+        <div style="text-align: right;">Индекс</div>
+        <div>Сигнал</div>
+        <div>Посещаемость</div>
+        <div>Домашка</div>
+        <div>Последний контакт</div>
+        <div></div>
+      </div>
+      <button v-for="st in R.filteredStudents" :key="st.id" @click="st.onClick()" class="hov-soft" style="display: grid; grid-template-columns: 32px 1.4fr 110px 1.4fr 110px 100px 130px 70px; gap: 14px; padding: 14px 20px; align-items: center; width: 100%; text-align: left; border-top: 1px solid var(--border-soft); transition: background .12s;">
+        <div :style="`width: 28px; height: 28px; border-radius: 50%; background: ${st.avatarBg}; color: #FFF; display: grid; place-items: center; font-size: 11px; font-weight: 600;`">{{ st.initials }}</div>
+        <div>
+          <div style="font-size: 14px; font-weight: 500;">{{ st.name }}</div>
+          <div style="font-size: 11px; color: var(--text-faint); margin-top: 1px;">{{ st.meta }}</div>
+        </div>
+        <div style="position: relative; height: 22px; background: var(--bar-bg); border-radius: 5px; overflow: hidden;">
+          <div :style="`position: absolute; left: 0; top: 0; bottom: 0; width: ${st.indexPct}; background: ${st.indexColor};`"></div>
+          <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600;">{{ st.index }}</div>
+        </div>
+        <div :style="`font-size: 12px; color: ${st.signalColor}; display: flex; align-items: center; gap: 6px;`">
+          <span style="font-size: 11px;">{{ st.signalIcon }}</span>
+          <span>{{ st.signal }}</span>
+        </div>
+        <div style="display: flex; gap: 3px;">
+          <div v-for="(d, di) in st.attendance" :key="di" :style="`width: 10px; height: 16px; border-radius: 2px; background: ${d};`"></div>
+        </div>
+        <div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500;">{{ st.hw }}</div>
+          <div style="font-size: 10px; color: var(--text-faint);">из {{ st.hwTotal }} заданий</div>
+        </div>
+        <div>
+          <div style="font-size: 12px; color: var(--text-soft);">{{ st.contact }}</div>
+          <div style="font-size: 10px; color: var(--text-dim);">{{ st.contactBy }}</div>
+        </div>
+        <div style="text-align: right; font-size: 16px; color: var(--text-dim);">→</div>
+      </button>
+      <div v-if="R.noStudents" style="padding: 60px 20px; text-align: center; color: var(--text-faint); font-size: 13px;">В этой зоне сейчас никого. Хорошая новость.</div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 3: STUDENT CARD ===================== -->
+  <div v-if="R.isStudent" class="fade-up" style="max-width: 1440px; margin: 0 auto; padding: 32px 32px 80px;">
+
+    <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+      <button @click="R.goOverview()" class="hov-text" style="font-size: 12px; color: var(--text-muted);">← Обзор</button>
+      <span>/</span>
+      <button @click="R.goGroupFromStudent()" class="hov-text" style="font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace;">{{ R.currentStudent.groupCode }}</button>
+      <span>/</span>
+      <span>{{ R.currentStudent.name }}</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.6fr 1fr; gap: 40px; margin-bottom: 32px; align-items: start;">
+      <div style="display: flex; gap: 24px; align-items: center;">
+        <div :style="`width: 96px; height: 96px; border-radius: 24px; background: ${R.currentStudent.avatarBg}; color: #FFF; display: grid; place-items: center; font-family: 'Instrument Serif', serif; font-size: 36px;`">{{ R.currentStudent.initials }}</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint); letter-spacing: .06em; text-transform: uppercase;">{{ R.currentStudent.groupCode }} · математика ОГЭ</div>
+          </div>
+          <h1 style="font-family: 'Instrument Serif', serif; font-size: 52px; line-height: 1; letter-spacing: -.02em; margin: 0 0 6px; font-weight: 400;">{{ R.currentStudent.name }}</h1>
+          <div style="font-size: 14px; color: var(--text-soft);">{{ R.currentStudent.metaLine }}</div>
+        </div>
+      </div>
+
+      <div style="background: var(--invert-bg); color: var(--invert-fg); border-radius: 16px; padding: 22px 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px;">
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .08em; opacity: .6; text-transform: uppercase;">Индекс удержания</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; opacity: .6;">{{ R.updatedText }}</div>
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 12px; margin-bottom: 14px;">
+          <div :style="`font-family: 'Instrument Serif', serif; font-size: 72px; line-height: 1; color: ${R.currentStudent.indexColor};`">{{ R.currentStudent.index }}</div>
+          <div style="font-family: 'JetBrains Mono', monospace; font-size: 16px; opacity: .5;">/ 100</div>
+          <div :style="`margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: ${R.currentStudent.trendColor};`">{{ R.currentStudent.trend }} за 4 нед</div>
+        </div>
+        <div style="position: relative; height: 10px; border-radius: 5px; overflow: hidden;">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 40%; background: rgba(226,90,76,.4);"></div>
+          <div style="position: absolute; left: 40%; top: 0; bottom: 0; width: 30%; background: rgba(217,162,74,.4);"></div>
+          <div style="position: absolute; left: 70%; top: 0; bottom: 0; width: 30%; background: rgba(111,168,107,.4);"></div>
+          <div :style="`position: absolute; left: ${R.currentStudent.indexPct}; top: -3px; bottom: -3px; width: 3px; background: var(--invert-fg); border-radius: 2px;`"></div>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; font-family: 'JetBrains Mono', monospace; font-size: 9px; opacity: .5;">
+          <span>0</span><span>40</span><span>70</span><span>100</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.5fr 2fr 1.2fr; gap: 20px;">
+
+      <!-- LEFT: Signals + factors -->
+      <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 4px;">Что тревожит</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">{{ R.currentStudent.signalCountText }}</div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            <div v-for="(sig, si) in R.currentStudent.signals" :key="si" :style="`display: flex; gap: 12px; padding: 12px; background: ${sig.bg}; border-radius: 10px; border-left: 3px solid ${sig.accent};`">
+              <div style="font-size: 16px;">{{ sig.icon }}</div>
+              <div style="flex: 1;">
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">{{ sig.title }}</div>
+                <div style="font-size: 12px; color: var(--text-soft); line-height: 1.4;">{{ sig.body }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 16px;">Из чего считается</div>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <div v-for="(f, fi) in R.currentStudent.factors" :key="fi">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px;">
+                <div style="font-size: 12px; color: var(--text-soft);">{{ f.label }}</div>
+                <div :style="`font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; color: ${f.color};`">{{ f.value }}</div>
+              </div>
+              <div style="position: relative; height: 6px; background: var(--bar-bg); border-radius: 3px; overflow: hidden;">
+                <div :style="`position: absolute; left: 0; top: 0; bottom: 0; width: ${f.pct}; background: ${f.color};`"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- MIDDLE: Timeline -->
+      <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 22px;">История</div>
+          <div style="display: flex; gap: 4px;">
+            <button v-for="t in R.timelineFilters" :key="t.key" @click="t.onClick()" :style="`padding: 4px 8px; border-radius: 6px; font-size: 11px; color: ${t.color}; background: ${t.bg};`">{{ t.label }}</button>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">Последние 4 недели — занятия, домашки, оплаты и контакты.</div>
+
+        <div style="position: relative; padding-left: 18px;">
+          <div style="position: absolute; left: 5px; top: 4px; bottom: 4px; width: 1px; background: var(--border-faint);"></div>
+          <div v-for="(e, ei) in R.currentStudent.timeline" :key="ei" style="position: relative; padding-bottom: 18px;">
+            <div :style="`position: absolute; left: -18px; top: 2px; width: 11px; height: 11px; border-radius: 50%; background: ${e.dotColor}; border: 2px solid var(--panel); box-shadow: 0 0 0 1px ${e.dotColor};`"></div>
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <div style="font-size: 13px; font-weight: 500;">{{ e.title }}</div>
+              <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-faint);">{{ e.when }}</div>
+            </div>
+            <div style="font-size: 12px; color: var(--text-soft); margin-top: 3px; line-height: 1.45;">{{ e.body }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Actions -->
+      <div style="display: flex; flex-direction: column; gap: 16px; position: sticky; top: 80px; align-self: start;">
+        <div style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 4px;">Действия</div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">Что вы сделали — сохраняется в карточке и видно администратору.</div>
+
+          <div v-if="R.currentStudent.calledRecently" style="padding: 12px; background: rgba(111,168,107,.14); border-radius: 10px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start;">
+            <div style="font-size: 14px;">✓</div>
+            <div>
+              <div style="font-size: 12px; font-weight: 500; color: #6FA86B;">Контакт записан</div>
+              <div style="font-size: 11px; color: var(--text-soft); margin-top: 2px;">{{ R.currentStudent.lastCallText }}</div>
+            </div>
+          </div>
+
+          <button @click="R.markCalled()" class="hov-invert" style="width: 100%; padding: 14px; background: var(--invert-bg); color: var(--invert-fg); border-radius: 10px; font-size: 14px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; transition: background .15s;">
+            <span>📞</span>
+            <span>{{ R.callBtnText }}</span>
+          </button>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button class="hov-chip" style="padding: 10px; background: var(--hover-strong); border-radius: 8px; font-size: 12px;">✉ Написать</button>
+            <button class="hov-chip" style="padding: 10px; background: var(--hover-strong); border-radius: 8px; font-size: 12px;">📝 Заметка</button>
+          </div>
+        </div>
+
+        <div v-if="R.currentStudent.showStats" style="background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px;">
+          <div style="font-family: 'Instrument Serif', serif; font-size: 22px; margin-bottom: 14px;">Статистика</div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <div v-for="(sb, sbi) in R.currentStudent.statBoxes" :key="sbi" style="background: var(--hover-strong); border-radius: 10px; padding: 12px 14px;">
+              <div :style="`font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 600; color: ${sb.color}; margin-bottom: 3px;`">{{ sb.val }}</div>
+              <div style="font-size: 11px; color: var(--text-faint); line-height: 1.35;">{{ sb.label }}</div>
+              <div v-if="sb.hasPct" style="height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden;">
+                <div :style="`height: 100%; width: ${sb.pct}; background: ${sb.color}; border-radius: 2px;`"></div>
+              </div>
+            </div>
+          </div>
+          <div v-if="R.currentStudent.hasMockHistory" style="margin-top: 18px;">
+            <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 10px;">ПОСЛЕДНИЕ ПРОБНИКИ</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div v-for="(m, mi) in R.currentStudent.mockHistory" :key="mi" style="display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: var(--hover-strong); border-radius: 8px;">
+                <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); width: 78px; flex-shrink: 0;">{{ m.label }}</div>
+                <div style="flex: 1; position: relative; height: 6px; background: var(--bar-bg); border-radius: 3px; overflow: hidden;">
+                  <div :style="`position: absolute; left: 0; top: 0; bottom: 0; width: ${m.pct}; background: ${m.color};`"></div>
+                </div>
+                <div :style="`font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: ${m.color}; min-width: 32px; text-align: right;`">{{ m.val }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== GOOGLE SHEETS MODAL ===================== -->
+  <div v-if="R.gsModal" style="position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; padding: 20px;" @click="R.closeGsModal()">
+    <div @click.stop style="background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 28px; max-width: 640px; width: 100%; max-height: 90vh; overflow: auto;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 6px;">
+        <div style="font-family: 'Instrument Serif', serif; font-size: 26px;">Google Sheets · подключение</div>
+        <button @click="R.closeGsModal()" style="font-size: 18px; color: var(--text-muted); padding: 4px 8px;">✕</button>
+      </div>
+      <div style="font-size: 13px; color: var(--text-soft); margin-bottom: 18px; line-height: 1.5;">Таблица читается через Google Apps Script. Скопируй код ниже в редактор скриптов своей таблицы, опубликуй как Web App, вставь URL сюда. Синхронизацию выполняет сервер — данные видят и репетитор, и администратор.</div>
+
+      <div style="margin-bottom: 16px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 6px;">URL ВЕБ-ПРИЛОЖЕНИЯ</div>
+        <input id="gs-url-input" :value="R.gsUrl" placeholder="https://script.google.com/macros/s/.../exec" style="width: 100%; padding: 10px 12px; background: var(--hover-strong); border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);"/>
+      </div>
+      <div style="margin-bottom: 18px;">
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-faint); letter-spacing: .06em; margin-bottom: 6px;">СЕКРЕТНЫЙ ТОКЕН</div>
+        <input id="gs-token-input" :placeholder="R.gsTokenPlaceholder" style="width: 100%; padding: 10px 12px; background: var(--hover-strong); border: 1px solid var(--border); border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);"/>
+      </div>
+
+      <details style="margin-bottom: 18px; background: var(--hover-strong); border-radius: 10px; padding: 12px 14px;">
+        <summary style="cursor: pointer; font-size: 13px; font-weight: 500;">Как подключить (3 шага)</summary>
+        <ol style="font-size: 12px; color: var(--text-soft); line-height: 1.55; margin: 10px 0 0 0; padding-left: 18px;">
+          <li>В таблице: «Расширения» → «Apps Script». Удали всё и вставь код снизу. Замени <code style="background: var(--chip); padding: 1px 4px; border-radius: 3px;">YOUR_TOKEN</code> на свой токен.</li>
+          <li>Сохрани (💾). Нажми «Развернуть» → «Новое развертывание» → тип «Веб-приложение». Доступ: «Все». Скопируй URL вида <code>https://script.google.com/macros/s/.../exec</code></li>
+          <li>Вставь URL и токен в поля выше, нажми «Синхронизировать».</li>
+        </ol>
+      </details>
+
+      <details style="margin-bottom: 18px; background: var(--hover-strong); border-radius: 10px; padding: 12px 14px;">
+        <summary style="cursor: pointer; font-size: 13px; font-weight: 500;">Код для Apps Script</summary>
+        <pre style="background: var(--invert-bg); color: var(--invert-fg); padding: 14px; border-radius: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.5; overflow-x: auto; margin-top: 10px; white-space: pre;">const TOKEN = 'YOUR_TOKEN';
+
+function doGet(e) {
+  if ((e.parameter.token || '') !== TOKEN) {
+    return ContentService
+      .createTextOutput(JSON.stringify({error: 'unauthorized'}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheets = ss.getSheets().map(s =&gt; ({
+    name: s.getName(),
+    rows: s.getDataRange().getDisplayValues()
+  }));
+  return ContentService
+    .createTextOutput(JSON.stringify({name: ss.getName(), sheets}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+      </details>
+
+      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <button @click="R.saveAndSync()" class="hov-invert" style="padding: 10px 16px; background: var(--invert-bg); color: var(--invert-fg); border-radius: 8px; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px;">↻ {{ R.gsSyncBtnLabel }}</button>
+        <button v-if="R.gsHasConfig" @click="R.disconnectGs()" style="padding: 10px 14px; background: var(--hover-strong); border-radius: 8px; font-size: 13px;">Отключить</button>
+        <div style="margin-left: auto; font-size: 11px; color: var(--text-faint); font-family: 'JetBrains Mono', monospace;">{{ R.gsLastSyncText }}</div>
+      </div>
+    </div>
+  </div>
+
+  </template>
+</div>
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/vendor/xlsx.full.min.js"></script>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

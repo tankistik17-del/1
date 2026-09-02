@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: retention-dashboard
+    runtime: node
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node server/index.js
+    envVars:
+      - key: TUTOR_PASSWORD
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GS_URL
+        sync: false
+      - key: GS_TOKEN
+        sync: false
