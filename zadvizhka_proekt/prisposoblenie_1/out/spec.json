@@ -103,6 +103,33 @@
   ]
  },
  {
+  "key": "x_bolt_planshayby",
+  "pos": "",
+  "name_ru": "Болт М6-6g×32.58 ГОСТ 7798-70 - позиция не указана",
+  "qty": 4,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 7798-70",
+  "note": "Окружность Ø83; головка под планшайбой поз.12, ввёрнут в планшайбу (как на чертеже)",
+  "nodes": [
+   "x_bolt_planshayby_1",
+   "x_bolt_planshayby_2",
+   "x_bolt_planshayby_3",
+   "x_bolt_planshayby_4"
+  ]
+ },
+ {
+  "key": "x_shtift_osi",
+  "pos": "",
+  "name_ru": "Штифт 6m6×16 ГОСТ 3128-70 - ДОПУЩЕНИЕ (на чертеже не показан)",
+  "qty": 1,
+  "material": "Сталь 45",
+  "standard": "ГОСТ 3128-70",
+  "note": "Фиксирует ось поз.12 от проворота относительно корпуса поз.7 (совпадение воздушных каналов)",
+  "nodes": [
+   "x_shtift_osi"
+  ]
+ },
+ {
   "key": "p13_vtulka",
   "pos": "13",
   "name_ru": "Втулка распределителя",
@@ -294,17 +321,14 @@
   "key": "x_vint_flantsa",
   "pos": "",
   "name_ru": "Винт М6-6g×20.58 ГОСТ 1491-80 - позиция не указана",
-  "qty": 6,
+  "qty": 3,
   "material": "Сталь 35",
   "standard": "ГОСТ 1491-80",
-  "note": "Крепление поз.5 к корпусу (Ø126)",
+  "note": "Крепление поз.5 к корпусу (Ø126), 3 шт. через 120°",
   "nodes": [
    "x_vint_flantsa_1",
    "x_vint_flantsa_2",
-   "x_vint_flantsa_3",
-   "x_vint_flantsa_4",
-   "x_vint_flantsa_5",
-   "x_vint_flantsa_6"
+   "x_vint_flantsa_3"
   ]
  },
  {
@@ -367,6 +391,7 @@
   "standard": "ГОСТ 3128-70",
   "note": "Посадка Ø8 H7/m8",
   "nodes": [
+   "x_shtift_osi",
    "x_shtift_L",
    "x_shtift_R"
   ]
@@ -423,6 +448,34 @@
    "p22_vint_L2",
    "p22_vint_R1",
    "p22_vint_R2"
+  ]
+ },
+ {
+  "key": "x_vint_gubki",
+  "pos": "",
+  "name_ru": "Винт М3-6g×12.58 ГОСТ 17473-80 - позиция не указана",
+  "qty": 2,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "Крепление торца губки поз.1 к опоре стакана (вид сверху, y=-70)",
+  "nodes": [
+   "x_vint_gubki_L",
+   "x_vint_gubki_bok_L",
+   "x_vint_gubki_R",
+   "x_vint_gubki_bok_R"
+  ]
+ },
+ {
+  "key": "x_vint_gubki_bok",
+  "pos": "",
+  "name_ru": "Винт М3-6g×8.58 ГОСТ 17473-80 - ДОПУЩЕНИЕ (на чертеже не показан)",
+  "qty": 2,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "Второе крепление губки поз.1 к опоре стакана со стороны +Y (y=50), принято конструктивно",
+  "nodes": [
+   "x_vint_gubki_bok_L",
+   "x_vint_gubki_bok_R"
   ]
  },
  {

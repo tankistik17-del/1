@@ -1,0 +1,938 @@
+[
+ {
+  "key": "pol",
+  "pos": "",
+  "name_ru": "Пол цеха (бетон)",
+  "qty": 1,
+  "material": "бетон",
+  "standard": "",
+  "note": "Z=-200..0"
+ },
+ {
+  "key": "kolonna_A1",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд А, ось 1)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_A1",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_A2",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд А, ось 2)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_A2",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_A3",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд А, ось 3)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_A3",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_A4",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд А, ось 4)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_A4",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "podkran_balka_A",
+  "pos": "",
+  "name_ru": "Подкрановая балка",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "сечение 300×600 принято"
+ },
+ {
+  "key": "rels_A",
+  "pos": "",
+  "name_ru": "Крановый рельс КР70",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 4121-96",
+  "note": "h=120, подошва 120, головка 70; головка рельса Z=7525 (разрез А-А)"
+ },
+ {
+  "key": "kolonna_B1",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд Б, ось 1)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_B1",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_B2",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд Б, ось 2)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_B2",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_B3",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд Б, ось 3)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_B3",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "kolonna_B4",
+  "pos": "",
+  "name_ru": "Колонна ж/б 800×600 (ряд Б, ось 4)",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "Сечение по плану 1:50 (45.4×34.1 pt → 802×602)"
+ },
+ {
+  "key": "konsol_B4",
+  "pos": "",
+  "name_ru": "Консоль колонны под подкрановую балку",
+  "qty": 1,
+  "material": "железобетон",
+  "standard": "",
+  "note": "размеры приняты"
+ },
+ {
+  "key": "podkran_balka_B",
+  "pos": "",
+  "name_ru": "Подкрановая балка",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "сечение 300×600 принято"
+ },
+ {
+  "key": "rels_B",
+  "pos": "",
+  "name_ru": "Крановый рельс КР70",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 4121-96",
+  "note": "h=120, подошва 120, головка 70; головка рельса Z=7525 (разрез А-А)"
+ },
+ {
+  "key": "prostenok_1",
+  "pos": "",
+  "name_ru": "Простенок кирпичный (штриховка на плане)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "2000×418 по плану"
+ },
+ {
+  "key": "prostenok_2",
+  "pos": "",
+  "name_ru": "Простенок кирпичный (штриховка на плане)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "2000×418 по плану"
+ },
+ {
+  "key": "prostenok_3",
+  "pos": "",
+  "name_ru": "Простенок кирпичный (штриховка на плане)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "2000×418 по плану"
+ },
+ {
+  "key": "prostenok_4",
+  "pos": "",
+  "name_ru": "Простенок кирпичный (штриховка на плане)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "2000×418 по плану"
+ },
+ {
+  "key": "stena_1",
+  "pos": "",
+  "name_ru": "Стена наружная с ленточным проёмом (пролёт 1)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "толщина 597 по плану (153.4..187.2 pt)"
+ },
+ {
+  "key": "osteklenie_1",
+  "pos": "",
+  "name_ru": "Ленточное остекление",
+  "qty": 1,
+  "material": "стекло",
+  "standard": "",
+  "note": "высота 1200..7200 принята"
+ },
+ {
+  "key": "stena_2",
+  "pos": "",
+  "name_ru": "Стена наружная с ленточным проёмом (пролёт 2)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "толщина 597 по плану (153.4..187.2 pt)"
+ },
+ {
+  "key": "osteklenie_2",
+  "pos": "",
+  "name_ru": "Ленточное остекление",
+  "qty": 1,
+  "material": "стекло",
+  "standard": "",
+  "note": "высота 1200..7200 принята"
+ },
+ {
+  "key": "stena_3",
+  "pos": "",
+  "name_ru": "Стена наружная с ленточным проёмом (пролёт 3)",
+  "qty": 1,
+  "material": "кирпич",
+  "standard": "",
+  "note": "толщина 597 по плану (153.4..187.2 pt)"
+ },
+ {
+  "key": "osteklenie_3",
+  "pos": "",
+  "name_ru": "Ленточное остекление",
+  "qty": 1,
+  "material": "стекло",
+  "standard": "",
+  "note": "высота 1200..7200 принята"
+ },
+ {
+  "key": "ferma_1",
+  "pos": "",
+  "name_ru": "Стропильная ферма 18 м",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "геометрия по разрезу А-А (узлы по векторам)"
+ },
+ {
+  "key": "ferma_2",
+  "pos": "",
+  "name_ru": "Стропильная ферма 18 м",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "геометрия по разрезу А-А (узлы по векторам)"
+ },
+ {
+  "key": "ferma_3",
+  "pos": "",
+  "name_ru": "Стропильная ферма 18 м",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "геометрия по разрезу А-А (узлы по векторам)"
+ },
+ {
+  "key": "ferma_4",
+  "pos": "",
+  "name_ru": "Стропильная ферма 18 м",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "геометрия по разрезу А-А (узлы по векторам)"
+ },
+ {
+  "key": "krovlya_1",
+  "pos": "",
+  "name_ru": "Кровельная плита (скат 1)",
+  "qty": 1,
+  "material": "ж/б плита",
+  "standard": "",
+  "note": ""
+ },
+ {
+  "key": "krovlya_2",
+  "pos": "",
+  "name_ru": "Кровельная плита (скат 2)",
+  "qty": 1,
+  "material": "ж/б плита",
+  "standard": "",
+  "note": ""
+ },
+ {
+  "key": "fonar_stena_1",
+  "pos": "",
+  "name_ru": "Фонарь — остеклённая стенка",
+  "qty": 1,
+  "material": "стекло",
+  "standard": "",
+  "note": ""
+ },
+ {
+  "key": "fonar_stena_2",
+  "pos": "",
+  "name_ru": "Фонарь — остеклённая стенка",
+  "qty": 1,
+  "material": "стекло",
+  "standard": "",
+  "note": ""
+ },
+ {
+  "key": "fonar_krovlya",
+  "pos": "",
+  "name_ru": "Фонарь — кровля",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "конёк Z=15632"
+ },
+ {
+  "key": "proezd_razmetka",
+  "pos": "",
+  "name_ru": "Проезд — разметка на полу",
+  "qty": 1,
+  "material": "краска",
+  "standard": "",
+  "note": "ширина 3000 принята"
+ },
+ {
+  "key": "poz02_zona_kontrolya",
+  "pos": "",
+  "name_ru": "Зона контролёра (штриховой контур на плане)",
+  "qty": 1,
+  "material": "краска",
+  "standard": "",
+  "note": "2704×2352; разметка зоны поз.2 (не отдельное изделие)"
+ },
+ {
+  "key": "post_1_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №1 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_1_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №1 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post1",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post1",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post1",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post1",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post1",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "post_2_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №2 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_2_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №2 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post2",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post2",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post2",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post2",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post2",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "post_3_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №3 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_3_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №3 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post3",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post3",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post3",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post3",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post3",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "post_4_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №4 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_4_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №4 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post4",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post4",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post4",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post4",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post4",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "post_5_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №5 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_5_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №5 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post5",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post5",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post5",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post5",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post5",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "post_6_shirmy",
+  "pos": "",
+  "name_ru": "ПОСТ №6 — ширмы кабины 3000×2500",
+  "qty": 1,
+  "material": "сталь листовая",
+  "standard": "ГОСТ 12.3.003-86",
+  "note": "h=2000, t=40 приняты; общие перегородки поделены по оси"
+ },
+ {
+  "key": "post_6_shtora",
+  "pos": "",
+  "name_ru": "ПОСТ №6 — защитная штора в проёме",
+  "qty": 1,
+  "material": "брезент/ПВХ",
+  "standard": "ГОСТ 12.4.023",
+  "note": "проём 812 мм (1:30)"
+ },
+ {
+  "key": "poz05_bunker_othodov_post6",
+  "pos": "5",
+  "name_ru": "Бункер для отходов",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "477×450×600"
+ },
+ {
+  "key": "poz06_bunker_zagotovok_post6",
+  "pos": "6",
+  "name_ru": "Бункер для заготовок",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "731×714×600"
+ },
+ {
+  "key": "poz07_stol_svarshchika_post6",
+  "pos": "7",
+  "name_ru": "Стол сварщика",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "1047×582×800"
+ },
+ {
+  "key": "poz08_ustanovka_pa_post6",
+  "pos": "8",
+  "name_ru": "Установка для полуавтоматической сварки (подающий механизм)",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "Ø210 по кругу «М» (1:30)"
+ },
+ {
+  "key": "poz09_istochnik_pitaniya_post6",
+  "pos": "9",
+  "name_ru": "Источник питания",
+  "qty": 1,
+  "material": "сталь (корпус)",
+  "standard": "",
+  "note": "391×291×700"
+ },
+ {
+  "key": "poz01_stol_mastera_R",
+  "pos": "1",
+  "name_ru": "Стол мастера и распреда (Р)",
+  "qty": 1,
+  "material": "сталь/ДСП",
+  "standard": "",
+  "note": "1000×1291"
+ },
+ {
+  "key": "poz01_stol_mastera_SM",
+  "pos": "1",
+  "name_ru": "Стол мастера и распреда (СМ)",
+  "qty": 1,
+  "material": "сталь/ДСП",
+  "standard": "",
+  "note": "1000×1291"
+ },
+ {
+  "key": "poz02_stol_kontrolera",
+  "pos": "2",
+  "name_ru": "Стол контролёра (К)",
+  "qty": 1,
+  "material": "сталь/ДСП",
+  "standard": "",
+  "note": "996×1750"
+ },
+ {
+  "key": "poz03_bunker_gotovyh",
+  "pos": "3",
+  "name_ru": "Бункер для готовых деталей",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "954×948×800"
+ },
+ {
+  "key": "poz04_fontanchik",
+  "pos": "4",
+  "name_ru": "Фонтанчик питьевой воды",
+  "qty": 1,
+  "material": "сталь нерж./керамика",
+  "standard": "",
+  "note": "Ø300 по плану"
+ },
+ {
+  "key": "poz10_pozharny_shchit_1",
+  "pos": "10",
+  "name_ru": "Пожарный щит",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 12.4.009-83",
+  "note": "2500×400 по плану"
+ },
+ {
+  "key": "poz10_pozharny_shchit_2",
+  "pos": "10",
+  "name_ru": "Пожарный щит",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 12.4.009-83",
+  "note": "2500×400 по плану"
+ },
+ {
+  "key": "poz11_kran_koncevaya_balka_A",
+  "pos": "11",
+  "name_ru": "Кран мостовой Q=10 т — концевая балка с колёсами",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 25711-83",
+  "note": ""
+ },
+ {
+  "key": "poz11_kran_koncevaya_balka_B",
+  "pos": "11",
+  "name_ru": "Кран мостовой Q=10 т — концевая балка с колёсами",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 25711-83",
+  "note": ""
+ },
+ {
+  "key": "poz11_kran_glavnaya_balka_1",
+  "pos": "11",
+  "name_ru": "Кран мостовой Q=10 т — главная балка",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 25711-83",
+  "note": "Lк=16500"
+ },
+ {
+  "key": "poz11_kran_glavnaya_balka_2",
+  "pos": "11",
+  "name_ru": "Кран мостовой Q=10 т — главная балка",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 25711-83",
+  "note": "Lк=16500"
+ },
+ {
+  "key": "poz11_kran_telezhka",
+  "pos": "11",
+  "name_ru": "Кран — грузовая тележка",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "верх Z=9600"
+ },
+ {
+  "key": "poz11_kran_kanaty",
+  "pos": "11",
+  "name_ru": "Кран — канаты",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 2688-80",
+  "note": ""
+ },
+ {
+  "key": "poz11_kran_kryuk",
+  "pos": "11",
+  "name_ru": "Кран — крюковая подвеска",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 6627-74",
+  "note": "зев Z=6650"
+ },
+ {
+  "key": "poz11_kran_kabina",
+  "pos": "11",
+  "name_ru": "Кран — кабина управления",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "6650..8150 (h=1500), подвес к балкам 8150..8260"
+ },
+ {
+  "key": "gruz_stropy",
+  "pos": "",
+  "name_ru": "Стропы (4-ветвевой строп)",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "ГОСТ 25573-82",
+  "note": "1200 по разрезу; концы подрезаны по крюку и грузу (касание)"
+ },
+ {
+  "key": "gruz",
+  "pos": "",
+  "name_ru": "Груз на крюке (по разрезу А-А)",
+  "qty": 1,
+  "material": "сталь (условно)",
+  "standard": "",
+  "note": "h=1000, низ Z=4450"
+ },
+ {
+  "key": "gabarit_oborudovaniya",
+  "pos": "",
+  "name_ru": "Габарит оборудования под грузом (по разрезу А-А)",
+  "qty": 1,
+  "material": "условный габарит",
+  "standard": "",
+  "note": "h=1500, под грузом, зазор 2950"
+ },
+ {
+  "key": "ploshchadka_posadochnaya",
+  "pos": "",
+  "name_ru": "Посадочная площадка крана (по разрезу А-А)",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": "неподвижная, на 2 стойках у места стоянки крана; зазор 322 до моста"
+ },
+ {
+  "key": "lestnica",
+  "pos": "",
+  "name_ru": "Лестница на посадочную площадку",
+  "qty": 1,
+  "material": "сталь",
+  "standard": "",
+  "note": ""
+ }
+]

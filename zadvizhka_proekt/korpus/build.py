@@ -411,7 +411,7 @@ PARTS = [
     ("05_napravlyayushchaya_2", "Направляющая (Y−)", lambda: make_napravlyayushchaya(-1),
      C_GUIDE, "5", "Квадрат 14 ГОСТ 2591-2006", ""),
     ("06_dno", "Дно", make_dno, C_DNO, "6", "Лист 5 ГОСТ 19903-2015, штамповка",
-     "сфера R102/R97, низ z=−93"),
+     "сфера R102/R97, низ z=−92,8 (кромка лунки; полюс сферы −93,0)"),
 ]
 _i = 0
 for _sy, _sn in ((1, "Y+"), (-1, "Y-")):
@@ -464,7 +464,9 @@ INTERFACE = {
     "seat_gap_at_z": (SEAT_GAP, -P_OD / 2), "seat_angle_deg": SEAT_ANG,
     "seat_gap_at_axis": 2 * seat_x(0.0),
     "napravl_y_face": GD_GAP / 2, "napravl_w": GD_W, "napravl_z": (Z_GD_BOT, Z_GD_TOP),
-    "dno_z_min": DNO_ZC - DNO_RO,
+    # низшая точка дна — кромка лунки r = 6,5 (полюс сферы вырезан лункой)
+    "dno_z_min": DNO_ZC - math.sqrt(DNO_RO ** 2 - DIMPLE_R_OUT[1] ** 2),
+    "dno_sphere_pole_z": DNO_ZC - DNO_RO,    # продолженный полюс наружной сферы (−93,0)
 }
 
 
@@ -596,6 +598,9 @@ def report_dims(parts):
     out.append(("Ø118 отверстие фланца поз.4", 118, ST_ID))
     out.append(("160* ось — торец фланца поз.4", 160, bb("04_flanec_stakana").zmax))
     out.append(("268* торец фл.4 — низ фл.3", 268, bb("04_flanec_stakana").zmax - bb("03_flanec_patrubka_R").zmin))
+    zmin_dno = bb("06_dno").zmin
+    assert abs(zmin_dno - INTERFACE["dno_z_min"]) < 0.02, (zmin_dno, INTERFACE["dno_z_min"])
+    print("  низ дна: INTERFACE %.2f, bbox %.2f" % (INTERFACE["dno_z_min"], zmin_dno))
     for n, d, m in out:
         print("  %-36s чертёж %7.2f  модель %7.2f" % (n, d, m))
     return out

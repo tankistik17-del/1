@@ -28,7 +28,7 @@ from cadquery import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
-GLB_TOL, GLB_ANG = 0.12, 0.45   # точность триангуляции GLB (ограничение ≤ 4 МБ)
+GLB_TOL, GLB_ANG = 0.25, 0.6   # точность триангуляции GLB (ограничение ≤ 4 МБ)
 
 # ---------------------------------------------------------------------------
 # Общие размеры (лист 7)
@@ -41,8 +41,8 @@ R_AIR = 48.6         # радиус оси воздушного канала/т�
 # Плита-основание (поз. не указана) — главный вид / вид слева
 BASE_D = 200.0       # Ø200
 BASE_H = 15.0        # 15
-BASE_FLAT_Y = 70.0   # уступы |Y|>=70 (вид слева, замер 69.7..70.2)
-BASE_FLAT_H = 8.0    # толщина плиты в зоне уступов (вид слева, замер 8.07)
+BASE_CB_R = 14.0     # U-образная выборка вокруг паза: R14 = 84 - 70 (вырыв X=0 вида слева, замер 69.7..70.2)
+BASE_FLAT_H = 8.0    # дно выборки: толщина плиты под головкой крепежа (вид слева, замер 8.07)
 SLOT_Y = 84.0        # оси пазов под крепёж: 168/2 (вид слева)
 SLOT_W = 12.0        # ширина паза (22* от кромки до дна паза: 100-22=78=84-6)
 RING_ID_R = 60.0     # выступ-кольцо под втулку 16, внутр. R (замер 60.03)
@@ -99,6 +99,8 @@ COVER_SPIG_BOT = 168.3           # 30* ход: 168.3 - 138.3; 60*: 168.3-108.3
 NECK_TOP_COVER = 246.9           # верх горловины крышки (замер 246.89)
 NECK_COVER_R = 23.2              # горловина (замер 23.20)
 NECK_FLAT = 20.0                 # 40* (вид слева) — лыски горловины
+FORK_SLOT = 10.12                # полуширина паза вилки горловины (вид слева: ±10.12 от Z 246.89)
+FORK_X = 23.15                   # полуширина щёк вилки по X (главный вид: кромка X=±23.2), зазор 0.05 до упора рычага
 ROD_R = 9.95                     # Ø20 h6 (зазор 0.05 в Ø20 H7)
 CH_Z = COVER_Z1 - 7.0            # 7 — ось горизонтального канала Ø5 H8/u8
 
@@ -113,6 +115,10 @@ def kz(z):
     """Перевод замеренной по чертежу отметки головки в модельную (258/320)."""
     return Z_PIN + (z - 257.5) * KZ
 
+
+FORK_TOP = kz(277.71)   # верх щёк вилки крышки 11 = линия 277.7 вида слева (низ корпусов фиксаторов)
+KOL_X = 23.28        # полуширина колодки = внутренние грани губок рычагов 5 (контакт, колодка зажата)
+STROKE = 30.0        # 30* — ход поршня (168.3 - 138.3)
 
 PIN_X = 29.0         # 58/2
 LATCH_X = 46.0       # 92/2
@@ -217,7 +223,7 @@ def bolt_hex(d, L, k, S, z_head_top=None, z_under_head=None, down=True, x=0.0, y
     down=True: головка сверху (опорная плоскость z_under_head), стержень вниз."""
     if down:
         zu = z_under_head
-        head = hex_head(e, zu, zu + k, x, y, True)
+        head = hex_head(S, zu, zu + k, x, y, True)
         shank = cyl(d / 2, zu - L, zu + 0.01, x, y)
         ch = 0.6
         shank = shank.cut(ring(d / 2 - ch, d / 2 + 1, zu - L - 1, zu - L + ch)).fuse(
@@ -225,7 +231,7 @@ def bolt_hex(d, L, k, S, z_head_top=None, z_under_head=None, down=True, x=0.0, y
         return head.fuse(shank).clean()
     else:  # головка снизу, стержень вверх
         zu = z_under_head
-        head = hex_head(e, zu - k, zu, x, y, False)
+        head = hex_head(S, zu - k, zu, x, y, False)
         shank = cyl(d / 2, zu - 0.01, zu + L, x, y)
         return head.fuse(shank).clean()
 
@@ -245,11 +251,13 @@ def make_base():
     """Плита-основание Ø200×15 (поз. на листе не указана)."""
     s = cyl(BASE_D / 2, 0, BASE_H)
     for sg in (1, -1):
-        # уступы толщиной 8 при |Y|>=70 (вид слева)
-        y0, y1 = (BASE_FLAT_Y, 101) if sg > 0 else (-101, -BASE_FLAT_Y)
-        s = s.cut(box(-101, 101, y0, y1, BASE_FLAT_H, BASE_H + 1))
         # U-образный паз 12 под крепёж к планшайбе, ось Y=±84, 22* от кромки
         yc = sg * SLOT_Y
+        # местная U-образная выборка R14 (дно Z=8) вокруг паза, открытая к кромке
+        # (вид слева: в вырыве X=0 выборка от Y=±70 до кромки; у кромки плита 15 на всю высоту)
+        y0, y1 = (yc, 101) if sg > 0 else (-101, yc)
+        s = s.cut(cyl(BASE_CB_R, BASE_FLAT_H, BASE_H + 1, 0, yc))
+        s = s.cut(box(-BASE_CB_R, BASE_CB_R, y0, y1, BASE_FLAT_H, BASE_H + 1))
         s = s.cut(cyl(SLOT_W / 2, -1, BASE_H + 1, 0, yc))
         yy0, yy1 = (yc, 101) if sg > 0 else (-101, yc)
         s = s.cut(box(-SLOT_W / 2, SLOT_W / 2, yy0, yy1, -1, BASE_H + 1))
@@ -475,6 +483,13 @@ def make_cover():
     for sg in (1, -1):   # лыски горловины 40*
         y0, y1 = (NECK_FLAT, 40) if sg > 0 else (-40, -NECK_FLAT)
         s = s.cut(box(-40, 40, y0, y1, COVER_Z1 + 0.5, NECK_TOP_COVER + 1))
+    # щёки вилки (вид слева: контур 40 непрерывен от горловины до линии 277.7; дно паза 20.24 — Z 246.89).
+    # Верх щёк = 277.7 (совпадает с низом корпусов фиксаторов на виде слева); колодка на щёки
+    # НЕ опирается — она ходит вместе с головкой (см. make_kolodka, проверка хода stroke_check).
+    for sg in (1, -1):
+        y0, y1 = (FORK_SLOT, NECK_FLAT) if sg > 0 else (-NECK_FLAT, -FORK_SLOT)
+        s = s.fuse(box(-FORK_X, FORK_X, y0, y1, NECK_TOP_COVER - 1.0, FORK_TOP))
+    s = s.clean()
     s = s.cut(cyl(30.31, COVER_SPIG_BOT - 1, 174.06))           # карман Ø60.6
     s = s.cut(ring(ROD_R, 15.16, 178.1, 183.3))                 # канавка кольца 27
     d22 = (math.cos(math.radians(A_SEC)), math.sin(math.radians(A_SEC)), 0)
@@ -546,6 +561,19 @@ def lever_profile():
     return [(x, kz(z)) for x, z in pts]
 
 
+def jaw_pad_box():
+    # заштрихованная накладка губки (главный вид: X 57.91..64.18, Z 293.62..308.44)
+    return box(-64.18, -57.91, -LEV_T, LEV_T, kz(293.62), kz(308.44))
+
+
+def make_jaw_pad(side):
+    """Накладка (губка) рычага 5 — на главном виде заштрихована отдельно от рычага."""
+    s = jaw_pad_box()
+    if side > 0:
+        s = s.mirror("YZ")
+    return W(s)
+
+
 def make_lever(side):
     """Рычаг-прихват 5 (левый side=-1 / правый side=+1)."""
     pts = lever_profile()
@@ -557,6 +585,7 @@ def make_lever(side):
     ear = cyl_ax(8.0, (-PIN_X, -EAR_T, Z_PIN), (0, 1, 0), 2 * EAR_T)
     ear = ear.fuse(box(-37.0, -28.19, -EAR_T, EAR_T, Z_PIN, kz(267.63) + 0.5))
     s = body.fuse(lug).fuse(ear).clean()
+    s = s.cut(jaw_pad_box())                                         # накладка-губка — отдельная деталь
     s = s.cut(cyl_ax(4.05, (-PIN_X, -20, Z_PIN), (0, 1, 0), 40))     # Ø8 H11
     if side > 0:
         s = s.mirror("YZ")
@@ -570,7 +599,8 @@ def latch_z():
 def make_latch_body(side):
     """Корпус фиксатора (поз. не указана): блок с каналом Ø11.93 под фиксатор 6."""
     z0, z1 = kz(279.65) + 0.05, kz(308.78)
-    s = box(-53.34, -37.05, -LEV_T, LEV_T, z0, z1)
+    # ширина 40 (вид слева: блок ±20 от 277.7 до 308.4); грань X=-37 прилегает к рычагу 5
+    s = box(-53.34, -37.0, -NECK_FLAT, NECK_FLAT, z0, z1)
     s = s.cut(cyl_ax(11.93 / 2, (-60, 0, latch_z()), (1, 0, 0), 30))
     s = s.cut(drill(3.0, (-LATCH_X, 0, z0 - 1), (0, 0, 1), kz(290.66) - z0 + 1))   # М6
     s = s.cut(cyl(3.0, latch_z(), z1 + 1, -LATCH_X, 0))                             # Ø6 сверху
@@ -582,8 +612,8 @@ def make_latch_body(side):
 def make_skoba8(side):
     """Скоба 8 (Г-образная крышка фиксатора): стенка-упор пружины + полка под болт 20."""
     zb, zt = kz(277.71), kz(308.78)
-    wall = box(-55.12, -53.39, -LEV_T, LEV_T, zb, zt)
-    shelf = box(-55.12, -38.10, -LEV_T, LEV_T, zb, kz(279.65))
+    wall = box(-55.12, -53.39, -NECK_FLAT, NECK_FLAT, zb, zt)
+    shelf = box(-55.12, -38.10, -NECK_FLAT, NECK_FLAT, zb, kz(279.65))
     s = wall.fuse(shelf).clean().cut(cyl(3.3, zb - 1, zt, -LATCH_X, 0))
     if side > 0:
         s = s.mirror("YZ")
@@ -610,7 +640,7 @@ def make_fiksator6(side):
 
 
 def make_spring7(side):
-    """Пружина сжатия 7: проволока d1.0, D нар. 7.4, ~5.5 витка (ГОСТ 13766-86)."""
+    """Пружина сжатия 7: проволока d1.0, D нар. 7.4, ~5.5 витка (ГОСТ 13770-86, класс I по ГОСТ 13766-86)."""
     x0, x1 = -53.34 + 0.05, -41.06 - 0.05
     d = 1.0
     Dm = 6.4
@@ -638,9 +668,10 @@ def make_bolt20(side):
 
 
 def make_kolodka():
-    """Колодка (поз. не указана) — зажимаемая губками рычагов 5 (46.56×23.3, 40*)."""
+    """Колодка (поз. не указана) — зажата губками рычагов 5 (грани X=±23.28, 46.56×23.3, 40*)
+    и перемещается вместе с головкой на весь ход 30*."""
     z0, z1 = kz(285.33), kz(308.61)
-    s = cq.Workplane("XY").add(box(-23.2, 23.2, -NECK_FLAT, NECK_FLAT, z0, z1))
+    s = cq.Workplane("XY").add(box(-KOL_X, KOL_X, -NECK_FLAT, NECK_FLAT, z0, z1))
     s = s.edges("|Y and >Z").fillet(4.0)
     return s
 
@@ -694,7 +725,7 @@ def add(key, pos, name, mat, std, note, fn, color):
 
 
 add("plita", "", "Плита-основание Ø200", "Сталь 45 ГОСТ 1050-2013", "",
-    "Поз. на листе не указана (вероятно 19 или 22). Ø200×15, уступы 8 мм при |Y|≥70, 2 паза 12 (168, 22*), выступ Ø139.4×2 под втулку 16",
+    "Поз. на листе не указана (вероятно 19 или 22). Ø200×15, 2 паза 12 (168, 22*) с U-образными выборками R14 глубиной 7 (дно на 8), выступ Ø139.4×2 под втулку 16",
     make_base, C_BASE)
 add("korpus_15", "15", "Корпус (ось-распределитель воздуха) с плитой R105", "Сталь 45 ГОСТ 1050-2013", "",
     "Ø120, канавки под кольца 29, кольцевые канавки 10*, каналы Ø5*, полость Ø56*, поясок Ø77 h8", make_hub, C_HUB)
@@ -738,7 +769,7 @@ for i, z0 in enumerate((110.25, 116.25)):
 add("prokladka_1_verh", "1", "Прокладка верхняя (гильза — крышка)", "Паронит ПОН-Б ГОСТ 481-80", "",
     "толщина 1.6 (замер)", lambda: make_gasket(G_TOP1, COVER_Z0, FL_R), C_GASK)
 add("kryshka_11", "11", "Крышка пневмоцилиндра с направляющей горловиной", "Сталь 45 ГОСТ 1050-2013", "",
-    "14*, поясок Ø77 h8, отв. Ø20 H7, горловина Ø46.4 с лысками 40*, каналы Ø5 H8", make_cover, C_CYL)
+    "14*, поясок Ø77 h8, отв. Ø20 H7, горловина Ø46.4 с лысками 40*, выше — вилка 46.3×40 с пазом 20.24 до Z 277.7 (направляющая траверсы 10 и проушины штока), каналы Ø5 H8", make_cover, C_CYL)
 add("kolco_27", "27", "Кольцо уплотнительное 020-030-58", "Резина МБС", "ГОСТ 9833-73",
     "уплотнение штока в крышке", lambda: make_oring(12.55, 5.8, 180.7), C_RUB)
 add("zaglushka_12", "12", "Заглушка канала Ø5 u8×5.6", "Сталь 20", "", "Ø5 H8/u8, 7 от торца крышки",
@@ -758,17 +789,20 @@ for nm, sd in (("L", -1), ("R", 1)):
     add("rychag_5_%s" % nm, "5", "Рычаг-прихват", "Сталь 45 ГОСТ 1050-2013", "", "толщина 20.4, проушина 10",
         (lambda sd=sd: make_lever(sd)), C_LEVER)
     add("korpus_fiks_%s" % nm, "", "Корпус фиксатора", "Сталь 45", "",
-        "поз. на листе не указана; канал Ø11.93 под фиксатор 6", (lambda sd=sd: make_latch_body(sd)), C_HEAD)
+        "поз. на листе не указана; 16.3×40, канал Ø11.93 под фиксатор 6; прилегает к рычагу 5 (грань X=±37)", (lambda sd=sd: make_latch_body(sd)), C_HEAD)
     add("skoba_8_%s" % nm, "8", "Скоба (крышка фиксатора)", "Сталь 20", "", "упор пружины 7, крепится болтом 20",
         (lambda sd=sd: make_skoba8(sd)), C_HEAD)
     add("fiksator_6_%s" % nm, "6", "Фиксатор (плунжер)", "Сталь 45, HRC 40..45", "", "Ø11.85, сферический торец",
         (lambda sd=sd: make_fiksator6(sd)), C_ROD)
-    add("pruzhina_7_%s" % nm, "7", "Пружина сжатия 1.0×7.4", "Проволока 65Г ГОСТ 9389-75", "ГОСТ 13766-86",
+    add("pruzhina_7_%s" % nm, "7", "Пружина сжатия 1.0×7.4", "Проволока 65Г ГОСТ 9389-75", "ГОСТ 13770-86 (класс I, разряд 1 по ГОСТ 13766-86)",
         "d=1.0, D=7.4, n≈5.5", (lambda sd=sd: make_spring7(sd)), C_SPR)
+    add("nakladka_5_%s" % nm, "", "Накладка (губка) рычага", "Сталь 45, HRC 40..45", "",
+        "поз. на листе не указана; заштрихована на главном виде, 6.3×14.8×20.4; крепление не показано",
+        (lambda sd=sd: make_jaw_pad(sd)), C_ROD)
     add("bolt_20_%s" % nm, "20", "Болт М6×12", "Сталь 35", "ГОСТ 7798-70", "крепление скобы 8",
         (lambda sd=sd: make_bolt20(sd)), C_STD)
 add("kolodka", "", "Колодка, зажимаемая губками рычагов 5", "Сталь 45", "",
-    "поз. на листе не указана (заштрихована на главном виде), 46.4×23.3×40", make_kolodka, C_HUB)
+    "поз. на листе не указана (заштрихована на главном виде), 46.56×23.3×40; зажата губками рычагов 5 и перемещается с головкой (ход 30*)", make_kolodka, C_HUB)
 add("flanec_17", "17", "Фланец стакана (свариваемая деталь поз.4 корпуса)", "Сталь 20 ГОСТ 1050-2013", "",
     "заготовка: Ø210, 8 отв. Ø18 на Ø180 под 22°30', толщина 20.3", make_flange17, C_WP)
 add("stakan_zagotovka", "", "Стакан (свариваемая деталь поз.2 корпуса)", "Сталь 20", "",
@@ -852,24 +886,61 @@ def check(solids):
     return res
 
 
+# Подвижная группа (поршень со штоком и вся головка вместе с колодкой) — ход вверх 0…30*
+MOVING_PREFIX = ("porshen_14", "kolco_28_", "shtok_2", "kolco_26", "gaika_23_", "traversa_10", "os_9_",
+                 "rychag_5_", "korpus_fiks_", "skoba_8_", "fiksator_6_", "pruzhina_7_", "nakladka_5_",
+                 "bolt_20_", "kolodka")
+# кольца, скользящие по сопрягаемой неподвижной поверхности (обжатие допустимо)
+SLIDE_OK = {("kolco_28_1", "gilza_18"), ("kolco_28_2", "gilza_18"), ("kolco_27", "shtok_2")}
+
+
+def is_moving(k):
+    return k.startswith(MOVING_PREFIX)
+
+
+def stroke_check(solids, steps=(5, 10, 15, 19, 20, 25, 29, 30)):
+    """Перемещает подвижную группу вверх на dz и ищет пересечения с неподвижными деталями."""
+    mov = [k for k in solids if is_moving(k)]
+    fix = [k for k in solids if not is_moving(k)]
+    res = []
+    for dz in steps:
+        hits = []
+        for m in mov:
+            a = solids[m].val().translate(Vector(0, 0, dz))
+            ba = a.BoundingBox()
+            for f in fix:
+                if (m, f) in SLIDE_OK or (f, m) in SLIDE_OK:
+                    continue
+                b = solids[f].val()
+                bb_ = b.BoundingBox()
+                if (ba.xmin > bb_.xmax or bb_.xmin > ba.xmax or ba.ymin > bb_.ymax
+                        or bb_.ymin > ba.ymax or ba.zmin > bb_.zmax or bb_.zmin > ba.zmax):
+                    continue
+                v = a.intersect(b).Volume()
+                if v > 0.01:
+                    hits.append((m, f, round(v, 3)))
+        res.append(dict(dz=dz, hits=hits))
+        print("Ход dz=%4.1f: пересечений %d %s" % (dz, len(hits), hits[:6]))
+    return res
+
+
 def write_spec(solids):
-    groups = {}
-    order = []
+    """spec.json: группы по (поз., наименование); key — общий префикс имён узлов."""
+    groups, order = {}, []
     for p in PARTS:
-        k = p["key"]
-        base = k.rstrip("0123456789").rstrip("_")
-        for suf in ("_L", "_R", "_C", "_niz", "_verh"):
-            pass
-        if base.endswith("_L") or base.endswith("_R") or base.endswith("_C"):
-            base = base[:-2]
-        gk = (base, p["pos"], p["name"])
+        gk = (p["pos"], p["name"], p["note"])
         if gk not in groups:
-            groups[gk] = dict(key=base + "*", pos=p["pos"], name_ru=p["name"], qty=0,
-                              material=p["mat"], standard=p["std"], note=p["note"], nodes=[])
+            groups[gk] = dict(pos=p["pos"], name_ru=p["name"], qty=0, material=p["mat"],
+                              standard=p["std"], note=p["note"], nodes=[])
             order.append(gk)
         groups[gk]["qty"] += 1
-        groups[gk]["nodes"].append(k)
-    spec = [groups[g] for g in order]
+        groups[gk]["nodes"].append(p["key"])
+    spec = []
+    for g in order:
+        d = groups[g]
+        n = d["nodes"]
+        key = n[0] if len(n) == 1 else os.path.commonprefix(n).rstrip("_") + "_*"
+        spec.append(dict(key=key, **d))
     with open(os.path.join(OUT, "spec.json"), "w", encoding="utf-8") as f:
         json.dump(spec, f, ensure_ascii=False, indent=1)
     return spec
@@ -879,6 +950,9 @@ if __name__ == "__main__":
     s = build()
     spec = write_spec(s)
     r = check(s)
+    r["stroke_check"] = stroke_check(s)
+    r["stroke_ok"] = all(not st["hits"] for st in r["stroke_check"])
+    print("Проверка хода 0…%g мм: %s" % (STROKE, "OK" if r["stroke_ok"] else "ПЕРЕСЕЧЕНИЯ"))
     with open(os.path.join(OUT, "check.json"), "w", encoding="utf-8") as f:
         json.dump(r, f, ensure_ascii=False, indent=1)
     print("GLB size: %.2f MB" % (os.path.getsize(os.path.join(OUT, "prisposoblenie_svarochnoe_2.glb")) / 1e6))
