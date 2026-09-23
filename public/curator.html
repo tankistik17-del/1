@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кабинет куратора</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap" id="app"><p class="muted">Загрузка…</p></div>
+<script src="/common.js"></script>
+<script>
+const app = $('#app');
+const token = location.pathname.split('/').pop();
+const DAYS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+let data = null;
+// по умолчанию показываем ближайшую неделю: в выходные — следующую
+let week = mondayOf(toLocal(new Date()));
+if ([0, 6].includes(new Date().getDay())) week = addDays(week, 7);
+
+async function load() {
+  try {
+    data = await api('/api/curator/' + token);
+    render();
+  } catch (e) {
+    app.innerHTML = `<h1>Кабинет куратора</h1><div class="card err">${esc(e.message)}</div>`;
+  }
+}
+
+function render() {
+  const now = toLocal(new Date());
+  const today = now.slice(0, 10);
+  const weekEnd = addDays(week, 7);
+  const slots = data.slots.filter((s) => s.start >= week && s.start < weekEnd);
+  const booked = slots.filter((s) => s.status === 'booked').length;
+  const studentLink = `${location.origin}/c/${data.curator.bookingCode}`;
+
+  app.innerHTML = `
+    <div class="row">
+      <div><h1>${esc(data.curator.name)}</h1><div class="muted">Кабинет куратора</div></div>
+      <div class="spacer"></div>
+      <div style="min-width:280px;flex:1;max-width:460px">
+        <label>Ссылка для ваших учеников</label>
+        <div class="linkbox"><input readonly value="${esc(studentLink)}"><button class="ghost sm" id="cp">Копировать</button></div>
+        <div class="small muted" style="margin-top:4px">или код: <span class="code">${esc(data.curator.bookingCode)}</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <button class="ghost sm" id="prev">←</button>
+        <h2 style="margin:0">${fmtShortDay(week)} — ${fmtShortDay(addDays(week, 6))}</h2>
+        <button class="ghost sm" id="next">→</button>
+        <span class="muted small">слотов: ${slots.length}, занято: ${booked}</span>
+        <div class="spacer"></div>
+        <button class="ghost sm" id="copyPrev">Скопировать прошлую неделю</button>
+      </div>
+      <div class="week">
+        ${DAYS.map((dn, i) => {
+          const d = addDays(week, i);
+          const ds = slots.filter((s) => s.start.startsWith(d));
+          return `<div class="wday ${d === today ? 'today' : ''}">
+            <h3>${fmtShortDay(d)}</h3>
+            ${ds.map((s) => {
+              const past = s.start < now;
+              const cls = ['slot', s.status, s.outcome || '', past ? 'past' : ''].join(' ');
+              return `<button class="${cls}" data-id="${s.id}">
+                <span class="t">${fmtTime(s.start)}–${endTime(s.start, s.durationMin)}</span>
+                <span class="who">${s.booking ? esc(s.booking.studentName) : '<span class="muted">свободно</span>'}</span>
+              </button>`;
+            }).join('') || '<div class="muted small">—</div>'}
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="legend"><span><i></i>свободно</span><span><i class="b"></i>записан ученик</span><span><i class="a"></i>пришёл</span><span><i class="n"></i>не пришёл</span></div>
+    </div>
+
+    <div class="card">
+      <h2>Добавить слоты на эту неделю</h2>
+      <form id="gen">
+        <div class="field"><label>Дни</label>
+          <div class="daypick">${DAYS.map((d, i) => `<label><input type="checkbox" name="d" value="${i}" ${i < 5 ? 'checked' : ''}>${d}</label>`).join('')}</div>
+        </div>
+        <div class="row">
+          <div><label>С</label><input type="time" name="from" value="16:00" required></div>
+          <div><label>До</label><input type="time" name="to" value="19:00" required></div>
+          <div><label>Длительность, мин</label><input type="number" name="dur" value="45" min="10" max="240" style="width:110px"></div>
+          <div><label>Перерыв, мин</label><input type="number" name="gap" value="15" min="0" max="120" style="width:110px"></div>
+          <button>Добавить</button>
+        </div>
+        <div class="small muted" id="preview" style="margin-top:8px"></div>
+        <div id="genmsg"></div>
+      </form>
+    </div>`;
+
+  $('#cp').onclick = (e) => copy(studentLink, e.target);
+  $('#prev').onclick = () => { week = addDays(week, -7); render(); };
+  $('#next').onclick = () => { week = addDays(week, 7); render(); };
+  $('#copyPrev').onclick = copyPrevWeek;
+  app.querySelectorAll('.slot').forEach((b) => (b.onclick = () => openSlot(b.dataset.id)));
+
+  const gen = $('#gen');
+  const upd = () => { $('#preview').textContent = 'Будет создано: ' + generate(gen).length + ' слот(ов). Время в прошлом и дубли пропускаются.'; };
+  gen.oninput = upd;
+  upd();
+  gen.onsubmit = async (e) => {
+    e.preventDefault();
+    const list = generate(gen);
+    const r = await api(`/api/curator/${token}/slots`, { method: 'POST', body: { slots: list } });
+    await load();
+    $('#genmsg').innerHTML = `<div class="ok-box" style="margin-top:10px">Добавлено: ${r.added}${r.skipped ? `, пропущено: ${r.skipped}` : ''}</div>`;
+  };
+}
+
+function generate(form) {
+  const days = [...form.querySelectorAll('[name=d]:checked')].map((x) => +x.value);
+  const [fh, fm] = form.from.value.split(':').map(Number);
+  const [th, tm] = form.to.value.split(':').map(Number);
+  const dur = +form.dur.value || 45;
+  const gap = +form.gap.value || 0;
+  const out = [];
+  for (const i of days) {
+    const d = addDays(week, i);
+    for (let m = fh * 60 + fm; m + dur <= th * 60 + tm; m += dur + gap) {
+      out.push({ start: `${d}T${pad(Math.floor(m / 60))}:${pad(m % 60)}`, durationMin: dur });
+    }
+  }
+  return out;
+}
+
+async function copyPrevWeek() {
+  const prev = addDays(week, -7);
+  const src = data.slots.filter((s) => s.start >= prev && s.start < week);
+  if (!src.length) return alert('На прошлой неделе слотов не было');
+  const list = src.map((s) => ({ start: addDays(s.start, 7) + s.start.slice(10), durationMin: s.durationMin }));
+  const r = await api(`/api/curator/${token}/slots`, { method: 'POST', body: { slots: list } });
+  await load();
+  alert(`Добавлено слотов: ${r.added}` + (r.skipped ? `, пропущено (уже есть или в прошлом): ${r.skipped}` : ''));
+}
+
+function openSlot(sid) {
+  const s = data.slots.find((x) => x.id === sid);
+  const past = s.start < toLocal(new Date());
+  const when = `${fmtDay(s.start)}, ${fmtTime(s.start)}–${endTime(s.start, s.durationMin)}`;
+  let html;
+  if (s.status === 'free') {
+    html = `<h2>Свободный слот</h2><p class="muted">${when}</p>
+      <div class="actions"><button class="danger" data-a="delete">Удалить слот</button><button class="ghost" data-a="close">Закрыть</button></div>`;
+  } else {
+    const b = s.booking;
+    html = `<h2>${esc(b.studentName)}</h2><p class="muted">${when}</p>
+      <p>Контакт: <b>${esc(b.contact)}</b>${b.topic ? `<br>Тема: ${esc(b.topic)}` : ''}</p>
+      ${past ? `<label>Итог консультации</label>
+        <div class="actions" style="margin-top:4px">
+          <button class="${s.outcome === 'attended' ? '' : 'ghost'}" data-a="attended">Пришёл</button>
+          <button class="${s.outcome === 'no_show' ? '' : 'ghost'}" data-a="no_show">Не пришёл</button>
+        </div>` : ''}
+      <div class="actions">
+        ${past ? '' : '<button class="danger" data-a="free">Отменить запись</button>'}
+        <button class="ghost" data-a="close">Закрыть</button>
+      </div>`;
+  }
+  const m = modal(html);
+  m.querySelectorAll('[data-a]').forEach((btn) => (btn.onclick = async () => {
+    const a = btn.dataset.a;
+    if (a === 'close') return m.remove();
+    if (a === 'delete') await api(`/api/curator/${token}/slots/${sid}`, { method: 'DELETE' });
+    if (a === 'free') {
+      if (!confirm('Отменить запись ученика? Слот снова станет свободным. Предупредите ученика сами.')) return;
+      await api(`/api/curator/${token}/slots/${sid}`, { method: 'PATCH', body: { freeUp: true } });
+    }
+    if (a === 'attended' || a === 'no_show') {
+      await api(`/api/curator/${token}/slots/${sid}`, { method: 'PATCH', body: { outcome: s.outcome === a ? null : a } });
+    }
+    m.remove();
+    load();
+  }));
+}
+
+load();
+</script>
+</body>
+</html>

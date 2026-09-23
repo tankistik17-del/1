@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Запись на консультацию</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap narrow" id="app"></div>
+<script src="/common.js"></script>
+<script>
+const app = $('#app');
+const codeFromUrl = (location.pathname.match(/^\/c\/([A-Za-z0-9]+)/) || [])[1];
+let state = { code: codeFromUrl, curator: null, slots: [], selected: null };
+
+// --- ввод кода куратора ---
+function renderCodeForm(error) {
+  app.innerHTML = `
+    <h1>Запись на консультацию</h1>
+    <p class="muted">Введите код, который дал вам куратор, или откройте его персональную ссылку.</p>
+    <div class="card">
+      <form id="f" class="row">
+        <div style="flex:1;min-width:180px"><label>Код куратора</label>
+          <input name="code" placeholder="например, K7M2QX" autocomplete="off" style="text-transform:uppercase" required></div>
+        <button>Продолжить</button>
+      </form>
+      ${error ? `<div class="err">${esc(error)}</div>` : ''}
+    </div>
+    ${cancelBlock()}`;
+  $('#f').onsubmit = (e) => {
+    e.preventDefault();
+    const c = e.target.code.value.trim().toUpperCase();
+    history.pushState(null, '', '/c/' + c);
+    state.code = c;
+    load();
+  };
+  bindCancel();
+}
+
+function cancelBlock() {
+  return `
+    <details class="card">
+      <summary class="muted">Нужно отменить запись?</summary>
+      <form id="cf" class="row" style="margin-top:12px">
+        <div style="flex:1;min-width:180px"><label>Код отмены (выдаётся при записи)</label><input name="cc" required autocomplete="off"></div>
+        <button class="ghost">Отменить запись</button>
+      </form>
+      <div id="cmsg"></div>
+    </details>`;
+}
+function bindCancel() {
+  $('#cf').onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api('/api/public/cancel', { method: 'POST', body: { cancelCode: e.target.cc.value } });
+      $('#cmsg').innerHTML = '<div class="ok-box" style="margin-top:12px">Запись отменена, слот снова свободен.</div>';
+      if (state.curator) load();
+    } catch (err) {
+      $('#cmsg').innerHTML = `<div class="err">${esc(err.message)}</div>`;
+    }
+  };
+}
+
+// --- выбор слота ---
+async function load() {
+  try {
+    const data = await api('/api/public/' + encodeURIComponent(state.code));
+    state.curator = data.curator;
+    state.slots = data.slots;
+    state.selected = null;
+    renderSlots();
+  } catch (e) {
+    history.replaceState(null, '', '/');
+    renderCodeForm(e.message);
+  }
+}
+
+function renderSlots(error) {
+  const byDay = {};
+  for (const s of state.slots) (byDay[s.start.slice(0, 10)] ??= []).push(s);
+  const days = Object.keys(byDay).sort();
+
+  app.innerHTML = `
+    <h1>Запись на консультацию</h1>
+    <p class="muted">Куратор: <b style="color:var(--text)">${esc(state.curator.name)}</b></p>
+    <div class="card">
+      <h2>1. Выберите время</h2>
+      ${days.length ? days.map((d) => `
+        <div class="day">
+          <div class="day-title">${fmtDay(d)}</div>
+          <div class="chips">${byDay[d].map((s) => `
+            <button class="chip ${state.selected?.id === s.id ? 'sel' : ''}" data-id="${s.id}">${fmtTime(s.start)}–${endTime(s.start, s.durationMin)}</button>`).join('')}
+          </div>
+        </div>`).join('') : '<p class="muted">Свободных слотов пока нет. Куратор ещё не выложил расписание — загляните позже.</p>'}
+    </div>
+    ${state.selected ? `
+    <div class="card">
+      <h2>2. Ваши данные</h2>
+      <p class="muted small">${fmtDay(state.selected.start)}, ${fmtTime(state.selected.start)}–${endTime(state.selected.start, state.selected.durationMin)}</p>
+      <form id="bf">
+        <div class="field"><label>Имя и фамилия *</label><input name="studentName" required maxlength="80"></div>
+        <div class="field"><label>Контакт для связи (Telegram / телефон) *</label><input name="contact" required maxlength="80"></div>
+        <div class="field"><label>Что хотите разобрать</label><textarea name="topic" maxlength="300"></textarea></div>
+        <button>Записаться</button>
+        ${error ? `<div class="err">${esc(error)}</div>` : ''}
+      </form>
+    </div>` : ''}
+    ${cancelBlock()}`;
+
+  app.querySelectorAll('.chip').forEach((b) => (b.onclick = () => {
+    state.selected = state.slots.find((s) => s.id === b.dataset.id);
+    renderSlots();
+    $('#bf [name=studentName]').focus();
+  }));
+  const bf = $('#bf');
+  if (bf) bf.onsubmit = async (e) => {
+    e.preventDefault();
+    const f = e.target;
+    f.querySelector('button').disabled = true;
+    try {
+      const r = await api(`/api/public/${state.code}/book`, {
+        method: 'POST',
+        body: { slotId: state.selected.id, studentName: f.studentName.value, contact: f.contact.value, topic: f.topic.value },
+      });
+      renderDone(r);
+    } catch (err) {
+      // слот могли занять параллельно — обновим список
+      const data = await api('/api/public/' + state.code).catch(() => null);
+      if (data) state.slots = data.slots;
+      if (!state.slots.some((s) => s.id === state.selected.id)) state.selected = null;
+      renderSlots(err.message);
+      if (!state.selected) alert(err.message);
+    }
+  };
+  bindCancel();
+}
+
+function renderDone(r) {
+  app.innerHTML = `
+    <h1>Вы записаны!</h1>
+    <div class="card ok-box">
+      <p style="margin-top:0"><b>${fmtDay(r.slot.start)}, ${fmtTime(r.slot.start)}–${endTime(r.slot.start, r.slot.durationMin)}</b><br>
+      Куратор: ${esc(r.curator)}</p>
+      <p style="margin-bottom:0">Код для отмены записи: <span class="code">${esc(r.cancelCode)}</span><br>
+      <span class="small muted">Сохраните его — он понадобится, если планы изменятся.</span></p>
+    </div>
+    <p><a href="/c/${esc(state.code)}">← Вернуться к расписанию</a></p>`;
+}
+
+window.onpopstate = () => location.reload();
+state.code ? load() : renderCodeForm();
+</script>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Статистика консультаций</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script src="/common.js"></script>
+<script>
+const app = $('#app');
+let key = '';
+try { key = localStorage.getItem('adminKey') || ''; } catch {}
+let period = 'week';
+let custom = { from: '', to: '' };
+const H = () => ({ 'x-admin-key': key });
+
+function periodRange() {
+  const today = toLocal(new Date()).slice(0, 10);
+  const mon = mondayOf(today);
+  switch (period) {
+    case 'week': return { from: mon, to: addDays(mon, 6) };
+    case 'prev': return { from: addDays(mon, -7), to: addDays(mon, -1) };
+    case 'next': return { from: addDays(mon, 7), to: addDays(mon, 13) };
+    case 'month': {
+      const first = today.slice(0, 8) + '01';
+      return { from: first, to: addDays(addDays(first, 32).slice(0, 8) + '01', -1) };
+    }
+    case 'custom': return custom;
+    default: return { from: '', to: '' };
+  }
+}
+
+function renderLogin(error) {
+  app.innerHTML = `
+    <div class="wrap narrow" style="padding:0">
+      <h1>Вход для репетитора</h1>
+      <div class="card"><form id="lf" class="row">
+        <div style="flex:1;min-width:200px"><label>Пароль</label><input type="password" name="p" required autofocus></div>
+        <button>Войти</button>
+      </form>${error ? `<div class="err">${esc(error)}</div>` : ''}</div>
+    </div>`;
+  $('#lf').onsubmit = (e) => {
+    e.preventDefault();
+    key = e.target.p.value;
+    try { localStorage.setItem('adminKey', key); } catch {}
+    load();
+  };
+}
+
+async function load() {
+  const { from, to } = periodRange();
+  const q = new URLSearchParams({ from, to }).toString();
+  try {
+    const [stats, curators] = await Promise.all([
+      api('/api/admin/stats?' + q, { headers: H() }),
+      api('/api/admin/curators', { headers: H() }),
+    ]);
+    render(stats, curators, q);
+  } catch (e) {
+    renderLogin(e.message);
+  }
+}
+
+function render(stats, curators, q) {
+  const t = stats.rows.reduce((a, r) => {
+    for (const k of ['offered', 'booked', 'attended', 'noShow', 'cancelled', 'upcoming', 'unmarked']) a[k] = (a[k] || 0) + r[k];
+    return a;
+  }, {});
+  const fill = t.offered ? Math.round((t.booked / t.offered) * 100) : 0;
+  const held = t.attended + t.noShow;
+  const attendRate = held ? Math.round((t.attended / held) * 100) : 0;
+  const maxW = Math.max(1, ...stats.weeks.map((w) => w.offered));
+  const periods = [['week', 'Эта неделя'], ['prev', 'Прошлая'], ['next', 'Следующая'], ['month', 'Месяц'], ['all', 'Всё время'], ['custom', 'Период…']];
+
+  app.innerHTML = `
+    <div class="row">
+      <div><h1>Консультации кураторов</h1><div class="muted">Статистика для репетитора</div></div>
+      <div class="spacer"></div>
+      <a class="btn ghost" href="/api/admin/export.csv?${q}&key=${encodeURIComponent(key)}">Скачать CSV</a>
+      <button class="ghost" id="logout">Выйти</button>
+    </div>
+
+    <div class="card" style="padding:12px 16px">
+      <div class="row">
+        <div class="tabs">${periods.map(([k, l]) => `<button class="sm ${period === k ? 'on' : ''}" data-p="${k}">${l}</button>`).join('')}</div>
+        ${period === 'custom' ? `
+          <div><input type="date" id="cf" value="${custom.from}"></div>
+          <div><input type="date" id="ct" value="${custom.to}"></div>
+          <button class="sm" id="capply">Показать</button>` : ''}
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><div class="v">${t.offered}</div><div class="l">слотов выложено</div></div>
+      <div class="kpi"><div class="v">${t.booked}</div><div class="l">записей (${fill}% загрузка)</div></div>
+      <div class="kpi"><div class="v">${t.attended}</div><div class="l">проведено</div></div>
+      <div class="kpi"><div class="v">${t.noShow}</div><div class="l">неявок${held ? ` (явка ${attendRate}%)` : ''}</div></div>
+      <div class="kpi"><div class="v">${t.cancelled}</div><div class="l">отмен</div></div>
+      <div class="kpi"><div class="v">${t.upcoming}</div><div class="l">предстоит</div></div>
+    </div>
+
+    <div class="card">
+      <h2>По кураторам</h2>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Куратор</th><th>Слотов</th><th>Записей</th><th>Загрузка</th><th></th><th>Проведено</th><th>Неявки</th><th>Не отмечено</th><th>Отмены</th><th>Предстоит</th><th>Учеников</th></tr></thead>
+        <tbody>${stats.rows.map((r) => `
+          <tr>
+            <td>${esc(r.name)} ${r.active ? '' : '<span class="tag">отключён</span>'}</td>
+            <td>${r.offered}</td><td>${r.booked}</td><td>${r.fillRate}%</td>
+            <td><div class="bar"><span style="width:${r.fillRate}%"></span></div></td>
+            <td>${r.attended}</td><td>${r.noShow}</td><td>${r.unmarked ? `<b style="color:var(--bad)">${r.unmarked}</b>` : 0}</td>
+            <td>${r.cancelled}</td><td>${r.upcoming}</td><td>${r.students}</td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      <p class="small muted" style="margin-bottom:0">«Не отмечено» — прошедшие консультации, где куратор не поставил итог (пришёл / не пришёл).</p>
+    </div>
+
+    <div class="card">
+      <h2>По неделям</h2>
+      ${stats.weeks.length ? `
+      <div class="chart">${stats.weeks.map((w) => `
+        <div class="col" title="Слотов ${w.offered}, записей ${w.booked}, проведено ${w.attended}">
+          <div class="bars">
+            <span class="c-offered" style="height:${(w.offered / maxW) * 100}%"></span>
+            <span class="c-booked" style="height:${(w.booked / maxW) * 100}%"></span>
+            <span class="c-attended" style="height:${(w.attended / maxW) * 100}%"></span>
+          </div>
+          <div class="lbl">${fmtShortDay(w.week).replace(/^[^,]+, /, '')}</div>
+        </div>`).join('')}
+      </div>
+      <div class="legend"><span><i class="c-offered" style="border:0"></i>слоты</span><span><i class="c-booked" style="border:0"></i>записи</span><span><i class="c-attended" style="border:0"></i>проведено</span></div>`
+      : '<p class="muted">Нет данных за период</p>'}
+    </div>
+
+    <div class="card">
+      <h2>Кураторы и ссылки</h2>
+      <p class="small muted">Ссылку «для учеников» куратор раздаёт своим ученикам — по ней видно только его свободные слоты. «Кабинет» — секретная ссылка самого куратора.</p>
+      <div class="table-scroll"><table>
+        <thead><tr><th>Куратор</th><th style="text-align:left">Для учеников</th><th style="text-align:left">Кабинет куратора</th><th></th></tr></thead>
+        <tbody>${curators.map((c) => `
+          <tr>
+            <td>${esc(c.name)}</td>
+            <td style="text-align:left"><span class="code">${esc(c.bookingCode)}</span> <button class="ghost sm" data-copy="${location.origin}/c/${c.bookingCode}">ссылка</button></td>
+            <td style="text-align:left"><button class="ghost sm" data-copy="${location.origin}/curator/${c.token}">копировать</button> <a class="small" href="/curator/${c.token}" target="_blank">открыть</a></td>
+            <td><button class="${c.active ? 'danger' : 'ghost'} sm" data-toggle="${c.id}" data-active="${c.active}">${c.active ? 'Отключить' : 'Включить'}</button></td>
+          </tr>`).join('')}</tbody>
+      </table></div>
+      <form id="addc" class="row" style="margin-top:16px">
+        <div style="flex:1;min-width:200px"><label>Новый куратор</label><input name="name" placeholder="Имя и фамилия" required></div>
+        <button>Добавить</button>
+      </form>
+    </div>`;
+
+  app.querySelectorAll('[data-p]').forEach((b) => (b.onclick = () => { period = b.dataset.p; load(); }));
+  const ca = $('#capply');
+  if (ca) ca.onclick = () => { custom = { from: $('#cf').value, to: $('#ct').value }; load(); };
+  $('#logout').onclick = () => { try { localStorage.removeItem('adminKey'); } catch {} key = ''; renderLogin(); };
+  app.querySelectorAll('[data-copy]').forEach((b) => (b.onclick = () => copy(b.dataset.copy, b)));
+  app.querySelectorAll('[data-toggle]').forEach((b) => (b.onclick = async () => {
+    const active = b.dataset.active !== 'true';
+    if (!active && !confirm('Отключить куратора? Его ссылки перестанут работать, статистика сохранится.')) return;
+    await api('/api/admin/curators/' + b.dataset.toggle, { method: 'PATCH', headers: H(), body: { active } });
+    load();
+  }));
+  $('#addc').onsubmit = async (e) => {
+    e.preventDefault();
+    await api('/api/admin/curators', { method: 'POST', headers: H(), body: { name: e.target.name.value } });
+    load();
+  };
+}
+
+key ? load() : renderLogin();
+</script>
+</body>
+</html>

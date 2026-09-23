@@ -1,0 +1,12 @@
+{
+  "name": "consultation-booking",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Прототип записи учеников на консультации к кураторам со статистикой для репетитора",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
