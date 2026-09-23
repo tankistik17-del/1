@@ -1,0 +1,319 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Задвижка трубопровода</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#f8f9fb; --ink:#1b2a3a; --muted:#5a6b7e; --line:#c9d2dc;
+  --blue:#2f5d9a; --axis:#c9731f; --sel:#e0ebf8; --canvas:#e3e8ee; --cut:#c77c3c;
+  --f-head:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  --f-body:"PT Sans",Arial,sans-serif;
+  --f-mono:"PT Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#8d9cad;--line:#2b3642;
+  --blue:#7fa9e0;--axis:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--cut:#d98c4d;}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#8d9cad;--line:#2b3642;
+  --blue:#7fa9e0;--axis:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--cut:#d98c4d;}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;margin:0;padding-inline:16px;padding-block:16px}
+.wrap{max-width:1360px;margin:0 auto;display:grid;gap:12px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 20px;border-bottom:2px solid var(--ink);padding-bottom:8px}
+h1{font-family:var(--f-head);font-weight:700;font-size:30px;margin:0;text-wrap:balance}
+.sub{color:var(--muted);font-size:14px}
+.stamp{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.tabs{display:flex;gap:0;overflow-x:auto;border:1px solid var(--blue);background:var(--sheet)}
+.tabs button{flex:1 0 auto;font:inherit;font-size:14px;padding:8px 14px;border:0;border-right:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-align:left;line-height:1.2}
+.tabs button:last-child{border-right:0}
+.tabs button small{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.tabs button[aria-selected=true]{background:var(--blue);color:var(--sheet)}
+.tabs button[aria-selected=true] small{color:var(--sheet);opacity:.85}
+.tools{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:9px 12px;background:var(--sheet);border:1px solid var(--line)}
+.tools label{display:flex;gap:6px;align-items:center;font-size:14px;cursor:pointer}
+.tools input[type=range]{width:120px;accent-color:var(--blue)}
+.tools input[type=checkbox]{accent-color:var(--blue)}
+.tools select{font:inherit;font-size:14px;color:var(--ink);background:var(--sheet);border:1px solid var(--line);padding:2px 4px}
+.seg{display:inline-flex;border:1px solid var(--blue)}
+.seg button{font:inherit;font-size:14px;padding:4px 11px;background:transparent;color:var(--blue);border:0;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--blue);color:var(--sheet)}
+button:focus-visible,input:focus-visible,select:focus-visible,tr:focus-visible{outline:2px solid var(--axis);outline-offset:2px}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:12px}
+@media (max-width:960px){.main{grid-template-columns:1fr}}
+.stage{position:relative;background:var(--canvas);border:1px solid var(--line);min-height:380px;height:min(68vh,660px)}
+.stage canvas{display:block;width:100%;height:100%;outline:none}
+.hint{position:absolute;left:10px;bottom:8px;font-size:12px;color:var(--muted);pointer-events:none}
+.dims{position:absolute;right:10px;top:8px;font-family:var(--f-mono);font-size:12.5px;color:var(--muted);pointer-events:none;text-align:right}
+.load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--f-mono)}
+aside{background:var(--sheet);border:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+aside h2{font-family:var(--f-head);font-size:19px;margin:0;padding:10px 12px;border-bottom:1px solid var(--ink);letter-spacing:.04em;text-transform:uppercase;display:flex;justify-content:space-between;gap:8px}
+aside h2 span{font-family:var(--f-mono);font-size:12px;text-transform:none;letter-spacing:0;color:var(--muted);align-self:center}
+.spec{overflow:auto;max-height:min(68vh,660px)}
+table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:13.5px}
+col.c1{width:46px} col.c3{width:44px}
+th{font-family:var(--f-head);font-weight:400;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--sheet)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+td.pos,td.q{font-family:var(--f-mono);text-align:center}
+td small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+tbody tr{cursor:pointer}
+tbody tr:hover,tbody tr.on{background:var(--sel)}
+tbody tr.on td.pos{color:var(--axis);font-weight:700}
+.dwg{background:var(--sheet);border:1px solid var(--line)}
+.dwg-head{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line)}
+.dwg-head h3{font-family:var(--f-head);font-size:18px;margin:0;text-transform:uppercase;letter-spacing:.04em}
+.dwg-body{overflow:auto;max-height:78vh;background:#fff}
+.dwg-body img{display:block;max-width:none}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Задвижка трубопровода</h1>
+      <div class="sub">3D-модели чертежей дипломного проекта «Технология сборки-сварки корпуса задвижки трубопровода»</div>
+    </div>
+    <div class="stamp" id="stamp"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Листы проекта" id="tabs"></nav>
+
+  <div class="tools" role="toolbar" aria-label="Управление видом">
+    <label for="cut"><input type="checkbox" id="cut"> Разрез</label>
+    <label for="axis">плоскость <select id="axis"><option value="y">фронтальная (Y)</option><option value="x">профильная (X)</option><option value="z">горизонтальная (Z)</option></select></label>
+    <label for="off">сдвиг <input type="range" id="off" min="-100" max="100" value="0"></label>
+    <label for="exp">Разнести <input type="range" id="exp" min="0" max="100" value="0"></label>
+    <label for="welds"><input type="checkbox" id="welds" checked> Сварные швы</label>
+    <div class="seg" role="group" aria-label="Вид">
+      <button id="vIso" aria-pressed="true">Изометрия</button><button id="vFront" aria-pressed="false">Спереди</button><button id="vTop" aria-pressed="false">Сверху</button><button id="vSide" aria-pressed="false">Слева</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="stage" id="stage">
+      <div class="load" id="load">загрузка модели…</div>
+      <div class="dims" id="dims"></div>
+      <div class="hint">ЛКМ — вращать · колесо — масштаб · ПКМ — сдвиг · клик по детали — позиция в спецификации</div>
+    </div>
+    <aside>
+      <h2>Спецификация <span id="cnt"></span></h2>
+      <div class="spec"><table>
+        <colgroup><col class="c1"><col><col class="c3"></colgroup>
+        <thead><tr><th>Поз.</th><th>Наименование / материал, стандарт</th><th>Кол.</th></tr></thead>
+        <tbody id="spec"></tbody>
+      </table></div>
+    </aside>
+  </div>
+
+  <section class="dwg" aria-labelledby="dwgT">
+    <div class="dwg-head">
+      <h3 id="dwgT">Исходный чертёж</h3>
+      <div class="seg" role="group" aria-label="Масштаб чертежа">
+        <button id="z1" aria-pressed="true">по ширине</button><button id="z2" aria-pressed="false">×2</button><button id="z3" aria-pressed="false">×3</button>
+      </div>
+    </div>
+    <div class="dwg-body"><img id="dwgImg" alt="Лист чертежа" style="width:100%"></div>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const CONFIG = /*__CONFIG__*/[];
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.localClippingEnabled = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(30,1,1,1e6);
+const controls = new THREE.OrbitControls(camera, renderer.domElement); controls.enableDamping = true;
+scene.add(new THREE.HemisphereLight(0xffffff,0x8090a0,0.8));
+const d1 = new THREE.DirectionalLight(0xffffff,0.7); scene.add(d1);
+const d2 = new THREE.DirectionalLight(0xffffff,0.3); scene.add(d2);
+const clip = new THREE.Plane(new THREE.Vector3(0,0,-1),0);
+
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function themeColors(){
+  scene.background = new THREE.Color(css('--canvas')||'#e3e8ee');
+  const c = new THREE.Color(css('--cut')||'#c77c3c'); cutMats.forEach(m=>m.color.copy(c));
+}
+const cutMats = [];
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeColors);
+new MutationObserver(themeColors).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
+new ResizeObserver(resize).observe(stage); resize();
+
+let cur = null;            // {cfg, root, parts:[{obj,home,dir,key,spec}], box, center, size}
+const cache = {};
+let selected = null;
+
+// Tabs
+CONFIG.forEach((c,i)=>{
+  const b = document.createElement('button'); b.role='tab'; b.id='tab-'+c.key;
+  b.setAttribute('aria-selected','false');
+  b.innerHTML = `${c.title}<small>Лист ${c.sheet} · ${c.sub}</small>`;
+  b.onclick = ()=>show(c.key);
+  $('tabs').appendChild(b);
+});
+
+function specFor(name, spec){
+  let best=null;
+  for(const s of spec){ const k=s.key||''; if(k && name.startsWith(k) && (!best || k.length>best.key.length)) best=s; }
+  return best;
+}
+
+async function loadModel(c){
+  if(cache[c.key]) return cache[c.key];
+  const text = await (await fetch(c.model)).text();
+  const g = await new Promise((res,rej)=>new THREE.GLTFLoader().parse(text,'',res,rej));
+  const root = g.scene;
+  // top-level parts = children of the assembly node
+  let asm = root; while(asm.children.length===1 && !asm.children[0].isMesh) asm = asm.children[0];
+  const parts = [];
+  asm.children.forEach(o=>{
+    const s = specFor(o.name||'', c.spec);
+    parts.push({obj:o, key:o.name||'', spec:s});
+  });
+  const meshes=[]; root.traverse(o=>{ if(o.isMesh) meshes.push(o); });
+  meshes.forEach(o=>{
+    const m = o.material.clone(); m.side = THREE.FrontSide; m.clippingPlanes = [];
+    if('metalness' in m){ m.metalness = Math.min(m.metalness??0,0.3); m.roughness = Math.max(m.roughness??0.5,0.5); }
+    o.material = m; o.userData.base = m.color.clone(); o.userData.op = m.opacity; o.userData.tr = m.transparent;
+    const cm = new THREE.MeshBasicMaterial({color:css('--cut')||'#c77c3c', side:THREE.BackSide, clippingPlanes:[]});
+    cutMats.push(cm);
+    const back = new THREE.Mesh(o.geometry, cm); back.visible=false; back.userData.cut=true; o.add(back);
+  });
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root);
+  const center = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3());
+  parts.forEach(p=>{
+    p.home = p.obj.position.clone();
+    const pb = new THREE.Box3().setFromObject(p.obj);
+    const pc = pb.isEmpty()? center.clone() : pb.getCenter(new THREE.Vector3());
+    // explode direction in the parent's local frame
+    const wd = pc.clone().sub(center);
+    const inv = new THREE.Matrix4().copy(p.obj.parent.matrixWorld).invert();
+    const a = new THREE.Vector3().applyMatrix4(inv), b = wd.clone().applyMatrix4(inv);
+    p.dir = b.sub(a);
+  });
+  return cache[c.key] = {cfg:c, root, parts, box, center, size};
+}
+
+function setView(k){
+  if(!cur) return;
+  const dirs = {iso:[-1,0.85,1.3], front:[0,0.02,1], top:[0,1,0.001], side:[-1,0.02,0]};
+  const d = new THREE.Vector3(...dirs[k]).normalize();
+  const r = cur.size.length();
+  camera.near = r/500; camera.far = r*50; camera.updateProjectionMatrix();
+  camera.position.copy(cur.center).addScaledVector(d, r*1.75);
+  controls.target.copy(cur.center); controls.update();
+  ['Iso','Front','Top','Side'].forEach(n=>$('v'+n).setAttribute('aria-pressed',String(n.toLowerCase()===k)));
+}
+$('vIso').onclick=()=>setView('iso'); $('vFront').onclick=()=>setView('front');
+$('vTop').onclick=()=>setView('top'); $('vSide').onclick=()=>setView('side');
+
+function apply(){
+  if(!cur) return;
+  const e = +$('exp').value/100, cut = $('cut').checked, w = $('welds').checked;
+  const ax = $('axis').value, t = +$('off').value/100;
+  const n = {x:[1,0,0], y:[0,0,-1], z:[0,-1,0]}[ax];
+  clip.normal.set(...n);
+  const half = {x:cur.size.x, y:cur.size.z, z:cur.size.y}[ax]/2;
+  const P = cur.center.clone().addScaledVector(new THREE.Vector3(...n), -t*half);
+  clip.constant = -clip.normal.dot(P);
+  const k = 0.9*e;
+  cur.parts.forEach(p=>{
+    p.obj.position.copy(p.home).addScaledVector(p.dir, k);
+    p.obj.visible = /^shov/i.test(p.key) ? w : true;
+  });
+  cur.root.traverse(o=>{
+    if(!o.isMesh) return;
+    if(o.userData.cut){ o.visible = cut; o.material.clippingPlanes = cut?[clip]:[]; return; }
+    o.material.clippingPlanes = cut?[clip]:[]; o.material.needsUpdate = true;
+  });
+}
+['exp','cut','welds','axis','off'].forEach(id=>$(id).addEventListener('input',apply));
+
+function renderSpec(){
+  const tb = $('spec'); tb.innerHTML='';
+  const spec = cur.cfg.spec;
+  $('cnt').textContent = spec.length ? spec.length+' строк' : '';
+  spec.forEach((s,i)=>{
+    const tr = document.createElement('tr'); tr.tabIndex=0; tr.dataset.i=i;
+    const extra = [s.material, s.standard].filter(Boolean).join('; ');
+    tr.innerHTML = `<td class="pos">${s.pos||'—'}</td><td>${esc(s.name_ru||s.key)}${extra?`<small>${esc(extra)}</small>`:''}${s.note?`<small>${esc(s.note)}</small>`:''}</td><td class="q">${s.qty??''}</td>`;
+    tr.onclick=()=>select(i); tr.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();select(i);}};
+    tb.appendChild(tr);
+  });
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function select(i){
+  selected = (selected===i || i===null) ? null : i;
+  document.querySelectorAll('#spec tr').forEach(tr=>tr.classList.toggle('on', +tr.dataset.i===selected));
+  const target = selected===null ? null : cur.cfg.spec[selected];
+  const hl = new THREE.Color('#e8892f');
+  cur.parts.forEach(p=>{
+    const on = target && p.spec===target;
+    p.obj.traverse(o=>{
+      if(!o.isMesh || o.userData.cut) return;
+      const m = o.material;
+      if(!target){ m.color.copy(o.userData.base); m.transparent=o.userData.tr; m.opacity=o.userData.op; }
+      else if(on){ m.color.copy(hl); m.transparent=false; m.opacity=1; }
+      else { m.color.copy(o.userData.base); m.transparent=true; m.opacity=0.15; }
+      m.depthWrite = !m.transparent; m.needsUpdate = true;
+    });
+  });
+  if(selected!==null){ const tr=document.querySelector(`#spec tr[data-i="${selected}"]`); tr&&tr.scrollIntoView({block:'nearest'}); }
+}
+
+const ray = new THREE.Raycaster(), mv = new THREE.Vector2(); let down=null;
+renderer.domElement.addEventListener('pointerdown',e=>down=[e.clientX,e.clientY]);
+renderer.domElement.addEventListener('pointerup',e=>{
+  if(!cur||!down||Math.hypot(e.clientX-down[0],e.clientY-down[1])>4) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  mv.set((e.clientX-r.left)/r.width*2-1, -(e.clientY-r.top)/r.height*2+1);
+  ray.setFromCamera(mv,camera);
+  const cut = $('cut').checked;
+  const hit = ray.intersectObject(cur.root,true).find(h=>{
+    if(h.object.userData.cut) return false;
+    let o=h.object, v=true; while(o){ if(!o.visible) v=false; o=o.parent; }
+    return v && (!cut || clip.distanceToPoint(h.point)>=0);
+  });
+  if(!hit){ if(selected!==null) select(null); return; }
+  const p = cur.parts.find(p=>{ let o=hit.object; while(o){ if(o===p.obj) return true; o=o.parent; } return false; });
+  if(p && p.spec){ const i = cur.cfg.spec.indexOf(p.spec); if(i>=0) select(i); }
+});
+
+async function show(key){
+  const c = CONFIG.find(x=>x.key===key) || CONFIG[0];
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected', String(b.id==='tab-'+c.key)));
+  try{ history.replaceState(null,'','#'+c.key); }catch(_){}
+  $('load').hidden=false; $('load').textContent='загрузка модели…';
+  $('dwgImg').src = c.sheetImg; $('dwgT').textContent = `Исходный чертёж — лист ${c.sheet}`;
+  $('stamp').textContent = `Лист ${c.sheet} · ${c.sub}`;
+  let m;
+  try{ m = await loadModel(c); }catch(err){ console.error(err); $('load').textContent='Не удалось загрузить модель: '+c.model; return; }
+  if(cur) scene.remove(cur.root);
+  cur = m; selected = null; scene.add(m.root);
+  const r = m.size.length();
+  d1.position.set(m.center.x - r, m.center.y + 2*r, m.center.z + 1.5*r);
+  d2.position.set(m.center.x + r, m.center.y - r, m.center.z - r);
+  $('dims').textContent = `габарит ${fmt(m.size.x)} × ${fmt(m.size.z)} × ${fmt(m.size.y)} мм`;
+  $('cut').checked = c.section!=='none'; if(c.section!=='none') $('axis').value=c.section;
+  $('off').value = 0; $('exp').value = 0;
+  renderSpec(); themeColors(); apply(); select(null); setView('iso');
+  $('load').hidden=true;
+}
+function fmt(v){return v>=1000? Math.round(v).toLocaleString('ru-RU') : (Math.round(v*10)/10).toLocaleString('ru-RU');}
+
+function zoom(k){ $('dwgImg').style.width = (k*100)+'%'; ['z1','z2','z3'].forEach((id,i)=>$(id).setAttribute('aria-pressed',String(i+1===k))); }
+$('z1').onclick=()=>zoom(1); $('z2').onclick=()=>zoom(2); $('z3').onclick=()=>zoom(3);
+
+(function loop(){ requestAnimationFrame(loop); controls.update(); renderer.render(scene,camera); })();
+const start = (location.hash||'').slice(1);
+show(CONFIG.some(c=>c.key===start) ? start : (CONFIG[0]&&CONFIG[0].key));
+</script>
