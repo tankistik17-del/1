@@ -165,10 +165,28 @@ function specFor(name, spec){
   return best;
 }
 
+// Модели подключаются как скрипты (models/<key>.js кладёт GLB в base64 в window.ZADV_MODELS):
+// так они грузятся и там, где просмотрщик запрещает fetch (приложение на iPad).
+window.ZADV_MODELS = window.ZADV_MODELS || {};
+function loadScript(src){
+  return new Promise((res,rej)=>{
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = res; s.onerror = ()=>rej(new Error('файл '+src+' не загрузился'));
+    document.head.appendChild(s);
+  });
+}
+function b64ToBuffer(b64){
+  const bin = atob(b64), n = bin.length, u8 = new Uint8Array(n);
+  for(let i=0;i<n;i++) u8[i] = bin.charCodeAt(i);
+  return u8.buffer;
+}
 async function loadModel(c){
   if(cache[c.key]) return cache[c.key];
-  const text = await (await fetch(c.model)).text();
-  const g = await new Promise((res,rej)=>new THREE.GLTFLoader().parse(text,'',res,rej));
+  if(!window.ZADV_MODELS[c.key]) await loadScript(c.model);
+  const b64 = window.ZADV_MODELS[c.key];
+  if(!b64) throw new Error('в файле '+c.model+' нет данных модели');
+  const buf = b64ToBuffer(b64); delete window.ZADV_MODELS[c.key];
+  const g = await new Promise((res,rej)=>new THREE.GLTFLoader().parse(buf,'',res,rej));
   const root = g.scene;
   // top-level parts = children of the assembly node
   let asm = root; while(asm.children.length===1 && !asm.children[0].isMesh) asm = asm.children[0];
@@ -296,7 +314,7 @@ async function show(key){
   $('dwgImg').src = c.sheetImg; $('dwgT').textContent = `Исходный чертёж — лист ${c.sheet}`;
   $('stamp').textContent = `Лист ${c.sheet} · ${c.sub}`;
   let m;
-  try{ m = await loadModel(c); }catch(err){ console.error(err); $('load').textContent='Не удалось загрузить модель: '+c.model; return; }
+  try{ m = await loadModel(c); }catch(err){ console.error(err); $('load').textContent='Не удалось загрузить модель ('+c.title+'): '+(err&&err.message||err); return; }
   if(cur) scene.remove(cur.root);
   cur = m; selected = null; scene.add(m.root);
   const r = m.size.length();
