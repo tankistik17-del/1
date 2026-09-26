@@ -733,6 +733,20 @@ document.querySelectorAll('.fx').forEach(el=>{
 });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>fixtures.forEach(f=>f.bg()));
 new MutationObserver(()=>fixtures.forEach(f=>f.bg())).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+// служебный доступ для покадровой записи видео и PDF (make_video.py)
+window.__rz = {
+  fixtures,
+  ready: () => fixtures.every(f=>!!f.root),
+  steps: fi => fixtures[fi].cfg.steps.map(s=>({title:s.title, html:s.html, dur:s.dur||3})),
+  render(fi, step, t){
+    const f = fixtures[fi];
+    if(f.step!==step || !f._rec){ f.go(step, true); f._rec = true; }
+    f.playAll = false; f.holdUntil = 0; f.t = t; f.camK = 1; f.playing = true;
+    f.apply(); f.cfg.tick && f.cfg.tick(f, 0); f.playing = false;
+    f.controls.update(); f.renderer.render(f.scene, f.camera);
+  },
+  freeze(){ fixtures.forEach(f=>{ f.frozen = true; }); },
+};
 let last = performance.now();
-(function loop(now){ requestAnimationFrame(loop); const dt = Math.min(0.1,(now-last)/1000); last = now; fixtures.forEach(f=>f.tick(dt)); })(last);
+(function loop(now){ requestAnimationFrame(loop); const dt = Math.min(0.1,(now-last)/1000); last = now; fixtures.forEach(f=>{ if(!f.frozen) f.tick(dt); }); })(last);
 </script>
