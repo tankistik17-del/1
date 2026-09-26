@@ -19,6 +19,7 @@
 - `build.py` — параметрический скрипт;
 - `out/*.step` — сборка с именами деталей и цветами;
 - `out/*.glb`;
+- `out/*.usdz` — для iPhone/iPad: открывается встроенным просмотром (Quick Look) из «Файлов», можно поставить в AR в натуральную величину;
 - `out/parts_step/`, `out/parts_stl/` — каждая деталь отдельно;
 - `out/spec.json` — спецификация;
 - `renders/` — виды и разрезы для сверки с чертежом;
@@ -31,6 +32,7 @@
 ```bash
 pip install cadquery
 for d in korpus zadvizhka prisposoblenie_1 prisposoblenie_2 oborudovanie planirovka; do (cd $d && python3 build.py); done
+for g in */out/*.glb; do python3 ../tools/glb_to_usdz.py "$g"; done   # USDZ для iPad (pip install usd-core trimesh)
 cd viewer && ZADV_PDF=<путь к PDF> python3 make_viewer.py && cd .. && python3 -m http.server   # открыть /viewer/
 ```
 
