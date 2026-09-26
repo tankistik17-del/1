@@ -48,3 +48,13 @@ cd viewer && ZADV_PDF=<путь к PDF> python3 make_viewer.py && cd .. && pytho
 - В технических требованиях указан «ГОСТ 2246-79», правильно ГОСТ 2246-70.
 - На листах 1, 6 и 7 нет спецификации. Наименования позиций определены по конструкции. Детали без номеров
   позиций помечены в `spec.json`.
+
+## Папка для флешки (Windows, без программ и интернета)
+
+```bash
+python3 tools/make_package.py <PDF чертежей> <папка>        # задвижка: 3D-просмотр, альбом PDF, STEP, GLB
+python3 tools/make_package_kran.py <папка>                   # шаровой кран DN 50
+```
+
+`START_3D_prosmotr.html` открывается двойным щелчком в Edge или Chrome. Библиотеки three.js и шрифты PT лежат
+в `viewer/offline/` (лицензии MIT и OFL рядом).
