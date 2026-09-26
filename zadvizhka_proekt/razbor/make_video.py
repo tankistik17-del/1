@@ -3,7 +3,7 @@
 Видео (MP4) и PDF-версия разбора сварочных приспособлений — для устройств, где страница не открывается.
 
   pip install imageio-ffmpeg pillow playwright
-  python3 make_video.py <папка назначения>
+  python3 make_video.py <папка назначения>        (ONLY_PDF=1 — только PDF, без видео)
 
 Страница razbor рендерится в headless Chromium покадрово (window.__rz.render), к каждому кадру
 добавляется подпись шага. Результат:
@@ -129,13 +129,16 @@ def main():
             for i, s in enumerate(steps):
                 frames = max(2, int(round(s["dur"] * FPS)))
                 sub = first_sentence(s["html"])
-                for k in range(frames + 1):
+                only_pdf = os.environ.get("ONLY_PDF")
+                for k in (range(frames, frames + 1) if only_pdf else range(frames + 1)):
                     pg.evaluate("([fi,i,t]) => window.__rz.render(fi,i,t)", [fi, i, k / frames])
                     shot = Image.open(io.BytesIO(canvas.screenshot()))
                     fr = caption_frame(shot, i + 1, len(steps), s["title"], sub)
                     put(fr, int(1.4 * FPS) if k == frames else 1)
                 keyframes[fi].append((shot, s))
                 print("лист %d, шаг %d/%d" % (6 + fi, i + 1, len(steps)), flush=True)
+            if os.environ.get("ONLY_PDF"):
+                continue
             out = os.path.join(dst, FILES[fi])
             subprocess.run([ff, "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(fdir, "%05d.png"),
                             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "24", "-preset", "medium",
@@ -147,11 +150,19 @@ def main():
             items = []
             for i, (im, s) in enumerate(keyframes[fi]):
                 buf = io.BytesIO()
-                im.convert("RGB").save(buf, "JPEG", quality=84)
+                im = im.convert("RGB")
+                im = im.crop((4, 4, im.width - 4, im.height - 4))   # без рамки по краю кадра
+                from PIL import ImageChops
+                bg = Image.new("RGB", im.size, im.getpixel((2, 2)))
+                box = ImageChops.difference(im, bg).point(lambda v: 255 if v > 25 else 0).getbbox()
+                if box:
+                    m = 16
+                    im = im.crop((max(box[0] - m, 0), max(box[1] - m, 0), min(box[2] + m, im.width), min(box[3] + m, im.height)))
+                im.save(buf, "JPEG", quality=86)
                 items.append({"img": "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode(),
                               "n": i + 1, "title": s["title"], "html": s["html"]})
             pg.evaluate("""([fi, items]) => {
-              const fx = document.querySelectorAll('.fx')[fi];
+              const fx = document.querySelector(`.fx[data-fx="${fi+1}"]`);
               const div = document.createElement('div'); div.className = 'pdfsteps';
               div.innerHTML = items.map(it => `<div class="ps"><img src="${it.img}"><div><div class="pn">Шаг ${it.n}</div><h4>${it.title}</h4>${it.html}</div></div>`).join('');
               fx.replaceWith(div);
@@ -162,8 +173,8 @@ def main():
           body{padding:0;font-size:12pt;background:#fff}
           nav.toc{display:none}
           .pdfsteps{display:grid;gap:5mm;margin-top:4mm}
-          .ps{display:grid;grid-template-columns:95mm 1fr;gap:5mm;break-inside:avoid;border-top:1px solid #c9d2dc;padding-top:3mm}
-          .ps img{width:95mm;height:auto;border:1px solid #c9d2dc}
+          .ps{display:grid;grid-template-columns:80mm 1fr;gap:5mm;break-inside:avoid;border-top:1px solid #c9d2dc;padding-top:3mm}
+          .ps img{width:80mm;max-height:95mm;object-fit:contain;border:1px solid #c9d2dc}
           .ps h4{font-family:'PT Sans Narrow',Arial,sans-serif;font-size:14pt;margin:0 0 2mm}
           .ps p{font-size:10.5pt;margin:0 0 2mm}
           .pn{font-family:'PT Mono',monospace;font-size:9pt;color:#c9731f}
