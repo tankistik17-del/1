@@ -6,8 +6,9 @@
   python3 make_video.py <папка назначения>        (ONLY_PDF=1 — только PDF, без видео)
 
 Страница razbor рендерится в headless Chromium покадрово (window.__rz.render), к каждому кадру
-добавляется подпись шага. Результат:
-  «Приспособление 1 - как работает.mp4», «Приспособление 2 - как работает.mp4» (H.264, 1280×720)
+добавляется подпись шага. Страница снимается с devicePixelRatio = S при прежней CSS-вёрстке
+(сцена 1280×604 CSS-px → 1920×906 px), поэтому кадр чёткий без масштабирования. Результат:
+  «Приспособление 1 - как работает.mp4», «Приспособление 2 - как работает.mp4» (H.264, 1920×1080, 30 к/с)
   «Приспособления - разбор.pdf» — тот же текст, что на странице, с кадрами каждого шага.
 """
 import base64
@@ -27,8 +28,41 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
-FPS = 24
-W, H, BAR = 1280, 720, 116
+FPS = 30
+S = 1.5                                  # плотность пикселей при съёмке страницы (devicePixelRatio)
+W0, H0, BAR0 = 1280, 720, 116            # кадр в CSS-пикселях страницы
+W, H, BAR = round(W0 * S), round(H0 * S), round(BAR0 * S)   # 1920×1080, полоса подписи 174
+
+
+def px(v):
+    return round(v * S)
+
+
+class Frames:
+    """Кадры PNG для ffmpeg; повторы (удержание кадра) — жёсткие ссылки на уже записанный файл."""
+
+    def __init__(self, d):
+        self.d, self.n = d, 0
+        os.makedirs(d, exist_ok=True)
+
+    def put(self, im, count=1):
+        first = None
+        for _ in range(count):
+            f = os.path.join(self.d, "%05d.png" % self.n)
+            if first is None:
+                im.save(f, compress_level=1)
+                first = f
+            else:
+                os.link(first, f)
+            self.n += 1
+
+
+def encode(frames_dir, out):
+    """H.264 High 4.1, yuv420p — открывается стандартным плеером Windows; высокое качество (crf 17)."""
+    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-framerate", str(FPS),
+                    "-i", os.path.join(frames_dir, "%05d.png"), "-c:v", "libx264", "-preset", "slow", "-crf", "17",
+                    "-tune", "animation", "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
+                    "-r", str(FPS), "-movflags", "+faststart", out], check=True)
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 TITLES = ["Приспособление сварочное №1 (лист 6, операция 020)",
@@ -43,7 +77,7 @@ def plain(h):
 
 
 def first_sentence(h):
-    m = re.search(r"<p>(.*?)</p>", h, re.S)
+    m = re.search(r"<p(?:\s[^>]*)?>(.*?)</p>", h, re.S)
     t = plain(m.group(1) if m else h).strip()
     s = re.split(r"(?<=[.!?])\s", t)[0]
     return s
@@ -64,31 +98,37 @@ def wrap(draw, text, font, width):
 
 
 def caption_frame(img, n, total, title, sub):
-    f_t = ImageFont.truetype(FONT_B, 25)
-    f_s = ImageFont.truetype(FONT, 19)
-    f_n = ImageFont.truetype(FONT_B, 17)
+    f_t = ImageFont.truetype(FONT_B, px(25))
+    f_s = ImageFont.truetype(FONT, px(19))
+    f_n = ImageFont.truetype(FONT_B, px(17))
     canvas = Image.new("RGB", (W, H), (238, 241, 244))
     img = img.convert("RGB")
     k = min(W / img.width, (H - BAR) / img.height)
-    im = img.resize((int(img.width * k), int(img.height * k)), Image.LANCZOS)
-    canvas.paste(im, ((W - im.width) // 2, 0))
+    if abs(k - 1) < 0.01:
+        # снимок уже в размер кадра (±несколько px от рамки) — без пересэмплирования, лишнее обрезать
+        dx, dy = max(0, img.width - W), max(0, img.height - (H - BAR))
+        im = img.crop((dx // 2, dy // 2, img.width - (dx - dx // 2), img.height - (dy - dy // 2)))
+    else:
+        im = img.resize((int(img.width * k), int(img.height * k)), Image.LANCZOS)
+    canvas.paste(im, ((W - im.width) // 2, (H - BAR - im.height) // 2))
     d = ImageDraw.Draw(canvas)
     d.rectangle([0, H - BAR, W, H], fill=(27, 42, 58))
-    d.text((28, H - BAR + 14), "ШАГ %d / %d" % (n, total), font=f_n, fill=(224, 149, 74))
-    d.text((150, H - BAR + 10), title, font=f_t, fill=(255, 255, 255))
-    for j, line in enumerate(wrap(d, sub, f_s, W - 178)[:2]):
-        d.text((150, H - BAR + 48 + j * 26), line, font=f_s, fill=(200, 212, 226))
+    d.text((px(28), H - BAR + px(14)), "ШАГ %d / %d" % (n, total), font=f_n, fill=(224, 149, 74))
+    d.text((px(150), H - BAR + px(10)), title, font=f_t, fill=(255, 255, 255))
+    for j, line in enumerate(wrap(d, sub, f_s, W - px(178))[:2]):
+        d.text((px(150), H - BAR + px(48) + j * px(26)), line, font=f_s, fill=(200, 212, 226))
     return canvas
 
 
 def title_card(title, sub):
     c = Image.new("RGB", (W, H), (27, 42, 58))
     d = ImageDraw.Draw(c)
-    d.text((80, 250), "КАК РАБОТАЕТ", font=ImageFont.truetype(FONT_B, 24), fill=(224, 149, 74))
-    for j, line in enumerate(wrap(d, title, ImageFont.truetype(FONT_B, 44), W - 160)):
-        d.text((80, 290 + j * 56), line, font=ImageFont.truetype(FONT_B, 44), fill=(255, 255, 255))
-    for j, line in enumerate(wrap(d, sub, ImageFont.truetype(FONT, 24), W - 160)):
-        d.text((80, 420 + j * 34), line, font=ImageFont.truetype(FONT, 24), fill=(200, 212, 226))
+    f_k, f_t, f_s = ImageFont.truetype(FONT_B, px(24)), ImageFont.truetype(FONT_B, px(44)), ImageFont.truetype(FONT, px(24))
+    d.text((px(80), px(250)), "КАК РАБОТАЕТ", font=f_k, fill=(224, 149, 74))
+    for j, line in enumerate(wrap(d, title, f_t, W - px(160))):
+        d.text((px(80), px(290) + j * px(56)), line, font=f_t, fill=(255, 255, 255))
+    for j, line in enumerate(wrap(d, sub, f_s, W - px(160))):
+        d.text((px(80), px(420) + j * px(34)), line, font=f_s, fill=(200, 212, 226))
     return c
 
 
@@ -98,16 +138,15 @@ def main():
     tmp = tempfile.mkdtemp()
     subprocess.run([sys.executable, os.path.join(HERE, "make_razbor.py"), tmp], check=True, capture_output=True)
     page_file = os.path.join(tmp, "Приспособления - разбор.html")
-    ff = imageio_ffmpeg.get_ffmpeg_exe()
     keyframes = {}
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None,
                               args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=1)
+        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=S)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page_file))
         pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud,.stage .legend{display:none}" % (W, H - BAR))
+                                 ".stage .hud,.stage .legend{display:none}" % (W0, H0 - BAR0))
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         pg.wait_for_timeout(500)
@@ -116,14 +155,8 @@ def main():
             canvas = pg.locator(".stage canvas").nth(fi)
             canvas.scroll_into_view_if_needed()
             fdir = os.path.join(tmp, "f%d" % fi)
-            os.makedirs(fdir)
-            n = 0
-
-            def put(im, count=1):
-                nonlocal n
-                for _ in range(count):
-                    im.save(os.path.join(fdir, "%05d.png" % n))
-                    n += 1
+            fw = Frames(fdir)
+            put = fw.put
             put(title_card(TITLES[fi], SUBS[fi]), int(2.5 * FPS))
             keyframes[fi] = []
             for i, s in enumerate(steps):
@@ -140,10 +173,8 @@ def main():
             if os.environ.get("ONLY_PDF"):
                 continue
             out = os.path.join(dst, FILES[fi])
-            subprocess.run([ff, "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(fdir, "%05d.png"),
-                            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "24", "-preset", "medium",
-                            "-movflags", "+faststart", out], check=True)
-            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, n / FPS))
+            encode(fdir, out)
+            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
 
         # PDF: те же разделы страницы, вместо 3D-сцен — кадры каждого шага с полным текстом
         for fi in range(2):

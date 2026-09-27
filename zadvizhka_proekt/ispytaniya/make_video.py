@@ -13,13 +13,12 @@ import sys
 import tempfile
 import urllib.parse
 
-import imageio_ffmpeg
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, H, W, BAR, caption_frame, first_sentence, title_card  # noqa: E402
+from make_video import FPS, S, W0, H0, BAR0, Frames, caption_frame, encode, first_sentence, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
@@ -41,26 +40,19 @@ def main():
     subprocess.run([sys.executable, os.path.join(HERE, "make_ispytaniya.py"), tmp], check=True, capture_output=True)
     page = os.path.join(tmp, "Контроль и испытания корпуса.html")
     only_pdf = bool(os.environ.get("ONLY_PDF"))
-    ff = imageio_ffmpeg.get_ffmpeg_exe()
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None,
                               args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True)
+        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=S)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page))
         pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud .st,.stage .legend{display:none}" % (W, H - BAR))
+                                 ".stage .hud .st,.stage .legend{display:none}" % (W0, H0 - BAR0))
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         fdir = os.path.join(tmp, "f")
-        os.makedirs(fdir)
-        n = 0
-
-        def put(im, c=1):
-            nonlocal n
-            for _ in range(c):
-                im.save(os.path.join(fdir, "%05d.png" % n))
-                n += 1
+        fw = Frames(fdir)
+        put = fw.put
 
         # (сцена, список шагов, брак?) — годный корпус, затем тот же корпус со свищом с шага выдержки
         parts = [(0, None, False, "ВИК"), (1, None, False, "Гидроиспытание"), (1, [3, 4, 6], True, "Гидроиспытание: корпус со свищом")]
@@ -94,9 +86,8 @@ def main():
         pg.evaluate("v => window.__rz.setLeak(v)", False)
         if not only_pdf:
             out = os.path.join(dst, "Контроль и испытания корпуса.mp4")
-            subprocess.run([ff, "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(fdir, "%05d.png"),
-                            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", out], check=True)
-            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, n / FPS))
+            encode(fdir, out)
+            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
         for fi in (0, 1):
             items = []
             for i, (im, s) in enumerate(keys[fi]):

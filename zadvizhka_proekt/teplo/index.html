@@ -347,13 +347,18 @@ function buildTop(P){
   for(let i=0;i<nx;i++) for(let j=0;j<ny;j++) if(f[i*ny+j]>=735) w735=Math.max(w735,Math.abs(y0+j*dx));
   document.getElementById('topInfo').textContent = `δ = ${fmt(P.d,1)} мм · ванна ≈ ${fmt(melt,1)} мм за дугой · изотерма 735 °C: ${fmt(t735,0)} мм за дугой, полуширина ${fmt(w735,1)} мм`;
 }
-function topImage(W,H){
+// холсты: растр ×devicePixelRatio при прежней логической геометрии (чётко на ретина-экранах и в видео)
+const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+function hiDPI(id){ const cv=document.getElementById(id); cv._w=cv.width; cv._h=cv.height; cv.width=Math.round(cv._w*DPR); cv.height=Math.round(cv._h*DPR); }
+hiDPI('cvTop'); hiDPI('cvSec');
+function topImage(W,H,k=1){
   // растр поля считается один раз; при движении смещается только пластина
-  const F=TOP.field, c=document.createElement('canvas'); c.width=W; c.height=H;
-  const ctx=c.getContext('2d'), img=ctx.createImageData(W,H), D=img.data, L=TOP.X1-TOP.X0;
-  for(let px=0;px<W;px++){ const i=Math.min(F.nx-1,Math.round((px/W*L)/F.dx));
-    for(let py=0;py<H;py++){ const j=Math.min(F.ny-1,Math.round((py/H*TOP.H)/F.dx)); const c2=heatRGB(F.f[i*F.ny+j],TOP.P.T0), o=(py*W+px)*4; D[o]=c2[0];D[o+1]=c2[1];D[o+2]=c2[2];D[o+3]=255; } }
+  const F=TOP.field, c=document.createElement('canvas'), Wp=Math.round(W*k), Hp=Math.round(H*k); c.width=Wp; c.height=Hp;
+  const ctx=c.getContext('2d'), img=ctx.createImageData(Wp,Hp), D=img.data, L=TOP.X1-TOP.X0;
+  for(let px=0;px<Wp;px++){ const i=Math.min(F.nx-1,Math.round((px/Wp*L)/F.dx));
+    for(let py=0;py<Hp;py++){ const j=Math.min(F.ny-1,Math.round((py/Hp*TOP.H)/F.dx)); const c2=heatRGB(F.f[i*F.ny+j],TOP.P.T0), o=(py*Wp+px)*4; D[o]=c2[0];D[o+1]=c2[1];D[o+2]=c2[2];D[o+3]=255; } }
   ctx.putImageData(img,0,0);
+  ctx.setTransform(k,0,0,k,0,0);
   ctx.lineWidth=1.5; ctx.strokeStyle=INK; ctx.globalAlpha=0.6;
   for(const Lv of ISO) contour(ctx,(i,j)=>F.f[i*F.ny+j],F.nx,F.ny,Lv,i=>i*F.dx/L*W,j=>j*F.dx/TOP.H*H);
   ctx.globalAlpha=1;
@@ -367,10 +372,11 @@ function topImage(W,H){
   return c;
 }
 function drawTop(){
-  const cv=document.getElementById('cvTop'), ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+  const cv=document.getElementById('cvTop'), ctx=cv.getContext('2d'), W=cv._w, H=cv._h;
   if(!TOP.field) return;
-  if(!TOP.img) TOP.img = topImage(W,H);
-  ctx.drawImage(TOP.img,0,0);
+  ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  if(!TOP.img) TOP.img = topImage(W,H,cv.width/W);
+  ctx.drawImage(TOP.img,0,0,W,H);
   const L=TOP.X1-TOP.X0, sx=W/L, xa=(-TOP.X0)*sx, yc=H/2;
   // застывший шов позади ванны и метки на пластине, движущиеся назад
   ctx.fillStyle='rgba(90,70,60,0.16)'; ctx.fillRect(0, yc-1.6*sx, xa-2*sx, 3.2*sx);
@@ -474,7 +480,8 @@ function frameAt(R, t){
   return {a:R.frames[i], b:R.frames[j], f};
 }
 function drawSec(){
-  const R = results[VIEW.key]; const cv=document.getElementById('cvSec'), ctx=cv.getContext('2d'), W=cv.width, H=cv.height;
+  const R = results[VIEW.key]; const cv=document.getElementById('cvSec'), ctx=cv.getContext('2d'), W=cv._w, H=cv._h;
+  ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);
   if(!R){ ctx.fillStyle=`rgb(${CANVAS})`; ctx.fillRect(0,0,W,H); return; }
   const {G,g} = R, win = VIEW.zoom==='near' ? g.near : [g.box[0]-1,g.box[1]+1,g.box[2]-1,g.box[3]+1];
   // масштаб с сохранением пропорций

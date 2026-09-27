@@ -4,7 +4,8 @@
 
   python3 make_video.py <папка назначения>        (ONLY_PDF=1 — только PDF)
 
-Результат: «Тепловой процесс сварки.mp4» (H.264, 1280×720) и «Тепловой процесс сварки.pdf».
+Результат: «Тепловой процесс сварки.mp4» (H.264, 1920×1080, 30 к/с) и «Тепловой процесс сварки.pdf».
+Страница снимается с devicePixelRatio = S: холсты рисуются в том же разрешении, кадр не растягивается.
 """
 import base64
 import io
@@ -15,13 +16,12 @@ import sys
 import tempfile
 import urllib.parse
 
-import imageio_ffmpeg
 from PIL import Image
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, caption_frame, title_card  # noqa: E402
+from make_video import FPS, S, Frames, caption_frame, encode, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 CASES = [("shov1", "Шов №1 (направляющая — стакан)"),
@@ -41,22 +41,16 @@ def main():
     only_pdf = bool(os.environ.get("ONLY_PDF"))
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None)
-        ctx = b.new_context(viewport={"width": 1300, "height": 1000}, offline=True)
+        ctx = b.new_context(viewport={"width": 1300, "height": 1000}, offline=True, device_scale_factor=S)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page_file))
         pg.wait_for_function("window.__teplo && window.__teplo.ready()", timeout=300000)
         pg.evaluate("window.__frozen = true")
         pg.add_style_tag(content=".scene{grid-template-columns:1.1fr 1fr!important}")
         fdir = os.path.join(tmp, "frames")
-        os.makedirs(fdir)
-        n = 0
+        fw = Frames(fdir)
+        put = fw.put
         snaps = {}
-
-        def put(im, count=1):
-            nonlocal n
-            for _ in range(count):
-                im.save(os.path.join(fdir, "%05d.png" % n))
-                n += 1
 
         total = 1 + 2 * len(CASES)
         step = 0
@@ -109,10 +103,8 @@ def main():
             print("готово:", key, flush=True)
         if not only_pdf:
             out = os.path.join(dst, "Тепловой процесс сварки.mp4")
-            subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-framerate", str(FPS),
-                            "-i", os.path.join(fdir, "%05d.png"), "-c:v", "libx264", "-pix_fmt", "yuv420p",
-                            "-crf", "22", "-movflags", "+faststart", out], check=True)
-            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, n / FPS))
+            encode(fdir, out)
+            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
 
         # PDF: интерактивные сцены заменяются снимками
         def uri(im):

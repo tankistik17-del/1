@@ -13,13 +13,12 @@ import sys
 import tempfile
 import urllib.parse
 
-import imageio_ffmpeg
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, H, W, BAR, caption_frame, first_sentence, title_card  # noqa: E402
+from make_video import FPS, S, W0, H0, BAR0, Frames, caption_frame, encode, first_sentence, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
@@ -41,29 +40,22 @@ def main():
     subprocess.run([sys.executable, os.path.join(HERE, "make_process.py"), tmp], check=True, capture_output=True)
     page = os.path.join(tmp, "Сборка-сварка и экономика.html")
     only_pdf = bool(os.environ.get("ONLY_PDF"))
-    ff = imageio_ffmpeg.get_ffmpeg_exe()
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None,
                               args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True)
+        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=S)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page))
         pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud .st,.stage .legend{display:none}" % (W, H - BAR))
+                                 ".stage .hud .st,.stage .legend{display:none}" % (W0, H0 - BAR0))
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         steps = pg.evaluate("() => window.__rz.steps(0)")
         canvas = pg.locator(".stage").first
         canvas.scroll_into_view_if_needed()
         fdir = os.path.join(tmp, "f")
-        os.makedirs(fdir)
-        n = 0
-
-        def put(im, c=1):
-            nonlocal n
-            for _ in range(c):
-                im.save(os.path.join(fdir, "%05d.png" % n))
-                n += 1
+        fw = Frames(fdir)
+        put = fw.put
         if not only_pdf:
             put(title_card("Сборка-сварка корпуса задвижки: операции 020–050",
                            "Детали, швы, нормы времени и гидроиспытание — по маршрутному техпроцессу (листы 2, 4, 5)"), int(2.5 * FPS))
@@ -80,9 +72,8 @@ def main():
             print("шаг", i + 1, flush=True)
         if not only_pdf:
             out = os.path.join(dst, "Сборка-сварка корпуса.mp4")
-            subprocess.run([ff, "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", os.path.join(fdir, "%05d.png"),
-                            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "23", "-movflags", "+faststart", out], check=True)
-            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, n / FPS))
+            encode(fdir, out)
+            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
         items = []
         for i, (im, s) in enumerate(keys):
             buf = io.BytesIO()
