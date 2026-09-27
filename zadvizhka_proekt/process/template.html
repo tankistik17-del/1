@@ -104,7 +104,7 @@ details .in{padding:0 14px 12px}
 <header class="top">
   <div class="eyebrow">Дипломный проект · листы 2, 4, 5, 9</div>
   <h1>Сборка-сварка корпуса задвижки и экономика участка</h1>
-  <div class="sub">Техпроцесс по операциям 020–050 в 3D: какие детали собираются, какие швы ложатся и сколько на это уходит времени. Затем себестоимость корпуса, мощность участка и точка безубыточности. Все исходные данные можно менять.</div>
+  <div class="sub">Техпроцесс по операциям 020–050 в 3D: какие детали собираются, какие швы ложатся и сколько на это уходит времени. Затем себестоимость корпуса, число рабочих мест под программу 49 500 шт/год и точка безубыточности. Все исходные данные можно менять.</div>
 </header>
 <nav class="toc" aria-label="Разделы">
   <a href="#proc">Техпроцесс в 3D</a><a href="#norm">Нормы времени</a><a href="#eco">Точка безубыточности</a><a href="#calc">Калькуляция</a><a href="#inputs">Исходные данные</a>
@@ -169,14 +169,14 @@ details .in{padding:0 14px 12px}
     <div class="card"><h3>Постоянные затраты участка в год (FC)</h3><div class="tw"><table class="t" id="tabFix"></table></div>
       <h3 style="margin-top:12px">Мощность и программа</h3><div class="tw"><table class="t" id="tabCap"></table></div></div>
   </div>
-  <p class="note" style="margin-top:10px">Основная статья переменных затрат — три фланца Ø210: около 70% себестоимости. Сварочные материалы и электроэнергия вместе дают около 1,4%. Поэтому выгоднее снижать цену покупных заготовок, а не экономить на режиме сварки.</p>
+  <p class="note" style="margin-top:10px">Основная статья переменных затрат — три фланца Ø210: около 70% себестоимости. Сварочные материалы и электроэнергия вместе дают около 1,5%. Поэтому выгоднее снижать цену покупных заготовок, а не экономить на режиме сварки.</p>
 </section>
 
 <section class="block" id="inputs">
   <div class="eyebrow">Все значения можно менять — расчёт пересчитывается</div>
   <h2>Исходные данные и источники</h2>
   <div class="card tw"><table class="t" id="tabIn"></table></div>
-  <p class="note" style="margin-top:8px">Цены взяты из открытых прайсов поставщиков, сентябрь 2026. Где источника нет, указано «допущение»: для защиты такие значения стоит заменить данными предприятия. Нормы вспомогательного времени приняты по общемашиностроительным нормативам для полуавтоматической сварки в защитном газе.</p>
+  <p class="note" style="margin-top:8px">Цены взяты из открытых прайсов поставщиков, сентябрь 2026. Где источника нет, указано «допущение»: для защиты такие значения стоит заменить данными предприятия. Нормы вспомогательного времени приняты по общемашиностроительным нормативам для полуавтоматической сварки в защитном газе. Программа 49 500 шт/год и расход газа 17–18 л/мин взяты из пояснительной записки. Площадь участка принята по листу 9 (36 × 18 = 648 м²); в тексте записки указано 300 м², это расхождение стоит устранить до защиты.</p>
 </section>
 </div>
 
@@ -210,13 +210,14 @@ function compute(V){
   const rate = V.sal_w/V.h_month, labor = rate*t_all/60;
   const vr = {materials:Object.values(mat).reduce((a,b)=>a+b,0), wire:g_wire*V.c_wire, gas:gas_l/1000/V.v_gas*V.c_gas, energy:kwh*V.c_kwh, labor, ins:labor*V.ins/100};
   const AVC = Object.values(vr).reduce((a,b)=>a+b,0);
-  const eq = V.n_posts*(V.c_post+V.c_vent)+V.c_stand;
-  const fix = {am_eq:eq*V.am_eq/100, am_fix:V.n_fix*V.c_fix*V.am_fix/100, area:V.area*V.c_area, master:V.n_m*V.sal_m*12*(1+V.ins/100), other:V.other};
+  const fund = V.days*V.shifts*V.h_shift*(1-V.k_rep/100)*60, N = V.N;
+  const need_posts = N*t_weld_posts/fund, need_ctrl = N*t_ctrl/fund;
+  const n_posts = Math.ceil(need_posts/(V.kz/100)-1e-9), n_ctrl = Math.ceil(need_ctrl/(V.kz/100)-1e-9), n_fix = n_posts*V.k_fix;
+  const eq = n_posts*(V.c_post+V.c_vent)+n_ctrl*V.c_stand;
+  const fix = {am_eq:eq*V.am_eq/100, am_fix:n_fix*V.c_fix*V.am_fix/100, area:V.area*V.c_area, master:V.n_m*V.sal_m*12*(1+V.ins/100), other:V.other};
   const FC = Object.values(fix).reduce((a,b)=>a+b,0);
-  const fund = V.days*V.shifts*V.h_shift*(1-V.k_rep/100)*60;
-  const cap_posts = V.n_posts*fund/t_weld_posts, cap_ctrl = V.n_ctrl*fund/t_ctrl, cap = Math.min(cap_posts,cap_ctrl);
-  const N = Math.floor(cap*V.load/100), cost_full = AVC + FC/N, price = cost_full*(1+V.rent/100), Qbe = FC/(price-AVC);
-  return {ops,to_sum,L_sum,t_weld_posts,t_all,mat,g_wire,gas_l,kwh,rate,var:vr,AVC,fix,FC,fund,cap_posts,cap_ctrl,cap,N,cost_full,price,Qbe,
+  const cost_full = AVC + FC/N, price = cost_full*(1+V.rent/100), Qbe = FC/(price-AVC);
+  return {ops,to_sum,L_sum,t_weld_posts,t_all,mat,g_wire,gas_l,kwh,rate,var:vr,AVC,fix,FC,fund,need_posts,need_ctrl,n_posts,n_ctrl,n_fix,load_posts:need_posts/n_posts,load_ctrl:need_ctrl/n_ctrl,eq,N,cost_full,price,Qbe,
     Qbe_rub:Qbe*price, margin:(N-Qbe)/N, profit:N*(price-AVC)-FC, welders:(t_weld_posts*N/60)/(V.h_month*12*0.9), m_pipe,m_bar,m_sheet};
 }
 const OPN = {'020':'020 Стакан + 2 направляющие (прихватка, шов №1)','025':'025 п/сб.1 + фланец стакана','030':'030 п/сб.2 + дно (шов №3)','035':'035 Патрубок + фланец (×2)','040':'040 п/сб.3 + 2 п/сб.4 (седловые швы)','045':'045 Слесарная: зачистка','050':'050 Контроль, гидроиспытание'};
@@ -232,14 +233,14 @@ function renderEcon(){
   const k=(l,v,s,hero)=>`<div class="kpi${hero?' hero':''}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
   document.getElementById('kpis').innerHTML =
     k('Точка безубыточности', nf(Math.ceil(R.Qbe))+' шт', `${nf(R.Qbe_rub/1e6,1)} млн ₽ выручки · ${nf(R.Qbe/R.N*100,0)}% программы`, true) +
-    k('Программа выпуска', nf(R.N)+' шт/год', `${nf(Vv.load)}% мощности ${nf(R.cap)} шт`) +
+    k('Программа выпуска', nf(R.N)+' шт/год', `по пояснительной записке · ${R.n_posts} постов, ${R.n_ctrl} места контроля`) +
     k('Запас финансовой прочности', nf(R.margin*100,1)+' %', 'насколько может упасть выпуск без убытка') +
     k('Цена корпуса', nf(R.price)+' ₽', `себестоимость ${nf(R.cost_full)} ₽ + ${nf(Vv.rent)}%`) +
     k('Прибыль при программе', nf(R.profit/1e6,1)+' млн ₽', `маржинальный доход ${nf(R.price-R.AVC)} ₽/шт`);
   document.getElementById('how').innerHTML = `
     <li>Переменные затраты AVC = ${nf(R.AVC)} ₽/шт: заготовки, проволока, газ, электроэнергия, зарплата сварщиков и контролёров со взносами.</li>
     <li>Постоянные затраты FC = ${nf(R.FC/1e6,2)} млн ₽/год: амортизация, площадь ${nf(Vv.area)} м², мастера, прочие расходы.</li>
-    <li>Мощность ограничена ${R.cap_ctrl<R.cap_posts?'местом контроля и гидроиспытания':'сварочными постами'}: ${nf(R.cap)} шт/год. Программа — ${nf(Vv.load)}% мощности: ${nf(R.N)} шт.</li>
+    <li>Программа ${nf(R.N)} шт/год (пояснительная записка) требует ${nf(R.need_posts,2)} поста и ${nf(R.need_ctrl,2)} места контроля; при допустимой загрузке ${nf(Vv.kz)}% принято ${R.n_posts} сварочных постов${R.n_posts===6?" (как на листе 9)":""} и ${R.n_ctrl} места контроля и гидроиспытания.</li>
     <li>Цена = полная себестоимость × (1 + ${nf(Vv.rent)}%) = ${nf(R.price)} ₽.</li>
     <li>Qбу = ${nf(R.FC)} / (${nf(R.price)} − ${nf(R.AVC)}) = <b>${nf(R.Qbe)} шт</b>.</li>`;
   // чувствительность
@@ -257,16 +258,18 @@ function renderEcon(){
     frows.map(r=>`<tr><td>${r[0]}</td><td class="n">${nf(r[1])}</td></tr>`).join('')+`<tr class="tot"><td>FC</td><td class="n">${nf(R.FC)}</td></tr></tbody>`;
   document.getElementById('tabCap').innerHTML = `<tbody>
     <tr><td>Эффективный фонд рабочего места</td><td class="n">${nf(R.fund/60)} ч/год</td></tr>
-    <tr><td>Посты: ${Vv.n_posts} × фонд / ${nf(R.t_weld_posts,1)} мин</td><td class="n">${nf(R.cap_posts)} шт</td></tr>
-    <tr><td>Контроль: ${Vv.n_ctrl} × фонд / ${nf(R.ops['050'].tsh,1)} мин</td><td class="n">${nf(R.cap_ctrl)} шт</td></tr>
-    <tr><td>Программа (${nf(Vv.load)}% узкого места)</td><td class="n">${nf(R.N)} шт</td></tr>
+    <tr><td>Программа выпуска N</td><td class="n">${nf(R.N)} шт/год</td></tr>
+    <tr><td>Сварочные посты: N × ${nf(R.t_weld_posts,1)} мин / фонд = ${nf(R.need_posts,2)} → принято</td><td class="n">${R.n_posts} шт (загрузка ${nf(R.load_posts*100,0)}%)</td></tr>
+    <tr><td>Контроль и гидроиспытание: N × ${nf(R.ops['050'].tsh,1)} мин / фонд = ${nf(R.need_ctrl,2)} → принято</td><td class="n">${R.n_ctrl} шт (загрузка ${nf(R.load_ctrl*100,0)}%)</td></tr>
+    <tr><td>Приспособлений №1/№2 (по ${nf(Vv.k_fix)} на пост)</td><td class="n">${nf(R.n_fix)} шт</td></tr>
+    <tr><td>Стоимость оборудования участка</td><td class="n">${nf(R.eq/1e6,2)} млн ₽</td></tr>
     <tr><td>Нужно сварщиков (коэффициент выполнения 0,9)</td><td class="n">${nf(R.welders,1)} чел</td></tr></tbody>`;
   drawBE();
 }
 function renderInputs(){
   const groups = [['Режим сварки',['I','U','vsv','eta_src','p_idle','gas_lpm','psi','k_reinf']],['Нормирование',['tv_020','tv_025','tv_030','tv_035','tv_040','t_045','t_050','a_obs']],
     ['Материалы и цены',['c_pipe','kim_pipe','c_bar','kim_bar','kim_sheet','c_flange','c_wire','c_gas','v_gas','c_kwh']],['Труд',['sal_w','h_month','ins']],
-    ['Постоянные затраты',['n_posts','c_post','c_vent','c_stand','am_eq','c_fix','n_fix','am_fix','area','c_area','sal_m','n_m','other']],['Мощность и цена',['days','shifts','h_shift','k_rep','n_ctrl','load','rent']]];
+    ['Постоянные затраты',['c_post','c_vent','c_stand','am_eq','c_fix','k_fix','am_fix','area','c_area','sal_m','n_m','other']],['Программа и цена',['N','days','shifts','h_shift','k_rep','kz','rent']]];
   document.getElementById('tabIn').innerHTML = `<thead><tr><th>Параметр</th><th class="n">Значение</th><th>Ед.</th><th>Источник / допущение</th></tr></thead><tbody>`+
     groups.map(([g,keys])=>`<tr><td colspan="4" style="font-family:var(--f-head);font-size:16px;padding-top:10px">${g}</td></tr>`+keys.map(k=>{ const p=PARAM[k];
       return `<tr><td><label for="in_${k}">${p.label}</label></td><td class="n"><input id="in_${k}" type="number" step="any" value="${p.v}" data-k="${k}"></td><td>${p.unit}</td><td class="src">${p.src}</td></tr>`; }).join('')).join('')+'</tbody>';
@@ -294,11 +297,11 @@ function drawGantt(){
 function drawBE(){
   const el=document.getElementById('be'), W=640, H=420, m={l:64,r:24,t:18,b:44};
   const nice = v => { const p = 10**Math.floor(Math.log10(v)); for(const k of [1,2,2.5,5,10]) if(k*p >= v) return k*p; };
-  const qStep = nice(R.N*1.25/5), qMax = qStep*5, yStep = nice(qMax*R.price/5), yMax = yStep*Math.ceil(qMax*R.price/yStep);
+  const qStep = nice(R.N*1.15/6), qN = Math.ceil(R.N*1.15/qStep), qMax = qStep*qN, yStep = nice(qMax*R.price/5), yMax = yStep*Math.ceil(qMax*R.price/yStep);
   const x=q=>m.l+q/qMax*(W-m.l-m.r), y=v=>m.t+(1-v/yMax)*(H-m.t-m.b);
   let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="График безубыточности">`;
   for(let i=0;i<=Math.round(yMax/yStep);i++){ const v=i*yStep; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(v/1e6)}</text>`; }
-  for(let i=0;i<=5;i++){ const q=i*qStep; s+=`<text x="${x(q)}" y="${H-m.b+17}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(q)}</text>`; }
+  for(let i=0;i<=qN;i++){ const q=i*qStep; s+=`<text x="${x(q)}" y="${H-m.b+17}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(q)}</text>`; }
   s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" font-size="12.5" fill="var(--muted)">выпуск, шт/год</text><text x="14" y="${m.t+4}" font-size="12.5" fill="var(--muted)" transform="rotate(-90 14 ${m.t+4})" text-anchor="end">млн ₽</text>`;
   // зоны убытка/прибыли
   s+=`<path d="M${x(0)},${y(R.FC)} L${x(R.Qbe)},${y(R.Qbe*R.price)} L${x(0)},${y(0)} Z" fill="var(--crit)" opacity="0.08"/>`;
@@ -315,7 +318,7 @@ function drawBE(){
   s+=`<text x="${x(qMax)-4}" y="${y(qMax*R.price)-8}" text-anchor="end" font-size="12.5" fill="var(--ink)">выручка</text>`;
   s+=`<text x="${x(qMax)-4}" y="${y(R.FC+qMax*R.AVC)+16}" text-anchor="end" font-size="12.5" fill="var(--ink)">полные затраты</text>`;
   s+=`<text x="${x(qMax)-4}" y="${y(R.FC)-6}" text-anchor="end" font-size="12.5" fill="var(--muted)">постоянные затраты</text>`;
-  s+=`<text x="${x(R.Qbe*0.35)}" y="${y(R.FC*0.45)}" font-size="12.5" fill="var(--crit)" text-anchor="middle">убыток</text>`;
+  if(x(R.Qbe)-x(0) > 110) s+=`<text x="${x(R.Qbe*0.35)}" y="${y(R.FC*0.45)}" font-size="12.5" fill="var(--crit)" text-anchor="middle">убыток</text>`;
   s+=`<text x="${x((R.Qbe+qMax)/2)+30}" y="${y(((R.Qbe+qMax)/2)*R.price)+ (y(0)-y(1))*0 - 6}" font-size="12.5" fill="var(--good)">прибыль</text>`;
   s+=`<line id="hv" y1="${m.t}" y2="${y(0)}" stroke="var(--muted)" visibility="hidden"/><rect id="hit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/></svg><div class="tip" hidden></div>`;
   el.innerHTML = s + `<div class="clegend"><span><i style="background:var(--s1)"></i>выручка Ц·Q</span><span><i style="background:var(--s2)"></i>полные затраты FC + AVC·Q</span><span><i style="background:var(--s3)"></i>постоянные затраты FC</span></div>`;
@@ -450,7 +453,7 @@ function stepsFor(R){
     {title:'045 · Слесарная: зачистка', dur:2, set:{torch:0, grind:1}, focus:['shov_'],
      html:`<p>Швы проверяют на дефекты сварки, при необходимости исправляют подваркой, неровности зачищают шлифовальной машиной.</p><p class="m">Tшт = ${mi(o['045'].tsh)} мин</p>`},
     {title:'050 · Гидроиспытание 1,6 МПа', dur:5, set:{plug:1, hyd:1}, cut:true, cam:{pos:[-560,-640,420], target:[0,0,30]},
-     html:`<p>Фланцы закрывают заглушками, корпус заполняют водой и поднимают давление до 1,6 МПа (технические требования листа 1). Утечки не допускаются.</p><p>Окружное напряжение в стенке стакана: σ = p·D/(2s) = 1,6·118/(2·6) ≈ 15,7 МПа. Это в 16 раз ниже предела текучести стали 20 (245 МПа).</p><p class="m">Tшт = ${mi(o['050'].tsh)} мин — это узкое место участка</p>`},
+     html:`<p>Фланцы закрывают заглушками, корпус заполняют водой и поднимают давление до 1,6 МПа (технические требования листа 1). Утечки не допускаются.</p><p>Окружное напряжение в стенке стакана: σ = p·D/(2s) = 1,6·118/(2·6) ≈ 15,7 МПа. Это в 16 раз ниже предела текучести стали 20 (245 МПа).</p><p class="m">Tшт = ${mi(o['050'].tsh)} мин — самая длинная операция: под программу нужно ${R.n_ctrl} места контроля</p>`},
   ];
 }
 

@@ -26,7 +26,7 @@ P = {
     "vsv": (46, "м/ч", "Скорость сварки", "лист 5"),
     "eta_src": (0.70, "", "КПД источника ВС-300Б (с учётом cos φ)", "допущение, паспортные данные выпрямителей"),
     "p_idle": (0.4, "кВт", "Мощность холостого хода поста", "допущение"),
-    "gas_lpm": (13, "л/мин", "Расход защитного газа", "типовой 12–15 л/мин для Ø1,2 мм"),
+    "gas_lpm": (17.5, "л/мин", "Расход защитного газа", "пояснительная записка: 17–18 л/мин"),
     "psi": (0.10, "", "Потери проволоки на разбрызгивание и огарки", "типовые 5–15% для сварки в смеси"),
     "k_reinf": (1.15, "", "Коэффициент усиления шва к сечению катета", "с учётом выпуклости шва"),
     # нормирование, мин на корпус (вспомогательное время по операциям)
@@ -54,11 +54,10 @@ P = {
     "h_month": (164.4, "ч/мес", "Среднемесячный фонд рабочего времени", "производственный календарь, 40-ч неделя"),
     "ins": (30, "%", "Страховые взносы", "общий тариф"),
     # постоянные затраты, ₽/год
-    "n_posts": (6, "шт", "Число сварочных постов", "лист 9"),
     "c_post": (240000, "₽", "Оборудование поста: ВС-300Б + ПДГ-312-5 + горелка", "165–171 тыс. + 59 тыс. + ≈15 тыс., 2026"),
     "c_fix": (300000, "₽", "Приспособление (изготовление), за 1 шт", "допущение"),
-    "n_fix": (4, "шт", "Приспособлений №1 и №2 на участке", "допущение: по 2 шт"),
-    "c_stand": (400000, "₽", "Стенд гидроиспытаний", "допущение"),
+    "k_fix": (1, "шт/пост", "Приспособлений №1/№2 на сварочный пост", "допущение: у каждого поста своё"),
+    "c_stand": (400000, "₽", "Стенд гидроиспытаний (на место контроля)", "допущение"),
     "c_vent": (60000, "₽", "Местная вентиляция на пост", "допущение"),
     "am_eq": (10, "%/год", "Норма амортизации оборудования", "срок службы 10 лет"),
     "am_fix": (20, "%/год", "Норма амортизации приспособлений", "срок службы 5 лет"),
@@ -72,9 +71,9 @@ P = {
     "shifts": (2, "", "Смен", "допущение"),
     "h_shift": (8, "ч", "Длительность смены", ""),
     "k_rep": (5, "%", "Потери на ремонт оборудования", "допущение"),
-    "n_ctrl": (1, "шт", "Мест контроля и гидроиспытания", "лист 9: стол контролёра"),
-    "load": (80, "%", "Загрузка участка", "принято"),
-    "rent": (20, "%", "Рентабельность (наценка к полной себестоимости)", "принято"),
+    "kz": (85, "%", "Допустимая загрузка рабочего места", "норматив поточного производства 0,85–0,9"),
+    "N": (49500, "шт/год", "Годовая программа выпуска корпусов", "пояснительная записка (массовое производство)"),
+    "rent": (20, "%", "Рентабельность (наценка к полной себестоимости)", "принято: цена = себестоимость + 20%"),
 }
 V = {k: v[0] for k, v in P.items()}
 
@@ -168,30 +167,35 @@ def compute(V, WELDS, PARTS):
     )
     AVC = sum(var.values())
 
+    # число рабочих мест под программу N (узкие места — посты и контроль)
+    fund = V["days"] * V["shifts"] * V["h_shift"] * (1 - V["k_rep"]/100) * 60      # мин/год на рабочее место
+    N = V["N"]
+    need_posts = N * t_weld_posts / fund
+    need_ctrl = N * t_ctrl / fund
+    n_posts = math.ceil(need_posts / (V["kz"] / 100) - 1e-9)
+    n_ctrl = math.ceil(need_ctrl / (V["kz"] / 100) - 1e-9)
+    n_fix = n_posts * V["k_fix"]
+    load_posts = need_posts / n_posts
+    load_ctrl = need_ctrl / n_ctrl
+
     # постоянные затраты, ₽/год
-    eq = V["n_posts"] * (V["c_post"] + V["c_vent"]) + V["c_stand"]
+    eq = n_posts * (V["c_post"] + V["c_vent"]) + n_ctrl * V["c_stand"]
     fix = dict(
         am_eq=eq * V["am_eq"] / 100,
-        am_fix=V["n_fix"] * V["c_fix"] * V["am_fix"] / 100,
+        am_fix=n_fix * V["c_fix"] * V["am_fix"] / 100,
         area=V["area"] * V["c_area"],
         master=V["n_m"] * V["sal_m"] * 12 * (1 + V["ins"]/100),
         other=V["other"],
     )
     FC = sum(fix.values())
-
-    # мощность: узкое место — посты или место контроля
-    fund = V["days"] * V["shifts"] * V["h_shift"] * (1 - V["k_rep"]/100) * 60      # мин/год на рабочее место
-    cap_posts = V["n_posts"] * fund / t_weld_posts
-    cap_ctrl = V["n_ctrl"] * fund / t_ctrl
-    cap = min(cap_posts, cap_ctrl)
-    N = math.floor(cap * V["load"] / 100)
     cost_full = AVC + FC / N
     price = cost_full * (1 + V["rent"] / 100)
     Qbe = FC / (price - AVC)
     return dict(ops=ops, to_sum=to_sum, L_sum=L_sum, t_weld_posts=t_weld_posts, t_all=t_all,
                 masses=dict(pipe=m_pipe, bar=m_bar, sheet=m_sheet, total=sum(PARTS[k] for k in PARTS if not k.startswith("shov")) * RHO / 1000),
                 mat=mat, g_wire=g_wire, gas_l=gas_l, kwh=kwh, rate=rate, var=var, AVC=AVC, fix=fix, FC=FC,
-                fund=fund, cap_posts=cap_posts, cap_ctrl=cap_ctrl, cap=cap, N=N, cost_full=cost_full, price=price,
+                fund=fund, need_posts=need_posts, need_ctrl=need_ctrl, n_posts=n_posts, n_ctrl=n_ctrl, n_fix=n_fix,
+                load_posts=load_posts, load_ctrl=load_ctrl, eq=eq, N=N, cost_full=cost_full, price=price,
                 Qbe=Qbe, Qbe_rub=Qbe * price, margin=(N - Qbe) / N, profit=N * (price - AVC) - FC,
                 welders=(t_weld_posts * N / 60) / (V["h_month"] * 12 * 0.9))
 
@@ -210,7 +214,8 @@ if __name__ == "__main__":
     print("Переменные, ₽/шт:", {k: round(v, 1) for k, v in R["var"].items()}, "AVC =", round(R["AVC"], 1))
     print("  материалы:", {k: round(v, 1) for k, v in R["mat"].items()})
     print("Постоянные, ₽/год:", {k: round(v) for k, v in R["fix"].items()}, "FC =", round(R["FC"]))
-    print("Мощность: посты %.0f, контроль %.0f → %.0f шт/год; программа N = %d" % (R["cap_posts"], R["cap_ctrl"], R["cap"], R["N"]))
+    print("N = %d: постов %.2f → %d (загрузка %.0f%%), мест контроля %.2f → %d (%.0f%%), приспособлений %d" % (
+        R["N"], R["need_posts"], R["n_posts"], R["load_posts"]*100, R["need_ctrl"], R["n_ctrl"], R["load_ctrl"]*100, R["n_fix"]))
     print("Полная себестоимость %.0f ₽, цена %.0f ₽" % (R["cost_full"], R["price"]))
     print("Qбу = %.0f шт (%.2f млн ₽), запас прочности %.1f%%, прибыль %.2f млн ₽, сварщиков ≈ %.1f" % (
         R["Qbe"], R["Qbe_rub"]/1e6, R["margin"]*100, R["profit"]/1e6, R["welders"]))
