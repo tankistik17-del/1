@@ -1,0 +1,712 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Контроль и испытания корпуса</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#f8f9fb; --ink:#1b2a3a; --muted:#566779; --line:#c9d2dc; --grid:#e1e0d9;
+  --blue:#2f5d9a; --accent:#c9731f; --sel:#e0ebf8; --canvas:#e3e8ee; --plot:#fcfcfb;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#898781; --good:#006300; --crit:#d03b3b; --warn:#a86a00;
+  --plate:#b9c3ce; --plate2:#a3afbc; --weld:#7a5236; --haz:#d9b98f; --water:#3f8fd8;
+  --f-head:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  --f-body:"PT Sans",Arial,sans-serif;
+  --f-mono:"PT Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;--grid:#2c2c2a;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--plot:#1a1a19;
+  --s1:#3987e5;--s2:#d95926;--s3:#898781;--good:#0ca30c;--crit:#e66767;--warn:#e0a53a;
+  --plate:#4a5663;--plate2:#3c4652;--weld:#a8744c;--haz:#7a6243;--water:#5aa2ff;}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;--grid:#2c2c2a;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--plot:#1a1a19;
+  --s1:#3987e5;--s2:#d95926;--s3:#898781;--good:#0ca30c;--crit:#e66767;--warn:#e0a53a;
+  --plate:#4a5663;--plate2:#3c4652;--weld:#a8744c;--haz:#7a6243;--water:#5aa2ff;}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding-inline:16px;padding-block:18px}
+.wrap{max-width:1320px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-head);text-wrap:balance;margin:0}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
+header.top h1{font-size:34px;line-height:1.1}
+.sub{color:var(--muted);font-size:15px;max-width:80ch}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;margin-bottom:24px}
+nav.toc a{color:var(--blue);text-decoration:none}
+section.block{margin-bottom:44px}
+.eyebrow{font-family:var(--f-mono);font-size:12.5px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h2{font-size:28px;margin:2px 0 8px}
+h3{font-size:20px;margin:0 0 6px}
+p{margin:0 0 10px;max-width:76ch}
+.lead{font-size:17px;max-width:82ch}
+.note{color:var(--muted);font-size:14px}
+.card{background:var(--sheet);border:1px solid var(--line);padding:14px 16px}
+/* 3D-плеер */
+.fx{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;margin-top:10px}
+@media (max-width:980px){.fx{grid-template-columns:1fr}}
+.stage{position:relative;background:var(--canvas);border:1px solid var(--line);height:min(66vh,620px);min-height:360px}
+.stage canvas{display:block;width:100%;height:100%;outline:none}
+.stage .load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--f-mono);font-size:14px;text-align:center;padding:16px}
+.stage .hud{position:absolute;left:10px;top:8px;right:10px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);pointer-events:none}
+.legend i{display:inline-block;width:18px;height:5px;border-radius:3px;vertical-align:middle;margin-right:5px}
+.panel{background:var(--sheet);border:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.steps{list-style:none;margin:0;padding:6px 0;border-bottom:1px solid var(--line);max-height:250px;overflow:auto}
+.steps li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:6px;width:100%;padding:5px 12px;cursor:pointer;font-size:14.5px;line-height:1.3}
+.steps li button .n{font-family:var(--f-mono);color:var(--muted);font-size:13px}
+.steps li button:hover{background:var(--sel)}
+.steps li button[aria-current=step]{background:var(--sel);font-weight:700}
+.steps li button[aria-current=step] .n{color:var(--accent)}
+.steps li button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctrl{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ctrl button{font:inherit;font-size:14px;padding:5px 11px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer}
+.ctrl button.pri{background:var(--blue);color:var(--sheet)}
+.ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrl label{display:flex;gap:5px;align-items:center;font-size:14px;cursor:pointer;margin-left:4px}
+.ctrl input{accent-color:var(--blue)}
+.bar{height:3px;background:var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.say{padding:12px 14px;overflow:auto;flex:1;font-size:15px}
+.say h4{font-size:19px;margin-bottom:6px}
+.say p{margin-bottom:8px}
+.say .why{border-left:3px solid var(--accent);padding-left:10px}
+.say .m{font-family:var(--f-mono);font-size:13.5px;color:var(--muted)}
+.say .bad{border-left:3px solid var(--crit);padding-left:10px}
+/* манометры */
+.dials{position:absolute;right:10px;top:30px;display:flex;gap:8px;pointer-events:none}
+.dials svg{width:112px;height:112px;background:var(--sheet);border:1px solid var(--line);border-radius:50%}
+/* графики, таблицы */
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px}
+@media (max-width:980px){.grid2{grid-template-columns:1fr}}
+.chart{position:relative;background:var(--plot);border:1px solid var(--line);padding:10px 12px 6px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .tip{position:absolute;pointer-events:none;background:var(--sheet);border:1px solid var(--line);padding:6px 8px;font-size:12.5px;font-family:var(--f-mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted);padding:4px 0 2px}
+.clegend i{display:inline-block;width:18px;height:3px;vertical-align:3px;margin-right:6px}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{font-family:var(--f-head);font-weight:400;color:var(--muted);text-align:left;border-bottom:1.5px solid var(--ink);padding:4px 6px}
+table.t td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+table.t td.n,table.t th.n{text-align:right;font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t input{font:inherit;font-family:var(--f-mono);width:100px;text-align:right;padding:2px 5px;border:1px solid var(--line);background:var(--plot);color:var(--ink)}
+table.t input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+table.t td.src{font-size:12.5px;color:var(--muted)}
+.tw{overflow-x:auto}
+.f{font-family:var(--f-mono);font-size:14px;background:var(--paper);padding:8px 10px;margin:6px 0 8px;overflow-x:auto;white-space:nowrap}
+.ok{color:var(--good);font-weight:700}
+.no{color:var(--crit);font-weight:700}
+.part{color:var(--warn);font-weight:700}
+/* дефекты */
+.defpick{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px;margin-top:10px}
+@media (max-width:800px){.defpick{grid-template-columns:1fr}}
+.deflist{list-style:none;margin:0;padding:6px 0;background:var(--sheet);border:1px solid var(--line)}
+.deflist button{all:unset;box-sizing:border-box;display:block;width:100%;padding:7px 14px;cursor:pointer;font-size:15px}
+.deflist button:hover{background:var(--sel)}
+.deflist button[aria-pressed=true]{background:var(--sel);font-weight:700;box-shadow:inset 3px 0 0 var(--accent)}
+.deflist button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.defcard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;background:var(--sheet);border:1px solid var(--line);padding:14px 16px}
+@media (max-width:980px){.defcard{grid-template-columns:1fr}}
+.defcard svg{width:100%;height:auto;background:var(--plot);border:1px solid var(--line)}
+.defcard dl{margin:0;font-size:15px}
+.defcard dt{font-family:var(--f-head);color:var(--muted);font-size:14px;margin-top:6px}
+.defcard dd{margin:0}
+.defall{display:none}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
+ol.crit{margin:0;padding-left:20px}
+ol.crit li{margin-bottom:6px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Дипломный проект · пояснительная записка, п. 1.13 · операция 050</div>
+  <h1>Контроль и испытания корпуса задвижки</h1>
+  <div class="sub">Два метода контроля, выбранных в записке: визуально-измерительный контроль швов (РД 03-606-03) и гидравлическое испытание на прочность и плотность. Показано, что проверяет каждый метод, какие дефекты он находит и какие пропускает, как идёт испытание давлением и с каким запасом выдерживают его стенки и швы.</div>
+</header>
+<nav class="toc" aria-label="Разделы">
+  <a href="#vik">ВИК в 3D</a><a href="#defects">Дефекты швов</a><a href="#hydro">Гидроиспытание в 3D</a><a href="#press">Давление и прочность</a><a href="#accept">Критерии приёмки</a><a href="#inputs">Исходные данные</a>
+</nav>
+
+<section class="block" id="vik">
+  <div class="eyebrow">Метод 1 · визуально-измерительный контроль</div>
+  <h2>Внешний осмотр и обмер швов</h2>
+  <p class="lead">ВИК выполняют первым: он самый дешёвый и быстрый и должен предшествовать любому другому контролю. Контролёр осматривает каждый шов невооружённым глазом и через лупу, измеряет катет шаблоном и проверяет размеры, которые задают приспособления.</p>
+  <div class="fx" data-fx="vik">
+    <div class="stage"><div class="load">загрузка 3D-модели…</div>
+      <div class="hud"><span class="st"></span><span class="val"></span></div>
+      <div class="legend"><span><i style="background:#1f9a4a"></i>шов осмотрен, годен</span><span><i style="background:#ffb347"></i>осматривается сейчас</span><span><i style="background:#9fd0ff"></i>лупа</span></div>
+    </div>
+    <div class="panel">
+      <ol class="steps"></ol>
+      <div class="ctrl">
+        <button class="pri play" type="button">▶ Показать всё</button>
+        <button class="prev" type="button" aria-label="Предыдущий шаг">◀</button>
+        <button class="next" type="button" aria-label="Следующий шаг">▶</button>
+        <label><input type="checkbox" class="cut"> Разрез</label>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="say" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="defects">
+  <div class="eyebrow">Что ищут при контроле</div>
+  <h2>Дефекты угловых швов K3 и чем их находят</h2>
+  <p class="lead">Сечение таврового соединения с угловым швом катетом 3 мм, как швы корпуса. Выберите дефект: схема, причина при режиме I = 134 А, U = 23 В, v = 46 м/ч, каким методом он выявляется и как исправляется.</p>
+  <div class="defpick">
+    <ul class="deflist" id="defList"></ul>
+    <div class="defcard" id="defCard"></div>
+  </div>
+  <div class="defall" id="defAll"></div>
+  <h3 style="margin-top:18px">Какой метод какой дефект находит</h3>
+  <div class="card tw"><table class="t" id="tabDet"></table></div>
+  <p class="note" style="margin-top:8px">Внутренние поры и несквозной непровар корня не выявляют ни ВИК, ни гидроиспытание: для корпуса на 1,6 МПа это допустимо, если режим отработан на образцах с макрошлифами. При более высоких требованиях добавляют ультразвуковой контроль.</p>
+</section>
+
+<section class="block" id="hydro">
+  <div class="eyebrow">Метод 2 · гидравлическое испытание</div>
+  <h2>Испытание корпуса пробным давлением</h2>
+  <p class="lead">Корпус заглушают, заполняют водой, плавно поднимают давление до пробного и выдерживают. Затем давление снижают до рабочего и осматривают швы. Включите «Корпус со свищом», чтобы увидеть, как выглядит брак.</p>
+  <div class="fx" data-fx="hyd">
+    <div class="stage"><div class="load">загрузка 3D-модели…</div>
+      <div class="hud"><span class="st"></span><span class="val"></span></div>
+      <div class="dials" id="dials"></div>
+      <div class="legend"><span><i style="background:#3f8fd8"></i>вода</span><span><i style="background:#eeeeee"></i>вытесняемый воздух</span><span><i style="background:#7d8894"></i>заглушки стенда</span><span id="defNote">деформация стенок увеличена в 500 раз</span></div>
+    </div>
+    <div class="panel">
+      <ol class="steps"></ol>
+      <div class="ctrl">
+        <button class="pri play" type="button">▶ Показать всё</button>
+        <button class="prev" type="button" aria-label="Предыдущий шаг">◀</button>
+        <button class="next" type="button" aria-label="Следующий шаг">▶</button>
+        <label><input type="checkbox" class="cut"> Разрез</label>
+        <label><input type="checkbox" id="leak"> Корпус со свищом</label>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="say" aria-live="polite"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:16px">Давление по двум манометрам во время испытания</h3>
+  <div class="chart" id="pchart"></div>
+</section>
+
+<section class="block" id="press">
+  <div class="eyebrow">Проверочный расчёт</div>
+  <h2>Выдержит ли корпус пробное давление</h2>
+  <p class="lead">Пробное давление выше рабочего, поэтому сначала проверяют, что испытание само не повредит корпус: напряжения в стенках и швах при Pпр должны оставаться упругими, с запасом до предела текучести.</p>
+  <div class="f" id="fP"></div>
+  <div class="grid2">
+    <div class="card tw"><table class="t" id="tabStr"></table></div>
+    <div class="card">
+      <h3>Как считали</h3>
+      <ul id="strHow" style="margin:0;padding-left:18px;font-size:15px"></ul>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="accept">
+  <div class="eyebrow">Оценка результатов</div>
+  <h2>Когда корпус признают годным</h2>
+  <div class="cards">
+    <div class="card"><h3>ВИК</h3><ol class="crit">
+      <li>Нет трещин, прожогов, свищей, кратеров и выходящих наружу непроваров.</li>
+      <li>После зачистки нет брызг, наплывов и подрезов (п. 1.13 записки).</li>
+      <li>Катет швов 3 мм по шаблону, длина швов №1 — 40 мм.</li>
+      <li>Размеры, заданные приспособлениями, в допуске: 34±1 между сёдлами, строительная длина 224 мм.</li>
+      <li>Все найденные дефекты записаны: по записке это нужно для статистики и поиска причин.</li>
+    </ol></div>
+    <div class="card"><h3>Гидроиспытание</h3><ol class="crit" id="critHyd"></ol></div>
+    <div class="card"><h3>Безопасность</h3><ol class="crit">
+      <li>Давление поднимают медленно и плавно, чтобы исключить гидроудар.</li>
+      <li>Пока корпус под давлением, персонал находится в безопасном месте: подходить к корпусу запрещено.</li>
+      <li>Воздух удаляют полностью. Сжатый воздух накапливает энергию и при разрушении разлетается, вода — нет.</li>
+      <li>Осматривают только после снижения давления до рабочего.</li>
+    </ol></div>
+  </div>
+</section>
+
+<section class="block" id="inputs">
+  <div class="eyebrow">Все значения можно менять — расчёт и график пересчитываются</div>
+  <h2>Исходные данные</h2>
+  <div class="card tw"><table class="t" id="tabIn"></table></div>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*__HELPERS__*/
+/*__FIXTURE_CORE__*/
+
+// ======================= исходные данные =======================
+const WELDS = DATA.welds, WM = {}; WELDS.forEach(w=>WM[w.key]=w);
+const nf = (x,d=0) => (x==null||!isFinite(x)) ? '—' : x.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
+const PARAM = {
+  p_work:{v:1.6, unit:'МПа', label:'Рабочее давление Pр', src:'записка: корпус для жидкости с давлением до 1,6 МПа'},
+  k_test:{v:1.25, unit:'', label:'Отношение Pпр / Pр', src:'записка: пробное давление выше рабочего «чаще всего на 25%»'},
+  sig_t:{v:245, unit:'МПа', label:'Предел текучести стали 20, σт', src:'ГОСТ 1050'},
+  n_s:{v:1.5, unit:'', label:'Коэффициент запаса для допускаемого [σ] = σт / n', src:'допущение'},
+  k_w:{v:0.65, unit:'', label:'[τ′] / [σ] для угловых швов (механизированная сварка в защитном газе)', src:'справочно, Николаев Г.А.'},
+  K:{v:3, unit:'мм', label:'Катет швов', src:'чертёж: ◺3'},
+  E:{v:206000, unit:'МПа', label:'Модуль упругости стали', src:'справочно'},
+  scale:{v:4, unit:'МПа', label:'Верхний предел шкалы манометров', src:'Pпр во второй трети шкалы'},
+  t_set:{v:1, unit:'мин', label:'Установка, заглушки', src:'допущение'},
+  t_fill:{v:1.5, unit:'мин', label:'Заполнение водой, удаление воздуха', src:'допущение'},
+  t_rise:{v:1, unit:'мин', label:'Плавный подъём до Pпр', src:'допущение'},
+  t_hold:{v:3, unit:'мин', label:'Выдержка при Pпр', src:'допущение, уточнить по ГОСТ 33257-2015'},
+  t_insp:{v:2, unit:'мин', label:'Снижение до Pр и осмотр швов', src:'допущение'},
+  t_drain:{v:1.5, unit:'мин', label:'Сброс давления, слив, снятие', src:'допущение'},
+};
+const IV = {}; for(const k in PARAM) IV[k] = PARAM[k].v;
+const GEO = {st_D:118, st_s:6, p_D:99, p_s:6, dno_R:97, dno_s:5, seal_D:130};
+const Pt = () => IV.p_work*IV.k_test;
+
+// ======================= общая 3D-графика =======================
+function makeLabel(text, h=18, color='#1b2a3a'){
+  const c = document.createElement('canvas'), g = c.getContext('2d'), fs = 48;
+  g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`; const w = Math.ceil(g.measureText(text).width)+24;
+  c.width = w; c.height = fs+20; g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`;
+  g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(0,0,w,c.height); g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(text, 12, c.height/2+2);
+  const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
+  s.scale.set(h*w/c.height, h, 1); s.renderOrder = 20; s.userData.nocut = true; return s;
+}
+function lineMesh(pts, color=0x1b2a3a){
+  const g = new THREE.BufferGeometry().setFromPoints(pts.map(p=>V(...p)));
+  const l = new THREE.Line(g, new THREE.LineBasicMaterial({color, depthTest:false, transparent:true})); l.renderOrder = 19; l.userData.nocut = true; return l;
+}
+function dimension(a, b, off, text){
+  // размерная линия между точками a и b, вынесенная на вектор off
+  const g = new THREE.Group(), A = V(...a), B = V(...b), O = V(...off), A2 = A.clone().add(O), B2 = B.clone().add(O);
+  const ext = O.clone().normalize().multiplyScalar(8);
+  g.add(lineMesh([a, A2.clone().add(ext).toArray()])); g.add(lineMesh([b, B2.clone().add(ext).toArray()])); g.add(lineMesh([A2.toArray(), B2.toArray()]));
+  const dir = B2.clone().sub(A2).normalize();
+  for(const [p,d] of [[A2,dir],[B2,dir.clone().negate()]]){ const c = new THREE.Mesh(new THREE.ConeGeometry(2.6,11,12), new THREE.MeshBasicMaterial({color:0x1b2a3a, depthTest:false})); c.renderOrder=19; c.userData.nocut=true; c.position.copy(p).addScaledVector(d,5.5); c.quaternion.setFromUnitVectors(V(0,1,0), d.clone().negate()); g.add(c); }
+  const lb = makeLabel(text, 20); lb.position.copy(A2.clone().add(B2).multiplyScalar(0.5)).addScaledVector(O.clone().normalize(), 14); g.add(lb);
+  return g;
+}
+// точка и нормаль «наружу» для лупы на шве
+function weldPoint(w, f){
+  const P = w.pts, k = Math.max(0,Math.min(1,f))*(P.length-1), i = Math.min(P.length-2, Math.floor(k)), t = k-i;
+  return V(...P[i]).lerp(V(...P[i+1]), t);
+}
+function outDir(key, p){
+  let o;
+  if(key.startsWith('shov_1_')) o = V(Math.sign(p.x)*0.6, -Math.sign(p.y), 0.5);
+  else if(key.includes('stakan_flanec')) o = V(p.x, p.y, 0).normalize().add(V(0,0,-0.7));
+  else if(key.includes('dno')) o = V(p.x, p.y, 0).normalize().add(V(0,0,-0.8));
+  else if(key.includes('patrubok_flanec')) o = V(-Math.sign(p.x)*0.9, p.y/56.5, p.z/56.5);
+  else o = V(Math.sign(p.x)*0.7, p.y/56.5, p.z/56.5);
+  return o.normalize();
+}
+function makeLens(fx){
+  const g = new THREE.Group();
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(15,2.2,12,40), new THREE.MeshStandardMaterial({color:0x2a2f36, metalness:0.4, roughness:0.4}));
+  ring.rotation.x = Math.PI/2; g.add(ring);
+  const glass = new THREE.Mesh(new THREE.CircleGeometry(14,40), new THREE.MeshBasicMaterial({color:0x9fd0ff, transparent:true, opacity:0.35, side:THREE.DoubleSide, depthWrite:false}));
+  glass.rotation.x = Math.PI/2; g.add(glass);
+  const h = new THREE.Mesh(new THREE.CylinderGeometry(3,3.4,55,12), new THREE.MeshStandardMaterial({color:0x2a2f36, roughness:0.6}));
+  h.rotation.z = Math.PI/2; h.position.x = 15+27; g.add(h);
+  const spot = new THREE.Mesh(new THREE.SphereGeometry(4.5,16,12), new THREE.MeshBasicMaterial({color:0xffb347, depthTest:false})); spot.renderOrder=18; g.add(spot); g.userData.spot = spot;
+  g.traverse(o=>{ if(o.isMesh) o.userData.nocut = true; });
+  fx.fx.add(g); g.visible = false; return g;
+}
+function placeLens(lens, w, f){
+  const p = weldPoint(w, f), o = outDir(w.key, p);
+  lens.position.copy(p).addScaledVector(o, 34);
+  lens.quaternion.setFromUnitVectors(V(0,1,0), o);
+  lens.userData.spot.position.set(0,-34,0);
+  lens.visible = true;
+}
+function tintWeld(fx, key, col, k){
+  const p = fx.parts[key]; if(!p) return;
+  p.traverse(o=>{ if(o.isMesh && !o.userData.cut){ const m=o.material; if(!m.userData.c0) m.userData.c0 = m.color.clone(); m.color.copy(m.userData.c0).lerp(new THREE.Color(col), k); } });
+}
+
+// ======================= сцена 1: ВИК =======================
+const VSEQ = [
+  ['v1', WELDS.filter(w=>w.key.startsWith('shov_1_')).map(w=>w.key)],
+  ['v25', ['shov_2_1_stakan_flanec']],
+  ['v30', ['shov_3_dno_stakan']],
+  ['v35', ['shov_2_2_patrubok_flanec_L','shov_2_3_patrubok_flanec_R']],
+  ['v40', ['shov_2_4_patrubok_stakan_L','shov_2_5_patrubok_stakan_R']],
+];
+const VIK = {
+  model:'korpus',
+  cam:{pos:[-560,-640,420], target:[0,0,30]},
+  base:{v1:0, v25:0, v30:0, v35:0, v40:0, gauge:0, dims:0, done:0},
+  setup(fx){
+    fx.lens = makeLens(fx);
+    // шаблон для катета 3 мм на шве патрубок—фланец (верхняя точка, плоскость y = 0)
+    const sh = new THREE.Shape();
+    const c = [-87, 55.5], K = 3;
+    sh.moveTo(c[0], c[1]+K); sh.lineTo(c[0], c[1]+44); sh.lineTo(c[0]+17, c[1]+44); sh.lineTo(c[0]+17, c[1]); sh.lineTo(c[0]+K, c[1]); sh.closePath();
+    const hole = new THREE.Path(); hole.absarc(c[0]+9, c[1]+33, 3.5, 0, Math.PI*2, true); sh.holes.push(hole);
+    const gm = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, {depth:1.6, bevelEnabled:false}), new THREE.MeshStandardMaterial({color:0xc9ced4, metalness:0.7, roughness:0.3, side:THREE.DoubleSide}));
+    gm.rotation.x = Math.PI/2; gm.position.y = 0.8; gm.userData.nocut = true;
+    const gg = new THREE.Group(); gg.add(gm);
+    const lb = makeLabel('шаблон: катет 3 мм — годен', 9, '#006300'); lb.position.set(-78, -4, 112); gg.add(lb);
+    fx.fx.add(gg); fx.gauge = gg; gg.visible = false;
+    // размеры
+    const dims = new THREE.Group();
+    dims.add(dimension([-112,0,-105],[112,0,-105],[0,0,-45],'224 (строит. длина)'));
+    fx.fx.add(dims); fx.dims = dims; dims.visible = false;
+  },
+  pose(fx, S){
+    for(const n in fx.parts) fx.setM(n, new THREE.Matrix4());
+    let active = null, doneN = 0;
+    for(const [v, keys] of VSEQ){
+      const s = S[v]*keys.length;
+      keys.forEach((k,j)=>{
+        const f = Math.max(0, Math.min(1, s - j)), done = f >= 0.999 || S.done > 0.5;
+        if(done) doneN++;
+        if(f > 0.001 && f < 0.999) active = {w:WM[k], f};
+        tintWeld(fx, k, done ? 0x1f9a4a : 0xffb347, done ? 0.85 : (f > 0.001 ? 0.7 : 0));
+      });
+    }
+    if(active) placeLens(fx.lens, active.w, active.f); else fx.lens.visible = false;
+    fx.gauge.visible = S.gauge > 0.01; fx.gauge.position.set(-60*(1-S.gauge), 0, 60*(1-S.gauge));
+    fx.dims.visible = S.dims > 0.5;
+    fx.hudVal.textContent = `осмотрено швов: ${doneN} из ${WELDS.length}`;
+  },
+  steps: [
+    {title:'Подготовка к ВИК', dur:1.6, set:{}, focus:['shov_'],
+     html:`<p>Корпус после сварки и слесарной зачистки (операция 045). Швы очищены от шлака и брызг. Место контроля освещено, у контролёра лупа 2,5–7× (ЛП-1), универсальный шаблон сварщика (УШС) или шаблон Красовского, линейка и штангенциркуль.</p><p class="why">Контроль ведут по РД 03-606-03 «Инструкция по визуальному и измерительному контролю» — так указано в записке.</p><p class="m">14 швов: 8 швов №1, 3 кольцевых, дно, 2 седловых</p>`},
+    {title:'Швы №1: направляющие в стакане (8 × 40 мм)', dur:5, set:{v1:1}, cut:true, cam:{pos:[-300,-420,560], target:[0,20,60]},
+     html:`<p>Швы внутри стакана. Их осматривают до установки дна: потом доступ остаётся только через фланец. Проверяют длину 40 мм по шаблону, отсутствие непроваров по концам и кратеров.</p><p class="m">8 швов · катет 3 · длина 40±2 мм</p>`},
+    {title:'Кольцевой шов стакан—фланец', dur:3.5, set:{v25:1}, cam:{pos:[-520,-520,360], target:[0,0,110]},
+     html:`<p>Лупу ведут вдоль всего кольцевого шва. Особое внимание — к месту начала и конца шва, где возможен незаваренный кратер: шов выполнен за один оборот стола.</p><p class="m">L ≈ ${nf(WM['shov_2_1_stakan_flanec'].L)} мм</p>`},
+    {title:'Шов №3: дно—стакан', dur:3.5, set:{v30:1}, cam:{pos:[-520,-560,-300], target:[0,0,-50]},
+     html:`<p>Шов крупнее остальных: он заполняет разделку между торцом стакана и дном и выступает на 1,5 мм (узел Б). Проверяют выпуклость и отсутствие подрезов по кромке дна.</p><p class="m">L ≈ ${nf(WM['shov_3_dno_stakan'].L)} мм</p>`},
+    {title:'Швы патрубок—фланец (×2)', dur:4, set:{v35:1}, cam:{pos:[-200,-760,260], target:[0,0,0]},
+     html:`<p>Осматривают оба кольцевых шва патрубков. Под лупой ищут поры: при нарушении газовой защиты (сквозняк, расход ниже 17–18 л/мин) они появляются прежде всего здесь, на наружных швах.</p><p class="m">2 × ${nf(WM['shov_2_2_patrubok_flanec_L'].L)} мм</p>`},
+    {title:'Седловые швы патрубок—стакан (×2)', dur:4.5, set:{v40:1}, cam:{pos:[-620,-420,380], target:[0,0,0]},
+     html:`<p>Самые сложные швы: линия пересечения цилиндров Ø111 и Ø130, горелка всё время меняет наклон. Здесь чаще всего бывают подрезы в «боковых» точках седла и неравномерная чешуйчатость.</p><p class="m">2 × ${nf(WM['shov_2_4_patrubok_stakan_L'].L)} мм</p>`},
+    {title:'Измерение катета шаблоном', dur:2.4, set:{gauge:1}, cut:true, cam:{pos:[-175,-345,118], target:[-78,0,72]}, focus:['shov_2_2'],
+     html:`<p>Шаблон прикладывают к обеим поверхностям соединения. Скос шаблона на 3 мм должен касаться поверхности шва: зазор под скосом означает, что катет меньше нормы, упор в шов — что больше.</p><p class="m">норма: катет 3 мм (◺3 по чертежу)</p>`},
+    {title:'Обмер: размеры от приспособлений', dur:2.2, set:{gauge:0, dims:1}, cam:{pos:[-80,-760,120], target:[0,0,20]},
+     html:`<p>Записка: внешний осмотр включает проверку размеров сборки, которые обеспечены приспособлением. Проверяют строительную длину 224 мм, высоту фланца стакана, 34±1 между сёдлами и угол отверстий фланцев 22°30′±1°.</p>`},
+    {title:'Результат ВИК', dur:1.6, set:{dims:0, done:1},
+     html:`<p>Все 14 швов осмотрены, дефектов нет, размеры в допуске: корпус передают на гидроиспытание. Если дефект найден, его отмечают мелом, записывают в журнал и возвращают корпус на исправление.</p><p class="why">Записка: регистрация всех наружных дефектов нужна для статистики и поиска причин. Тогда внешний осмотр становится дешёвым и эффективным средством повышения качества.</p>`},
+  ],
+};
+
+// ======================= сцена 2: гидроиспытание =======================
+const PH = [['plug','t_set','установка'],['fill','t_fill','заполнение'],['pr','t_rise','подъём'],['hold','t_hold','выдержка Pпр'],['insp','t_insp','осмотр при Pр'],['drain','t_drain','сброс, слив']];
+let LEAK = false;
+function tOf(S){ let a=0; for(const [k,tk] of PH) a += Math.max(0,Math.min(1,S[k]||0))*IV[tk]; return a; }
+function stAt(t){ const S={}; let a=0; for(const [k,tk] of PH){ S[k]=Math.max(0,Math.min(1,(t-a)/IV[tk])); a+=IV[tk]; } return S; }
+function pOf(S, leak){
+  let p = S.pr*Pt();
+  if(leak) p *= 1 - 0.55*S.hold;
+  const d = Math.min(1, S.insp/0.3); p += ((leak?0:IV.p_work) - p)*d;
+  p *= 1 - Math.min(1, S.drain/0.35);
+  return p;
+}
+const LEAKW = 'shov_2_4_patrubok_stakan_L', LEAKP = [-66, 0, 56.5];
+const HYD = {
+  model:'korpus',
+  cam:{pos:[80,-1080,360], target:[-90,0,-15]},
+  base:{plug:0, fill:0, pr:0, hold:0, insp:0, drain:0, res:0},
+  setup(fx){
+    const pm = new THREE.MeshStandardMaterial({color:0x7d8894, metalness:0.4, roughness:0.5, transparent:true});
+    const disc = (r,h)=>new THREE.CylinderGeometry(r,r,h,48);
+    fx.plugs = [];
+    const pT = new THREE.Mesh(disc(105,10), pm); pT.rotation.x = Math.PI/2; pT.position.set(0,0,160); fx.fx.add(pT); fx.plugs.push(pT);
+    for(const sg of [-1,1]){ const p=new THREE.Mesh(disc(105,10), pm); p.rotation.z=Math.PI/2; p.position.set(sg*117,0,0); fx.fx.add(p); fx.plugs.push(p); }
+    // трубопроводы стенда: подвод снизу через левую заглушку, воздушник сверху
+    const tm = new THREE.MeshStandardMaterial({color:0x5b6570, metalness:0.5, roughness:0.4});
+    const pipe = (a,b,r=6)=>{ const A=V(...a),B=V(...b),m=new THREE.Mesh(new THREE.CylinderGeometry(r,r,A.distanceTo(B),16), tm); m.position.copy(A).add(B).multiplyScalar(0.5); m.quaternion.setFromUnitVectors(V(0,1,0), B.clone().sub(A).normalize()); fx.fx.add(m); fx.plugs.push(m); return m; };
+    pipe([-122,0,-70],[-300,0,-70]); pipe([-300,0,-70],[-300,0,-200]);
+    pipe([0,40,165],[0,40,250],5);
+    const pump = new THREE.Mesh(new THREE.BoxGeometry(90,70,60), new THREE.MeshStandardMaterial({color:0x2f5d9a, roughness:0.6})); pump.position.set(-300,0,-235); fx.fx.add(pump); fx.plugs.push(pump);
+    fx.valve = new THREE.Mesh(new THREE.BoxGeometry(18,18,22), new THREE.MeshStandardMaterial({color:0x1f9a4a})); fx.valve.position.set(0,40,215); fx.fx.add(fx.valve); fx.plugs.push(fx.valve);
+    const l1 = makeLabel('насос', 18); l1.position.set(-300,0,-290); fx.fx.add(l1);
+    const l2 = makeLabel('воздушник', 16); l2.position.set(0,40,270); fx.fx.add(l2);
+    fx.labels = [l1,l2];
+    fx.plugs.forEach(o=>o.userData.nocut = true);
+    fx.inlet = airPath(fx, [[-300,0,-200,1],[-300,0,-70,1],[-122,0,-70,1],[-60,0,-40,1]], 0x3f8fd8); buildAir(fx, fx.inlet, 0);
+    fx.vent = airPath(fx, [[0,40,120,1],[0,40,165,1],[0,40,250,1]], 0xeeeeee); buildAir(fx, fx.vent, 0);
+    // вода
+    fx.waterClip = new THREE.Plane(V(0,0,-1), 0);
+    const wm = new THREE.MeshStandardMaterial({color:0x3f8fd8, transparent:true, opacity:0.55, roughness:0.2, clippingPlanes:[fx.waterClip], side:THREE.DoubleSide});
+    const w1 = new THREE.Mesh(new THREE.CylinderGeometry(58.8,58.8,208,48), wm); w1.rotation.x=Math.PI/2; w1.position.set(0,0,36); fx.fx.add(w1);
+    const w2 = new THREE.Mesh(new THREE.CylinderGeometry(49.3,49.3,224,48), wm); w2.rotation.z=Math.PI/2; fx.fx.add(w2);
+    fx.water = [w1,w2]; fx.water.forEach(o=>o.userData.nocut=true);
+    // пузыри воздуха и струя из свища
+    const bm = new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:0.85});
+    fx.bubbles = []; for(let i=0;i<26;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(2.4+(i%3),10,8), bm); b.userData.nocut=true; fx.fx.add(b); fx.bubbles.push(b); }
+    const jm = new THREE.MeshBasicMaterial({color:0x1d63c9, depthTest:false});
+    fx.jet = []; for(let i=0;i<60;i++){ const b=new THREE.Mesh(new THREE.SphereGeometry(4.5+(i%3),10,8), jm); b.renderOrder=17; b.userData.nocut=true; fx.fx.add(b); fx.jet.push(b); }
+    fx.lens = makeLens(fx);
+    fx.leakLabel = makeLabel('течь — брак', 18, '#d03b3b'); fx.leakLabel.position.set(-150,0,150); fx.fx.add(fx.leakLabel);
+  },
+  enter(fx, s){
+    if(LEAK && s.leak) fx.say.innerHTML = `<h4>${esc(s.leak.title||s.title)}</h4>${s.leak.html}`;
+  },
+  pose(fx, S){
+    const p = pOf(S, LEAK), dur = fx.cfg.steps[fx.step].dur||3, tt = fx.step*40 + fx.t*dur;
+    // упругая деформация, увеличенная в 500 раз
+    const DEFK = 500;
+    const sS = 1 + DEFK*(p*GEO.st_D/(2*GEO.st_s))/IV.E, sP = 1 + DEFK*(p*GEO.p_D/(2*GEO.p_s))/IV.E;
+    for(const n in fx.parts){
+      let M = new THREE.Matrix4();
+      if(/^(02_|05_|06_|shov_1_|shov_3|shov_2_1)/.test(n)) M.makeScale(sS, sS, 1);
+      else if(/^(01_|naplavka_|shov_2_2|shov_2_3)/.test(n)) M.makeScale(1, sP, sP);
+      fx.setM(n, M);
+    }
+    fx.plugs.forEach(pl=>{ pl.visible = S.plug>0.02 && S.drain<0.98; if(pl.material.transparent) pl.material.opacity = Math.min(S.plug, 1-S.drain); });
+    fx.labels.forEach(l=>l.visible = S.plug>0.5 && S.drain<0.9);
+    const vOpen = S.pr < 0.02 || S.drain > 0.4;
+    fx.valve.material.color.setHex(vOpen ? 0x1f9a4a : 0xd03b3b);
+    const lvl = S.fill*(1-Math.max(0,(S.drain-0.35)/0.65));
+    const level = -95 + lvl*260; fx.waterClip.set(V(0,0,-1), level).applyMatrix4(fx.asm.matrixWorld);
+    fx.water.forEach(o=>o.visible = lvl>0.01);
+    const filling = S.fill>0.01 && S.fill<0.99 && S.pr<0.01;
+    fx.inlet.visible = (filling || (S.pr>0.01 && S.pr<0.99)); flowAir(fx.inlet, tt);
+    fx.vent.visible = filling; flowAir(fx.vent, tt*1.5);
+    fx.bubbles.forEach((b,i)=>{
+      const u = (tt*0.5 + i/fx.bubbles.length) % 1, z0 = -80, z = z0 + (level - z0)*u;
+      b.position.set(((i*37)%90)-45, 12+((i*23)%38), z); b.visible = filling && z < level-2;
+    });
+    // свищ
+    const leakOn = LEAK && S.hold > 0.01 && p > 0.2;
+    tintWeld(fx, LEAKW, 0xd03b3b, LEAK && S.hold>0.01 ? 0.8 : 0);
+    const P0 = V(...LEAKP), dir = V(-0.8,-0.25,0.55).normalize();
+    fx.jet.forEach((b,i)=>{ const a = (tt*1.1 + i/fx.jet.length) % 1, sp = 230*Math.sqrt(Math.max(p,0)/Pt());
+      b.position.copy(P0).addScaledVector(dir, a*sp); b.position.z -= 260*a*a; b.visible = leakOn; });
+    fx.leakLabel.visible = LEAK && S.hold > 0.3;
+    // осмотр при рабочем давлении
+    const keys = ['shov_2_1_stakan_flanec','shov_2_2_patrubok_flanec_L','shov_2_4_patrubok_stakan_L','shov_3_dno_stakan','shov_2_5_patrubok_stakan_R','shov_2_3_patrubok_flanec_R'];
+    const ip = (S.insp-0.3)/0.7*keys.length;
+    if(!LEAK && ip > 0 && ip < keys.length){ const j = Math.floor(ip); placeLens(fx.lens, WM[keys[j]], ip-j); } else fx.lens.visible = false;
+    keys.forEach((k,j)=>{ if(k!==LEAKW || !LEAK) tintWeld(fx, k, 0x1f9a4a, (!LEAK && (ip >= j+1 || S.res>0.5)) ? 0.85 : 0); });
+    // приборы
+    const m2 = p>0.001 ? p*1.006+0.012 : 0;
+    fx.hudVal.textContent = S.plug>0.02 ? `МН1 ${nf(p,2)} МПа · МН2 ${nf(m2,2)} МПа · σθ стакана ${nf(p*GEO.st_D/(2*GEO.st_s),1)} МПа` : 'корпус после ВИК';
+    setDials(p, m2);
+    chartCursor(tOf(S), p);
+  },
+  steps: [],
+};
+function hydSteps(){
+  const P = nf(Pt(),2), Pw = nf(IV.p_work,1);
+  return [
+    {title:'Установка на стенд, заглушки', dur:2, set:{plug:1}, cut:true,
+     html:`<p>Корпус устанавливают на стенд и закрывают три фланца заглушками. Вода подаётся насосом через нижнюю часть левой заглушки, воздушник — в верхней точке, на заглушке фланца стакана.</p><p class="m">Два независимых поверенных манометра МН1 и МН2, шкала 0–${nf(IV.scale)} МПа: Pпр = ${P} МПа во второй трети шкалы</p>`},
+    {title:'Заполнение водой, удаление воздуха', dur:4, set:{fill:1}, cut:true,
+     html:`<p>Корпус заполняют снизу при открытом воздушнике. Вода вытесняет воздух вверх, пока из воздушника не пойдёт вода без пузырей. Затем воздушник закрывают.</p><p class="why">Записка: при наборе давления обязательно исключают скопление газовых пузырей. Вода почти несжимаема, и при разрыве давление падает мгновенно. Сжатый воздух накапливает энергию и разлетается вместе с осколками.</p>`},
+    {title:`Плавный подъём до Pпр = ${P} МПа`, dur:3.5, set:{pr:1}, cut:true,
+     html:`<p>Насос медленно и плавно поднимает давление до пробного, без гидроударов. Рост давления контролируют по обоим манометрам. Персонал в это время находится в безопасном месте.</p><p class="m">Pпр = ${nf(IV.k_test,2)} · Pр = ${nf(IV.k_test,2)} · ${Pw} = ${P} МПа · σθ стакана = ${nf(Pt()*GEO.st_D/(2*GEO.st_s),1)} МПа</p>`},
+    {title:`Выдержка ${nf(IV.t_hold)} мин при Pпр`, dur:4.5, set:{hold:1}, cut:true,
+     html:`<p>Насос отключён, корпус под пробным давлением. Давление не должно падать: допускаются только колебания от изменения температуры воды. Стенки упруго расширяются на несколько микрометров (на модели ×500).</p><p class="m">Проверяется прочность стенок и швов при напряжениях в ${nf(IV.k_test,2)} раза выше рабочих</p>`,
+     leak:{title:`Выдержка при Pпр: давление падает`, html:`<p class="bad">Через свищ в седловом шве бьёт струя воды, давление по обоим манометрам падает. Это не температурное колебание: падение непрерывное и одинаковое на МН1 и МН2.</p><p>Испытание прекращают, давление сбрасывают.</p>`}},
+    {title:`Снижение до Pр = ${Pw} МПа, осмотр швов`, dur:5, set:{insp:1}, cut:true, cam:{pos:[-420,-760,260], target:[-20,0,20]},
+     html:`<p>Давление снижают до рабочего, и только после этого контролёр подходит к корпусу. Он осматривает все наружные швы и поверхности: нет ли течи, «потения» и капель.</p><p class="m">Осмотр при Pр = ${Pw} МПа</p>`,
+     leak:{title:'Давление сброшено, место течи отмечено', html:`<p class="bad">Давление снижено до нуля, место течи отмечено мелом.</p><p>Далее: свищ вышлифовывают до чистого металла, заваривают и повторяют ВИК и гидроиспытание полностью.</p>`}},
+    {title:'Сброс давления и слив', dur:3.5, set:{drain:1}, cut:true,
+     html:`<p>Давление сбрасывают, открывают воздушник и сливают воду. Снимают заглушки, корпус продувают воздухом, чтобы не было коррозии.</p>`},
+    {title:'Результат испытания', dur:1.6, set:{res:1},
+     html:`<p class="ok">Корпус выдержал испытание.</p><p>Течей и разрывов нет, давление при выдержке не падало, остаточных деформаций нет (после сброса размеры вернулись). На корпус ставят клеймо ОТК.</p>`,
+     leak:{title:'Результат испытания: брак', html:`<p class="no">Корпус не выдержал испытание: течь через седловой шов.</p><p>Корпус отправляют на исправление: вышлифовка свища, подварка, повторные ВИК и гидроиспытание. Дефект записывают в журнал, чтобы найти причину: сквозные свищи обычно вызваны нарушением газовой защиты.</p>`}},
+  ];
+}
+
+// ======================= манометры и график =======================
+function dialSVG(id, name){
+  let s = `<svg viewBox="0 0 112 112" role="img" aria-label="${name}"><g font-family="PT Mono, monospace" font-size="8" fill="var(--muted)" text-anchor="middle">`;
+  const ang = v => (-225 + 270*v/IV.scale)*Math.PI/180;
+  for(let i=0;i<=IV.scale*4;i++){ const v=i/4, a=ang(v), r1=44, r2 = i%4===0?36:40;
+    s+=`<line x1="${56+r1*Math.cos(a)}" y1="${56+r1*Math.sin(a)}" x2="${56+r2*Math.cos(a)}" y2="${56+r2*Math.sin(a)}" stroke="var(--ink)" stroke-width="${i%4===0?1.4:0.7}"/>`;
+    if(i%4===0) s+=`<text x="${56+28*Math.cos(a)}" y="${56+28*Math.sin(a)+3}">${v}</text>`; }
+  const aP = ang(Pt()), aW = ang(IV.p_work);
+  s+=`<line x1="${56+47*Math.cos(aP)}" y1="${56+47*Math.sin(aP)}" x2="${56+37*Math.cos(aP)}" y2="${56+37*Math.sin(aP)}" stroke="var(--crit)" stroke-width="2.5"/>`;
+  s+=`<line x1="${56+47*Math.cos(aW)}" y1="${56+47*Math.sin(aW)}" x2="${56+37*Math.cos(aW)}" y2="${56+37*Math.sin(aW)}" stroke="var(--good)" stroke-width="2.5"/>`;
+  s+=`<text x="56" y="80" font-size="9" fill="var(--ink)">${name}</text><text x="56" y="90" font-size="7.5">МПа · кл. 1,5</text><text x="56" y="102" font-size="10" fill="var(--ink)" class="rd">0,00</text></g>`;
+  s+=`<line class="nd" x1="56" y1="56" x2="56" y2="18" stroke="var(--crit)" stroke-width="2" stroke-linecap="round"/><circle cx="56" cy="56" r="4" fill="var(--ink)"/></svg>`;
+  return s;
+}
+function drawDials(){ document.getElementById('dials').innerHTML = dialSVG('d1','МН1') + dialSVG('d2','МН2'); }
+function setDials(p1, p2){
+  document.querySelectorAll('#dials svg').forEach((sv,i)=>{ const v = i ? p2 : p1, a = -225 + 270*Math.min(v,IV.scale)/IV.scale + 90;
+    sv.querySelector('.nd').setAttribute('transform', `rotate(${a} 56 56)`); sv.querySelector('.rd').textContent = nf(v,2); });
+}
+let CH = null;
+function drawChart(){
+  const W = 900, H = 330, m = {l:52, r:20, t:34, b:40};
+  const T = PH.reduce((a,[,tk])=>a+IV[tk],0), pMax = Math.ceil(Pt()*1.25*2)/2;
+  const x = t=>m.l + t/T*(W-m.l-m.r), y = p=>m.t + (1-p/pMax)*(H-m.t-m.b);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Давление в корпусе во время гидроиспытания">`;
+  let a = 0;
+  PH.forEach(([k,tk,lab],i)=>{ const b = a+IV[tk];
+    if(i%2) s+=`<rect x="${x(a)}" y="${m.t}" width="${x(b)-x(a)}" height="${H-m.t-m.b}" fill="var(--grid)" opacity="0.5"/>`;
+    s+=`<text x="${(x(a)+x(b))/2}" y="${m.t-8}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Sans Narrow, Arial">${lab}</text>`; a = b; });
+  for(let p=0;p<=pMax+1e-9;p+=0.5){ s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(p)}" y2="${y(p)}" stroke="var(--grid)"/><text x="${m.l-8}" y="${y(p)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(p,1)}</text>`; }
+  for(let t=0;t<=T+1e-9;t+=1) s+=`<text x="${x(t)}" y="${H-m.b+17}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(t)}</text>`;
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-4}" text-anchor="middle" font-size="12.5" fill="var(--muted)">время, мин</text>`;
+  s+=`<text x="14" y="${m.t+(H-m.t-m.b)/2}" transform="rotate(-90 14 ${m.t+(H-m.t-m.b)/2})" text-anchor="middle" font-size="12.5" fill="var(--muted)">давление, МПа</text>`;
+  for(const [pv,lab,col] of [[Pt(),`Pпр = ${nf(Pt(),2)}`,'var(--crit)'],[IV.p_work,`Pр = ${nf(IV.p_work,1)}`,'var(--good)']])
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(pv)}" y2="${y(pv)}" stroke="${col}" stroke-dasharray="5 4" stroke-width="1.3"/><text x="${W-m.r-4}" y="${y(pv)-5}" text-anchor="end" font-size="12.5" fill="${col}">${lab}</text>`;
+  const path = leak => { let d=''; for(let i=0;i<=400;i++){ const t=T*i/400; d+=(i?'L':'M')+x(t).toFixed(1)+','+y(pOf(stAt(t),leak)).toFixed(1); } return d; };
+  s+=`<path d="${path(false)}" fill="none" stroke="var(--s1)" stroke-width="2.5"/>`;
+  if(LEAK) s+=`<path d="${path(true)}" fill="none" stroke="var(--crit)" stroke-width="2.5"/>`;
+  s+=`<line id="cLine" x1="0" x2="0" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-width="1.2"/><circle id="cDot" r="5.5" fill="var(--accent)" stroke="var(--plot)" stroke-width="2"/>`;
+  s+=`<rect id="cHit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/></svg>`;
+  s+=`<div class="clegend"><span><i style="background:var(--s1)"></i>годный корпус</span>${LEAK?'<span><i style="background:var(--crit)"></i>корпус со свищом</span>':''}<span><i style="background:var(--accent)"></i>текущий момент в 3D</span></div><div class="tip" hidden></div>`;
+  const el = document.getElementById('pchart'); el.innerHTML = s;
+  CH = {x, y, T};
+  const svg = el.querySelector('svg'), tip = el.querySelector('.tip');
+  el.querySelector('#cHit').addEventListener('pointermove', ev=>{
+    const r = svg.getBoundingClientRect(), px = (ev.clientX-r.left)/r.width*W, t = Math.max(0,Math.min(T,(px-m.l)/(W-m.l-m.r)*T));
+    const S = stAt(t), ph = PH.find(([k])=>S[k]<1) || PH[PH.length-1];
+    tip.hidden = false; tip.innerHTML = `t = ${nf(t,1)} мин · ${ph[2]}<br>годный: ${nf(pOf(S,false),2)} МПа${LEAK?`<br>со свищом: ${nf(pOf(S,true),2)} МПа`:''}`;
+    const er = el.getBoundingClientRect(); tip.style.left = Math.min(ev.clientX-er.left+12, er.width-190)+'px'; tip.style.top = (ev.clientY-er.top-50)+'px';
+  });
+  el.querySelector('#cHit').addEventListener('pointerleave', ()=>tip.hidden = true);
+}
+function chartCursor(t, p){
+  if(!CH) return; const l = document.getElementById('cLine'), d = document.getElementById('cDot'); if(!l) return;
+  const X = CH.x(Math.min(t, CH.T)); l.setAttribute('x1',X); l.setAttribute('x2',X); d.setAttribute('cx',X); d.setAttribute('cy',CH.y(p));
+}
+
+// ======================= прочность при Pпр =======================
+function strength(){
+  const P = Pt(), sa = IV.sig_t/IV.n_s, ta = IV.k_w*sa, K = IV.K;
+  const F130 = P*Math.PI*GEO.seal_D**2/4, F118 = P*Math.PI*GEO.st_D**2/4;
+  const L = k => WM[k].L;
+  const rows = [
+    ['Стакан Ø130×6', 'σθ = p·D/(2s)', P*GEO.st_D/(2*GEO.st_s), sa, 'σ'],
+    ['Патрубок Ø111×6', 'σθ = p·D/(2s)', P*GEO.p_D/(2*GEO.p_s), sa, 'σ'],
+    ['Дно (сфера R102, s = 5)', 'σ = p·R/(2s)', P*GEO.dno_R/(2*GEO.dno_s), sa, 'σ'],
+    ['Шов №3 дно—стакан', `τ = p·πD²/4 / (0,7K·L), D = 118`, F118/(0.7*K*L('shov_3_dno_stakan')), ta, 'τ'],
+    ['Шов стакан—фланец', `τ = p·πDупл²/4 / (0,7K·L)`, F130/(0.7*K*L('shov_2_1_stakan_flanec')), ta, 'τ'],
+    ['Шов патрубок—фланец', `то же, L = ${nf(L('shov_2_2_patrubok_flanec_L'))} мм`, F130/(0.7*K*L('shov_2_2_patrubok_flanec_L')), ta, 'τ'],
+    ['Седловой шов патрубок—стакан', `то же, L = ${nf(L('shov_2_4_patrubok_stakan_L'))} мм`, F130/(0.7*K*L('shov_2_4_patrubok_stakan_L')), ta, 'τ'],
+  ];
+  document.getElementById('fP').textContent = `Pпр = ${nf(IV.k_test,2)} · Pр = ${nf(IV.k_test,2)} · ${nf(IV.p_work,1)} = ${nf(P,2)} МПа · [σ] = σт/n = ${nf(IV.sig_t)}/${nf(IV.n_s,1)} = ${nf(sa)} МПа · [τ′] = ${nf(IV.k_w,2)}·[σ] = ${nf(ta)} МПа`;
+  document.getElementById('tabStr').innerHTML = `<thead><tr><th>Элемент</th><th>Формула</th><th class="n">при Pпр, МПа</th><th class="n">допуск., МПа</th><th class="n">запас</th></tr></thead><tbody>`+
+    rows.map(r=>{ const n = r[3]/r[2]; return `<tr><td>${r[0]}</td><td class="src">${r[1]}</td><td class="n">${r[4]} = ${nf(r[2],1)}</td><td class="n">${nf(r[3])}</td><td class="n ${n>=1?'ok':'no'}">${nf(n,1)}${n>=1?' ✓':' ✗'}</td></tr>`; }).join('')+'</tbody>';
+  const u = P*GEO.st_D/(2*GEO.st_s)/IV.E*65*1000;
+  const smax = Math.max(...rows.slice(0,3).map(r=>r[2]));
+  document.getElementById('strHow').innerHTML = `
+    <li>Стенки — как тонкостенные оболочки: окружное напряжение σθ = p·D/(2s) вдвое больше осевого, поэтому оно расчётное.</li>
+    <li>Швы — на срез по сечению 0,7·K. Сила от заглушки берётся по наружному диаметру уплотнения Ø130, это с запасом.</li>
+    <li>Наибольшее напряжение в стенке ${nf(smax,1)} МПа — ${nf(smax/IV.sig_t*100,0)}% от σт. Испытание не вызывает пластических деформаций: условие σ ≤ 0,9·σт = ${nf(0.9*IV.sig_t)} МПа выполнено.</li>
+    <li>Упругое расширение стакана при Pпр: Δr = σθ·r/E ≈ ${nf(u,1)} мкм. После сброса давления оно исчезает; остаточная деформация означала бы текучесть.</li>
+    <li>Толщины стенок корпуса выбраны не по давлению, а по технологичности и жёсткости. Поэтому запас по прочности большой, и главная задача гидроиспытания — проверить плотность швов.</li>`;
+  document.getElementById('critHyd').innerHTML = `
+    <li>Во время испытания и осмотра нет течи, «потения» и разрывов металла.</li>
+    <li>За ${nf(IV.t_hold)} мин выдержки при Pпр = ${nf(P,2)} МПа давление не падало сверх колебаний от температуры воды.</li>
+    <li>После испытания нет видимых остаточных деформаций.</li>
+    <li>Показания двух манометров согласуются между собой.</li>`;
+}
+
+// ======================= дефекты =======================
+const DEFS = [
+  {k:'crack', name:'Трещина', vik:['ok','да, поверхностная — под лупой 4–7×'], hyd:['part','только сквозная'], allow:'не допускается',
+   cause:'Высокие сварочные напряжения при жёстком закреплении в приспособлении, быстрое охлаждение, незаваренный кратер в конце шва.',
+   fix:'Засверлить концы трещины, вышлифовать до чистого металла, заварить, повторить ВИК.'},
+  {k:'undercut', name:'Подрез', vik:['ok','да, глубину — шаблоном'], hyd:['no','нет: течи не даёт'], allow:'не допускается (п. 1.13 записки)',
+   cause:'Завышенные ток или напряжение дуги (выше 134 А / 23 В), неправильный наклон горелки, слишком большая скорость на «боковых» точках седлового шва.',
+   fix:'Зачистить и подварить тонким валиком, зашлифовать переход.'},
+  {k:'overlap', name:'Наплыв', vik:['ok','да'], hyd:['no','нет'], allow:'не допускается (п. 1.13 записки)',
+   cause:'Малая скорость сварки (ниже 46 м/ч) при большой подаче проволоки, горелка наклонена на полку, стекание металла.',
+   fix:'Удалить абразивом, проверить сплавление у кромки.'},
+  {k:'burn', name:'Прожог', vik:['ok','да'], hyd:['ok','да: течь'], allow:'не допускается',
+   cause:'Большой ток при малой скорости, увеличенный зазор в сборке, задержка дуги на месте.',
+   fix:'Зачистить, заварить отверстие, повторить ВИК и гидроиспытание.'},
+  {k:'crater', name:'Кратер', vik:['ok','да'], hyd:['part','только с трещиной'], allow:'не допускается незаваренный',
+   cause:'Обрыв дуги в конце кольцевого шва без заварки кратера.',
+   fix:'Заварить кратер. На ПДГ-312-5 включают режим заварки кратера с плавным снижением тока.'},
+  {k:'lop', name:'Непровар корня', vik:['no','нет: скрыт в угловом шве'], hyd:['part','только если образует канал'], allow:'не допускается',
+   cause:'Малый ток, большая скорость, смещение проволоки с оси угла, отсутствие зазора.',
+   fix:'Выявляют на макрошлифах при отработке режима или УЗК. Исправление — удалить участок шва и переварить.'},
+  {k:'pore', name:'Поры и свищ', vik:['part','поверхностные — да, внутренние — нет'], hyd:['part','свищ — да, поры — нет'], allow:'свищи не допускаются',
+   cause:'Нарушение газовой защиты: расход смеси ниже 17–18 л/мин, сквозняк, засорённое сопло, ржавчина или масло на кромках, влажный газ.',
+   fix:'Вышлифовать до чистого металла, заварить. Проверить расход газа и сопло.'},
+  {k:'small', name:'Катет меньше 3 мм', vik:['ok','да: шаблоном УШС'], hyd:['no','нет'], allow:'не допускается (◺3 по чертежу)',
+   cause:'Скорость сварки выше нормы или малая скорость подачи проволоки.',
+   fix:'Наложить дополнительный валик.'},
+];
+function defSVG(k){
+  const plate = `<rect x="10" y="160" width="340" height="60" fill="var(--plate)" stroke="var(--ink)" stroke-width="1.2"/><rect x="120" y="14" width="60" height="146" fill="var(--plate2)" stroke="var(--ink)" stroke-width="1.2"/>`;
+  const haz = `<path d="M172,118 L180,118 L180,160 L222,160 L222,168 L172,168 Z" fill="var(--haz)" opacity="0.8"/>`;
+  const weld = d => `<path d="${d}" fill="var(--weld)" stroke="var(--ink)" stroke-width="1"/>`;
+  const W0 = 'M180,160 L180,128 Q203,136 212,160 Z';
+  const R = 'var(--crit)', note = (x,y,tx,ty,t)=>`<line x1="${x}" y1="${y}" x2="${tx}" y2="${ty}" stroke="${R}" stroke-width="1.2"/><text x="${tx+(tx>x?4:-4)}" y="${ty+4}" font-size="9.5" fill="${R}" text-anchor="${tx>x?'start':'end'}" font-family="PT Sans Narrow, Arial">${t}</text>`;
+  const kLab = `<text x="150" y="236" font-size="8.5" fill="var(--muted)" text-anchor="middle" font-family="PT Mono, monospace">K3</text>`;
+  let body = '';
+  if(k==='crater'){
+    // вид сверху на шов
+    let rip = ''; for(let x=40;x<290;x+=13) rip += `<path d="M${x},96 Q${x+10},120 ${x},144" fill="none" stroke="var(--ink)" stroke-width="0.8" opacity="0.6"/>`;
+    body = `<rect x="10" y="40" width="340" height="56" fill="var(--plate2)" stroke="var(--ink)"/><rect x="10" y="144" width="340" height="60" fill="var(--plate)" stroke="var(--ink)"/>
+      <path d="M20,96 L300,96 Q322,120 300,144 L20,144 Z" fill="var(--weld)" stroke="var(--ink)"/>${rip}
+      <ellipse cx="300" cy="120" rx="15" ry="13" fill="var(--paper)" stroke="${R}" stroke-width="2"/>
+      <path d="M300,120 l9,-9 M300,120 l-10,7 M300,120 l4,12" stroke="${R}" stroke-width="1.6"/>
+      <line x1="306" y1="110" x2="250" y2="30" stroke="${R}" stroke-width="1.2"/><text x="246" y="34" font-size="15" fill="${R}" text-anchor="end" font-family="PT Sans Narrow, Arial">кратер с трещиной</text><text x="20" y="226" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">вид сверху на конец шва</text>`;
+    return `<svg viewBox="0 0 360 240" role="img" aria-label="Кратер">${body}</svg>`;
+  }
+  if(k==='crack') body = weld(W0) + `<path d="M199,143 L195,147 L197,150 L191,153 L193,156 L186,159" fill="none" stroke="${R}" stroke-width="2.2"/>` + note(199,143,238,100,'трещина');
+  else if(k==='undercut') body = weld(W0) + `<path d="M210,160 Q216,169 224,160 Z" fill="var(--plot)" stroke="${R}" stroke-width="1.8"/>` + note(218,165,240,200,'подрез');
+  else if(k==='overlap') body = weld(W0) + weld('M206,158 Q230,142 252,160 Z') + `<line x1="212" y1="160" x2="252" y2="160" stroke="${R}" stroke-width="2.4" stroke-dasharray="4 3"/>` + note(236,158,250,125,'нет сплавления');
+  else if(k==='burn') body = weld(W0) + `<path d="M184,160 L198,160 L200,220 L182,220 Z" fill="var(--plot)" stroke="${R}" stroke-width="1.8"/><path d="M182,220 Q191,240 200,220 Z" fill="var(--weld)" stroke="${R}"/>` + note(199,200,228,205,'сквозной прожог');
+  else if(k==='lop') body = weld('M188,160 L180,151 L180,128 Q203,136 212,160 Z') + `<path d="M180,160 L188,160 L180,151 Z" fill="var(--plot)" stroke="${R}" stroke-width="2"/>` + note(184,158,236,200,'непровар корня');
+  else if(k==='pore') body = weld(W0) + [[196,148,2.6],[203,152,2],[190,142,1.8],[188,152,2.2]].map(c=>`<circle cx="${c[0]}" cy="${c[1]}" r="${c[2]}" fill="var(--plot)" stroke="${R}" stroke-width="1.2"/>`).join('') +
+     `<path d="M198,139 L185,157" stroke="var(--plot)" stroke-width="3.2"/><path d="M198,139 L185,157" stroke="${R}" stroke-width="1" stroke-dasharray="2 2"/>` + note(203,152,262,120,'поры') + note(186,156,236,204,'свищ до корня');
+  else if(k==='small') body = `<path d="${W0}" fill="none" stroke="var(--muted)" stroke-dasharray="4 3"/>` + weld('M180,160 L180,142 Q191,147 197,160 Z') + note(193,152,236,110,'катет 1,8 < 3 мм');
+  return `<svg viewBox="80 62 240 185" role="img" aria-label="${esc(DEFS.find(d=>d.k===k).name)}">${plate}${haz}${body}${kLab}</svg>`;
+}
+const MARK = {ok:'да ✓', no:'нет ✗', part:'частично'};
+function defCardHTML(d){
+  return `<div>${defSVG(d.k)}<div class="note" style="margin-top:4px">Сечение: стенка 6 мм, угловой шов K3, коричневым — металл шва, бежевым — зона термического влияния.</div></div>
+    <div><h3>${esc(d.name)}</h3><dl>
+      <dt>Выявляет ВИК</dt><dd class="${d.vik[0]}">${esc(d.vik[1])}</dd>
+      <dt>Выявляет гидроиспытание</dt><dd class="${d.hyd[0]}">${esc(d.hyd[1])}</dd>
+      <dt>Допустимость</dt><dd>${esc(d.allow)}</dd>
+      <dt>Причина</dt><dd>${esc(d.cause)}</dd>
+      <dt>Исправление</dt><dd>${esc(d.fix)}</dd></dl></div>`;
+}
+function renderDefects(){
+  const ul = document.getElementById('defList');
+  ul.innerHTML = DEFS.map((d,i)=>`<li><button type="button" data-i="${i}" aria-pressed="${i===0}">${esc(d.name)}</button></li>`).join('');
+  const show = i=>{ document.getElementById('defCard').innerHTML = defCardHTML(DEFS[i]); ul.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed', +b.dataset.i===i)); };
+  ul.querySelectorAll('button').forEach(b=>b.onclick=()=>show(+b.dataset.i)); show(0);
+  document.getElementById('defAll').innerHTML = DEFS.map(d=>`<div class="defcard">${defCardHTML(d)}</div>`).join('');
+  const cell = v=>`<td class="${v[0]}">${MARK[v[0]]}<div class="note" style="font-weight:400">${esc(v[1])}</div></td>`;
+  document.getElementById('tabDet').innerHTML = `<thead><tr><th>Дефект</th><th>ВИК</th><th>Гидроиспытание</th><th>Допустимость</th></tr></thead><tbody>`+
+    DEFS.map(d=>`<tr><td>${esc(d.name)}</td>${cell(d.vik)}${cell(d.hyd)}<td>${esc(d.allow)}</td></tr>`).join('')+'</tbody>';
+}
+
+// ======================= исходные данные =======================
+function renderInputs(){
+  const groups = [['Давление',['p_work','k_test','scale']],['Прочность',['sig_t','n_s','k_w','K','E']],['Цикл испытания',['t_set','t_fill','t_rise','t_hold','t_insp','t_drain']]];
+  document.getElementById('tabIn').innerHTML = `<thead><tr><th>Параметр</th><th class="n">Значение</th><th>Ед.</th><th>Источник / допущение</th></tr></thead><tbody>`+
+    groups.map(([g,keys])=>`<tr><td colspan="4" style="font-family:var(--f-head);font-size:16px;padding-top:10px">${g}</td></tr>`+keys.map(k=>{ const p=PARAM[k];
+      return `<tr><td><label for="in_${k}">${p.label}</label></td><td class="n"><input id="in_${k}" type="number" step="any" value="${p.v}" data-k="${k}"></td><td>${p.unit}</td><td class="src">${p.src}</td></tr>`; }).join('')).join('')+'</tbody>'+
+    `<tfoot><tr><td colspan="4" class="src">Цикл ${nf(PH.reduce((a,[,tk])=>a+PARAM[tk].v,0),1)} мин совпадает с нормой операции 050 (10 мин) в экономическом расчёте.</td></tr></tfoot>`;
+  document.querySelectorAll('#tabIn input').forEach(el=>el.addEventListener('input',()=>{ const v=parseFloat(el.value); if(isFinite(v) && v>0){ IV[el.dataset.k]=v; refresh(); } }));
+}
+function refresh(){
+  strength(); drawDials(); drawChart();
+  const f = fixtures[1]; if(f){ f.cfg.steps.splice(0, f.cfg.steps.length, ...hydSteps()); f.buildUI(); if(f.root){ f.states=[Object.assign({},f.cfg.base)]; f.cfg.steps.forEach((s,i)=>f.states.push(Object.assign({},f.states[i],s.set||{}))); f.go(f.step,true); } }
+}
+
+// ======================= запуск =======================
+HYD.steps = hydSteps();
+renderDefects(); renderInputs(); strength(); drawDials(); drawChart();
+const fixtures = [];
+document.querySelectorAll('.fx').forEach(el=>{ const f = new Fixture(el, el.dataset.fx==='vik' ? VIK : HYD); fixtures.push(f); f.init(); });
+document.getElementById('leak').addEventListener('change', e=>{ LEAK = e.target.checked; drawChart(); const f=fixtures[1]; f.go(f.step, true); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ fixtures.forEach(f=>f.bg()); drawChart(); });
+new MutationObserver(()=>fixtures.forEach(f=>f.bg())).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+let last = performance.now();
+(function loop(now){ requestAnimationFrame(loop); const dt=Math.min(0.1,(now-last)/1000); last=now; fixtures.forEach(f=>{ if(!f.frozen) f.tick(dt); }); })(last);
+window.__rz = {
+  fixtures,
+  ready: () => fixtures.every(f=>!!f.root),
+  steps: fi => fixtures[fi].cfg.steps.map(s=>({title:(LEAK&&s.leak&&s.leak.title)||s.title, html:(LEAK&&s.leak)?s.leak.html:s.html, dur:s.dur||3})),
+  setLeak(v){ LEAK = v; document.getElementById('leak').checked = v; drawChart(); },
+  render(fi, step, t){ const f=fixtures[fi]; if(f.step!==step || !f._rec){ f.go(step,true); f._rec=true; } f.playAll=false; f.holdUntil=0; f.t=t; f.camK=1; f.playing=true; f.apply(); f.cfg.tick&&f.cfg.tick(f,0); f.playing=false; f.controls.update(); f.renderer.render(f.scene,f.camera); },
+  freeze(){ fixtures.forEach(f=>{ f.frozen=true; }); },
+};
+</script>
