@@ -1,0 +1,473 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сборка-сварка корпуса и экономика</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#f8f9fb; --ink:#1b2a3a; --muted:#566779; --line:#c9d2dc; --grid:#e1e0d9;
+  --blue:#2f5d9a; --accent:#c9731f; --sel:#e0ebf8; --canvas:#e3e8ee; --plot:#fcfcfb;
+  --air:#2f7fe0; --air2:#d4862b;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#898781; --good:#006300; --crit:#d03b3b;
+  --f-head:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  --f-body:"PT Sans",Arial,sans-serif;
+  --f-mono:"PT Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;--grid:#2c2c2a;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--plot:#1a1a19;--air:#5aa2ff;--air2:#f0a24a;
+  --s1:#3987e5;--s2:#d95926;--s3:#898781;--good:#0ca30c;--crit:#e66767;}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;--grid:#2c2c2a;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--plot:#1a1a19;--air:#5aa2ff;--air2:#f0a24a;
+  --s1:#3987e5;--s2:#d95926;--s3:#898781;--good:#0ca30c;--crit:#e66767;}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding-inline:16px;padding-block:18px}
+.wrap{max-width:1320px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-head);text-wrap:balance;margin:0}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
+header.top h1{font-size:34px;line-height:1.1}
+.sub{color:var(--muted);font-size:15px;max-width:78ch}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;margin-bottom:24px}
+nav.toc a{color:var(--blue);text-decoration:none}
+section.block{margin-bottom:44px}
+.eyebrow{font-family:var(--f-mono);font-size:12.5px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h2{font-size:28px;margin:2px 0 8px}
+h3{font-size:20px;margin:0 0 6px}
+p{margin:0 0 10px;max-width:76ch}
+.lead{font-size:17px;max-width:82ch}
+.note{color:var(--muted);font-size:14px}
+.card{background:var(--sheet);border:1px solid var(--line);padding:14px 16px}
+/* 3D-плеер (как в разборе приспособлений) */
+.fx{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;margin-top:10px}
+@media (max-width:980px){.fx{grid-template-columns:1fr}}
+.stage{position:relative;background:var(--canvas);border:1px solid var(--line);height:min(66vh,620px);min-height:360px}
+.stage canvas{display:block;width:100%;height:100%;outline:none}
+.stage .load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--f-mono);font-size:14px;text-align:center;padding:16px}
+.stage .hud{position:absolute;left:10px;top:8px;right:10px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);pointer-events:none}
+.legend i{display:inline-block;width:18px;height:5px;border-radius:3px;vertical-align:middle;margin-right:5px}
+.panel{background:var(--sheet);border:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.steps{list-style:none;margin:0;padding:6px 0;border-bottom:1px solid var(--line);max-height:250px;overflow:auto}
+.steps li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:6px;width:100%;padding:5px 12px;cursor:pointer;font-size:14.5px;line-height:1.3}
+.steps li button .n{font-family:var(--f-mono);color:var(--muted);font-size:13px}
+.steps li button:hover{background:var(--sel)}
+.steps li button[aria-current=step]{background:var(--sel);font-weight:700}
+.steps li button[aria-current=step] .n{color:var(--accent)}
+.steps li button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctrl{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ctrl button{font:inherit;font-size:14px;padding:5px 11px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer}
+.ctrl button.pri{background:var(--blue);color:var(--sheet)}
+.ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrl label{display:flex;gap:5px;align-items:center;font-size:14px;cursor:pointer;margin-left:4px}
+.ctrl input{accent-color:var(--blue)}
+.bar{height:3px;background:var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.say{padding:12px 14px;overflow:auto;flex:1;font-size:15px}
+.say h4{font-size:19px;margin-bottom:6px}
+.say p{margin-bottom:8px}
+.say .why{border-left:3px solid var(--accent);padding-left:10px}
+.say .m{font-family:var(--f-mono);font-size:13.5px;color:var(--muted)}
+/* экономика */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:12px 0}
+.kpi{background:var(--sheet);border:1px solid var(--line);padding:10px 14px}
+.kpi .l{font-size:13px;color:var(--muted);line-height:1.3}
+.kpi .v{font-family:var(--f-head);font-size:30px;font-weight:700;line-height:1.1;margin-top:2px}
+.kpi .s{font-size:12.5px;color:var(--muted)}
+.kpi.hero{border-color:var(--accent)}
+.kpi.hero .v{color:var(--accent)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px}
+@media (max-width:980px){.grid2{grid-template-columns:1fr}}
+.chart{position:relative;background:var(--plot);border:1px solid var(--line);padding:10px 12px 6px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .tip{position:absolute;pointer-events:none;background:var(--sheet);border:1px solid var(--line);padding:6px 8px;font-size:12.5px;font-family:var(--f-mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.clegend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:13px;color:var(--muted);padding:4px 0 2px}
+.clegend i{display:inline-block;width:18px;height:3px;vertical-align:3px;margin-right:6px}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{font-family:var(--f-head);font-weight:400;color:var(--muted);text-align:left;border-bottom:1.5px solid var(--ink);padding:4px 6px}
+table.t td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+table.t td.n,table.t th.n{text-align:right;font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+table.t tr.tot td{font-weight:700;border-top:1.5px solid var(--ink)}
+table.t input{font:inherit;font-family:var(--f-mono);width:110px;text-align:right;padding:2px 5px;border:1px solid var(--line);background:var(--plot);color:var(--ink)}
+table.t input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+table.t td.src{font-size:12.5px;color:var(--muted)}
+.tw{overflow-x:auto}
+.f{font-family:var(--f-mono);font-size:14px;background:var(--paper);padding:8px 10px;margin:6px 0 8px;overflow-x:auto;white-space:nowrap}
+details{background:var(--sheet);border:1px solid var(--line);margin-top:12px}
+details summary{cursor:pointer;padding:10px 14px;font-family:var(--f-head);font-size:18px}
+details .in{padding:0 14px 12px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:12px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Дипломный проект · листы 2, 4, 5, 9</div>
+  <h1>Сборка-сварка корпуса задвижки и экономика участка</h1>
+  <div class="sub">Техпроцесс по операциям 020–050 в 3D: какие детали собираются, какие швы ложатся и сколько на это уходит времени. Затем себестоимость корпуса, мощность участка и точка безубыточности. Все исходные данные можно менять.</div>
+</header>
+<nav class="toc" aria-label="Разделы">
+  <a href="#proc">Техпроцесс в 3D</a><a href="#norm">Нормы времени</a><a href="#eco">Точка безубыточности</a><a href="#calc">Калькуляция</a><a href="#inputs">Исходные данные</a>
+</nav>
+
+<section class="block" id="proc">
+  <div class="eyebrow">Операции 020 → 050 · маршрутный техпроцесс</div>
+  <h2>Как собирается и сваривается корпус</h2>
+  <p class="lead">Корпус собирается из 6 видов деталей (8 штук) за пять сварочных операций, затем зачищается и проходит гидроиспытание. Порядок не случаен: каждый шов накладывается, пока к нему ещё есть доступ горелкой.</p>
+  <div class="fx" data-fx="k">
+    <div class="stage"><div class="load">загрузка 3D-модели…</div>
+      <div class="hud"><span class="st"></span><span class="val"></span></div>
+      <div class="legend"><span><i style="background:#5a3a24"></i>наплавленный шов</span><span><i style="background:#ffb347"></i>детали операции</span><span><i style="background:#3f8fd8"></i>вода при гидроиспытании</span></div>
+    </div>
+    <div class="panel">
+      <ol class="steps"></ol>
+      <div class="ctrl">
+        <button class="pri play" type="button">▶ Показать всё</button>
+        <button class="prev" type="button" aria-label="Предыдущий шаг">◀</button>
+        <button class="next" type="button" aria-label="Следующий шаг">▶</button>
+        <label><input type="checkbox" class="cut"> Разрез</label>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="say" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="norm">
+  <div class="eyebrow">Техническое нормирование</div>
+  <h2>Нормы времени по операциям</h2>
+  <p class="lead">Основное время — время горения дуги: длина швов операции, делённая на скорость сварки (46 м/ч = 767 мм/мин). Вспомогательное время — установка, закрепление, прихватки, повороты, снятие. Сверху добавляется время на обслуживание рабочего места и отдых.</p>
+  <div class="f">Tо = ΣLшв / Vсв · Tшт = (Tо + Tв) · (1 + aобс/100)</div>
+  <div class="grid2">
+    <div class="chart" id="gantt"></div>
+    <div class="card"><div class="tw"><table class="t" id="tabOps"></table></div></div>
+  </div>
+</section>
+
+<section class="block" id="eco">
+  <div class="eyebrow">Экономическая часть</div>
+  <h2>Точка безубыточности участка сборки-сварки корпуса</h2>
+  <p class="lead">Точка безубыточности — объём выпуска, при котором выручка покрывает все затраты, а прибыль равна нулю. Каждый корпус сверх неё приносит маржинальный доход: цена минус переменные затраты.</p>
+  <div class="f">Qбу = FC / (Ц − AVC) · Qбу в рублях = Qбу · Ц · запас финансовой прочности = (N − Qбу) / N</div>
+  <div class="kpis" id="kpis"></div>
+  <div class="grid2">
+    <div class="chart" id="be"></div>
+    <div class="card">
+      <h3>Как получены цифры</h3>
+      <ul id="how" style="margin:0;padding-left:18px;font-size:15px"></ul>
+      <h3 style="margin-top:12px">Чувствительность точки безубыточности</h3>
+      <div class="tw"><table class="t" id="tabSens"></table></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="calc">
+  <div class="eyebrow">Калькуляция себестоимости корпуса</div>
+  <h2>Переменные и постоянные затраты</h2>
+  <div class="grid2">
+    <div class="card"><h3>Переменные затраты на 1 корпус (AVC)</h3><div class="tw"><table class="t" id="tabVar"></table></div></div>
+    <div class="card"><h3>Постоянные затраты участка в год (FC)</h3><div class="tw"><table class="t" id="tabFix"></table></div>
+      <h3 style="margin-top:12px">Мощность и программа</h3><div class="tw"><table class="t" id="tabCap"></table></div></div>
+  </div>
+  <p class="note" style="margin-top:10px">Основная статья переменных затрат — три фланца Ø210: около 70% себестоимости. Сварочные материалы и электроэнергия вместе дают около 1,4%. Поэтому выгоднее снижать цену покупных заготовок, а не экономить на режиме сварки.</p>
+</section>
+
+<section class="block" id="inputs">
+  <div class="eyebrow">Все значения можно менять — расчёт пересчитывается</div>
+  <h2>Исходные данные и источники</h2>
+  <div class="card tw"><table class="t" id="tabIn"></table></div>
+  <p class="note" style="margin-top:8px">Цены взяты из открытых прайсов поставщиков, сентябрь 2026. Где источника нет, указано «допущение»: для защиты такие значения стоит заменить данными предприятия. Нормы вспомогательного времени приняты по общемашиностроительным нормативам для полуавтоматической сварки в защитном газе.</p>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*__HELPERS__*/
+/*__FIXTURE_CORE__*/
+
+// ======================= экономика =======================
+const ECON = DATA.econ;
+const PARAM = ECON.params, WELDS = ECON.welds, PARTS = ECON.parts, RHO = 7.85e-3;
+const Vv = {}; for(const k in PARAM) Vv[k] = PARAM[k].v;
+const nf = (x,d=0) => (x==null||!isFinite(x)) ? '—' : x.toLocaleString('ru-RU',{minimumFractionDigits:d,maximumFractionDigits:d});
+function compute(V){
+  const vsv = V.vsv*1000/60, ops = {};
+  for(const [op,tv] of [['020','tv_020'],['025','tv_025'],['030','tv_030'],['035','tv_035'],['040','tv_040']]){
+    const L = WELDS.filter(w=>w.op===op).reduce((s,w)=>s+w.L,0), to = L/vsv, n = op==='035'?2:1, t = V[tv]*n;
+    ops[op] = {L, to, tv:t, tsh:(to+t)*(1+V.a_obs/100)};
+  }
+  ops['045'] = {L:0,to:0,tv:V.t_045,tsh:V.t_045*(1+V.a_obs/100)};
+  ops['050'] = {L:0,to:0,tv:V.t_050,tsh:V.t_050*(1+V.a_obs/100)};
+  const to_sum = Object.values(ops).reduce((s,o)=>s+o.to,0), L_sum = Object.values(ops).reduce((s,o)=>s+o.L,0);
+  const t_weld_posts = ['020','025','030','035','040','045'].reduce((s,k)=>s+ops[k].tsh,0), t_ctrl = ops['050'].tsh, t_all = t_weld_posts+t_ctrl;
+  const m = k => PARTS[k]*RHO/1000;
+  const m_pipe = m('01_patrubok_L')+m('01_patrubok_R')+m('02_stakan'), m_bar = m('05_napravlyayushchaya_1')+m('05_napravlyayushchaya_2'), m_sheet = m('06_dno');
+  const mat = {pipe:m_pipe/V.kim_pipe*V.c_pipe, bar:m_bar/V.kim_bar*V.c_bar, sheet:m_sheet/V.kim_sheet*V.c_bar, flange:3*V.c_flange};
+  const v_dep = WELDS.reduce((s,w)=>s+w.V,0), g_wire = v_dep*RHO/1000*V.k_reinf*(1+V.psi), gas_l = V.gas_lpm*to_sum*1.1;
+  const kwh = (V.U*V.I/1000/V.eta_src)*to_sum/60 + V.p_idle*(t_weld_posts-to_sum)/60;
+  const rate = V.sal_w/V.h_month, labor = rate*t_all/60;
+  const vr = {materials:Object.values(mat).reduce((a,b)=>a+b,0), wire:g_wire*V.c_wire, gas:gas_l/1000/V.v_gas*V.c_gas, energy:kwh*V.c_kwh, labor, ins:labor*V.ins/100};
+  const AVC = Object.values(vr).reduce((a,b)=>a+b,0);
+  const eq = V.n_posts*(V.c_post+V.c_vent)+V.c_stand;
+  const fix = {am_eq:eq*V.am_eq/100, am_fix:V.n_fix*V.c_fix*V.am_fix/100, area:V.area*V.c_area, master:V.n_m*V.sal_m*12*(1+V.ins/100), other:V.other};
+  const FC = Object.values(fix).reduce((a,b)=>a+b,0);
+  const fund = V.days*V.shifts*V.h_shift*(1-V.k_rep/100)*60;
+  const cap_posts = V.n_posts*fund/t_weld_posts, cap_ctrl = V.n_ctrl*fund/t_ctrl, cap = Math.min(cap_posts,cap_ctrl);
+  const N = Math.floor(cap*V.load/100), cost_full = AVC + FC/N, price = cost_full*(1+V.rent/100), Qbe = FC/(price-AVC);
+  return {ops,to_sum,L_sum,t_weld_posts,t_all,mat,g_wire,gas_l,kwh,rate,var:vr,AVC,fix,FC,fund,cap_posts,cap_ctrl,cap,N,cost_full,price,Qbe,
+    Qbe_rub:Qbe*price, margin:(N-Qbe)/N, profit:N*(price-AVC)-FC, welders:(t_weld_posts*N/60)/(V.h_month*12*0.9), m_pipe,m_bar,m_sheet};
+}
+const OPN = {'020':'020 Стакан + 2 направляющие (прихватка, шов №1)','025':'025 п/сб.1 + фланец стакана','030':'030 п/сб.2 + дно (шов №3)','035':'035 Патрубок + фланец (×2)','040':'040 п/сб.3 + 2 п/сб.4 (седловые швы)','045':'045 Слесарная: зачистка','050':'050 Контроль, гидроиспытание'};
+let R = null;
+function renderEcon(){
+  R = compute(Vv);
+  // нормы
+  document.getElementById('tabOps').innerHTML = `<thead><tr><th>Операция</th><th class="n">Lшв, мм</th><th class="n">Tо</th><th class="n">Tв</th><th class="n">Tшт, мин</th></tr></thead><tbody>`+
+    Object.entries(R.ops).map(([k,o])=>`<tr><td>${OPN[k]}</td><td class="n">${o.L?nf(o.L):'—'}</td><td class="n">${o.to?nf(o.to,2):'—'}</td><td class="n">${nf(o.tv,2)}</td><td class="n">${nf(o.tsh,2)}</td></tr>`).join('')+
+    `<tr class="tot"><td>Итого на корпус</td><td class="n">${nf(R.L_sum)}</td><td class="n">${nf(R.to_sum,2)}</td><td class="n"></td><td class="n">${nf(R.t_all,1)}</td></tr></tbody>`;
+  drawGantt();
+  // KPI
+  const k=(l,v,s,hero)=>`<div class="kpi${hero?' hero':''}"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s}</div></div>`;
+  document.getElementById('kpis').innerHTML =
+    k('Точка безубыточности', nf(Math.ceil(R.Qbe))+' шт', `${nf(R.Qbe_rub/1e6,1)} млн ₽ выручки · ${nf(R.Qbe/R.N*100,0)}% программы`, true) +
+    k('Программа выпуска', nf(R.N)+' шт/год', `${nf(Vv.load)}% мощности ${nf(R.cap)} шт`) +
+    k('Запас финансовой прочности', nf(R.margin*100,1)+' %', 'насколько может упасть выпуск без убытка') +
+    k('Цена корпуса', nf(R.price)+' ₽', `себестоимость ${nf(R.cost_full)} ₽ + ${nf(Vv.rent)}%`) +
+    k('Прибыль при программе', nf(R.profit/1e6,1)+' млн ₽', `маржинальный доход ${nf(R.price-R.AVC)} ₽/шт`);
+  document.getElementById('how').innerHTML = `
+    <li>Переменные затраты AVC = ${nf(R.AVC)} ₽/шт: заготовки, проволока, газ, электроэнергия, зарплата сварщиков и контролёров со взносами.</li>
+    <li>Постоянные затраты FC = ${nf(R.FC/1e6,2)} млн ₽/год: амортизация, площадь ${nf(Vv.area)} м², мастера, прочие расходы.</li>
+    <li>Мощность ограничена ${R.cap_ctrl<R.cap_posts?'местом контроля и гидроиспытания':'сварочными постами'}: ${nf(R.cap)} шт/год. Программа — ${nf(Vv.load)}% мощности: ${nf(R.N)} шт.</li>
+    <li>Цена = полная себестоимость × (1 + ${nf(Vv.rent)}%) = ${nf(R.price)} ₽.</li>
+    <li>Qбу = ${nf(R.FC)} / (${nf(R.price)} − ${nf(R.AVC)}) = <b>${nf(R.Qbe)} шт</b>.</li>`;
+  // чувствительность
+  const sens = (lab, mod) => { const V2 = Object.assign({}, Vv); const r0 = compute(V2); mod(V2); const FC=r0.FC*(V2._fc||1), AVC=r0.AVC*(V2._avc||1), P=r0.price*(V2._p||1); const q=FC/(P-AVC); return `<tr><td>${lab}</td><td class="n">${nf(q)}</td><td class="n">${nf((q/r0.Qbe-1)*100,0)}%</td></tr>`; };
+  document.getElementById('tabSens').innerHTML = `<thead><tr><th>Изменение (при прочих равных)</th><th class="n">Qбу, шт</th><th class="n">к базе</th></tr></thead><tbody>`+
+    sens('Цена −5%',V=>V._p=0.95)+sens('Цена +5%',V=>V._p=1.05)+sens('Переменные затраты +10%',V=>V._avc=1.1)+sens('Постоянные затраты +10%',V=>V._fc=1.1)+sens('Фланцы дешевле на 20%',V=>V._avc=(R.AVC-0.2*R.mat.flange)/R.AVC)+'</tbody>';
+  // калькуляция
+  const vrows = [['Труба ст.20 (патрубки, стакан)', R.mat.pipe, `${nf(R.m_pipe,2)} кг / КИМ ${Vv.kim_pipe}`],['Квадрат 14 (направляющие)', R.mat.bar, `${nf(R.m_bar,2)} кг`],['Лист 5 мм (дно)', R.mat.sheet, `${nf(R.m_sheet,2)} кг`],['Фланцы Ø210 (3 шт)', R.mat.flange, `3 × ${nf(Vv.c_flange)} ₽`],
+    ['Проволока Св-08Г2С', R.var.wire, `${nf(R.g_wire,3)} кг`],['Защитный газ К-25', R.var.gas, `${nf(R.gas_l,0)} л`],['Электроэнергия', R.var.energy, `${nf(R.kwh,2)} кВт·ч`],['Зарплата (сварщики, контроль)', R.var.labor, `${nf(R.t_all/60,3)} н·ч × ${nf(R.rate)} ₽/ч`],['Страховые взносы', R.var.ins, `${nf(Vv.ins)}%`]];
+  document.getElementById('tabVar').innerHTML = `<thead><tr><th>Статья</th><th>Основа</th><th class="n">₽/шт</th><th class="n">%</th></tr></thead><tbody>`+
+    vrows.map(r=>`<tr><td>${r[0]}</td><td class="src">${r[2]}</td><td class="n">${nf(r[1],1)}</td><td class="n">${nf(r[1]/R.AVC*100,1)}</td></tr>`).join('')+
+    `<tr class="tot"><td>AVC</td><td></td><td class="n">${nf(R.AVC,1)}</td><td class="n">100</td></tr></tbody>`;
+  const frows = [['Амортизация оборудования (посты, вентиляция, стенд)', R.fix.am_eq],['Амортизация приспособлений', R.fix.am_fix],['Содержание площади', R.fix.area],['Мастера участка со взносами', R.fix.master],['Прочие цеховые', R.fix.other]];
+  document.getElementById('tabFix').innerHTML = `<thead><tr><th>Статья</th><th class="n">₽/год</th></tr></thead><tbody>`+
+    frows.map(r=>`<tr><td>${r[0]}</td><td class="n">${nf(r[1])}</td></tr>`).join('')+`<tr class="tot"><td>FC</td><td class="n">${nf(R.FC)}</td></tr></tbody>`;
+  document.getElementById('tabCap').innerHTML = `<tbody>
+    <tr><td>Эффективный фонд рабочего места</td><td class="n">${nf(R.fund/60)} ч/год</td></tr>
+    <tr><td>Посты: ${Vv.n_posts} × фонд / ${nf(R.t_weld_posts,1)} мин</td><td class="n">${nf(R.cap_posts)} шт</td></tr>
+    <tr><td>Контроль: ${Vv.n_ctrl} × фонд / ${nf(R.ops['050'].tsh,1)} мин</td><td class="n">${nf(R.cap_ctrl)} шт</td></tr>
+    <tr><td>Программа (${nf(Vv.load)}% узкого места)</td><td class="n">${nf(R.N)} шт</td></tr>
+    <tr><td>Нужно сварщиков (коэффициент выполнения 0,9)</td><td class="n">${nf(R.welders,1)} чел</td></tr></tbody>`;
+  drawBE();
+}
+function renderInputs(){
+  const groups = [['Режим сварки',['I','U','vsv','eta_src','p_idle','gas_lpm','psi','k_reinf']],['Нормирование',['tv_020','tv_025','tv_030','tv_035','tv_040','t_045','t_050','a_obs']],
+    ['Материалы и цены',['c_pipe','kim_pipe','c_bar','kim_bar','kim_sheet','c_flange','c_wire','c_gas','v_gas','c_kwh']],['Труд',['sal_w','h_month','ins']],
+    ['Постоянные затраты',['n_posts','c_post','c_vent','c_stand','am_eq','c_fix','n_fix','am_fix','area','c_area','sal_m','n_m','other']],['Мощность и цена',['days','shifts','h_shift','k_rep','n_ctrl','load','rent']]];
+  document.getElementById('tabIn').innerHTML = `<thead><tr><th>Параметр</th><th class="n">Значение</th><th>Ед.</th><th>Источник / допущение</th></tr></thead><tbody>`+
+    groups.map(([g,keys])=>`<tr><td colspan="4" style="font-family:var(--f-head);font-size:16px;padding-top:10px">${g}</td></tr>`+keys.map(k=>{ const p=PARAM[k];
+      return `<tr><td><label for="in_${k}">${p.label}</label></td><td class="n"><input id="in_${k}" type="number" step="any" value="${p.v}" data-k="${k}"></td><td>${p.unit}</td><td class="src">${p.src}</td></tr>`; }).join('')).join('')+'</tbody>';
+  document.querySelectorAll('#tabIn input').forEach(el=>el.addEventListener('input',()=>{ const v=parseFloat(el.value); if(isFinite(v)){ Vv[el.dataset.k]=v; renderEcon(); } }));
+}
+
+// --- диаграмма норм времени (Гант) ---
+function drawGantt(){
+  const el = document.getElementById('gantt'), ops = Object.entries(R.ops);
+  const W=640, rowH=34, m={l:250,r:60,t:14,b:34}, H=m.t+m.b+rowH*ops.length, tMax=Math.ceil(Math.max(...ops.map(([,o])=>o.tsh))+1);
+  const x=t=>m.l+t/tMax*(W-m.l-m.r);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Штучное время по операциям">`;
+  for(let t=0;t<=tMax;t+=2) s+=`<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--grid)"/><text x="${x(t)}" y="${H-m.b+16}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${t}</text>`;
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-4}" text-anchor="middle" font-size="12.5" fill="var(--muted)">Tшт, мин</text>`;
+  ops.forEach(([k,o],i)=>{ const y=m.t+i*rowH+7, h=rowH-14, a=o.to*(1+Vv.a_obs/100), b=o.tsh;
+    s+=`<text x="${m.l-8}" y="${y+h/2+4}" text-anchor="end" font-size="13" fill="var(--ink)">${OPN[k].replace(/\s*\(.*\)$/,'')}</text>`;
+    if(a>0) s+=`<rect x="${x(0)}" y="${y}" width="${Math.max(0,x(a)-x(0)-1)}" height="${h}" rx="3" fill="var(--s2)"><title>основное (дуга) ${nf(a,2)} мин</title></rect>`;
+    s+=`<rect x="${x(a)+(a>0?1:0)}" y="${y}" width="${Math.max(1,x(b)-x(a)-(a>0?1:0))}" height="${h}" rx="3" fill="var(--s1)"><title>вспомогательное и обслуживание ${nf(b-a,2)} мин</title></rect>`;
+    s+=`<text x="${x(b)+6}" y="${y+h/2+4}" font-size="12.5" fill="var(--ink)" font-family="PT Mono, monospace">${nf(b,1)}</text>`; });
+  s+='</svg>';
+  el.innerHTML = s + `<div class="clegend"><span><i style="background:var(--s2);height:10px;vertical-align:-1px"></i>основное время (горение дуги)</span><span><i style="background:var(--s1);height:10px;vertical-align:-1px"></i>вспомогательное + обслуживание</span></div>`;
+}
+
+// --- график безубыточности ---
+function drawBE(){
+  const el=document.getElementById('be'), W=640, H=420, m={l:64,r:24,t:18,b:44};
+  const nice = v => { const p = 10**Math.floor(Math.log10(v)); for(const k of [1,2,2.5,5,10]) if(k*p >= v) return k*p; };
+  const qStep = nice(R.N*1.25/5), qMax = qStep*5, yStep = nice(qMax*R.price/5), yMax = yStep*Math.ceil(qMax*R.price/yStep);
+  const x=q=>m.l+q/qMax*(W-m.l-m.r), y=v=>m.t+(1-v/yMax)*(H-m.t-m.b);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="График безубыточности">`;
+  for(let i=0;i<=Math.round(yMax/yStep);i++){ const v=i*yStep; s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(v/1e6)}</text>`; }
+  for(let i=0;i<=5;i++){ const q=i*qStep; s+=`<text x="${x(q)}" y="${H-m.b+17}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${nf(q)}</text>`; }
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" font-size="12.5" fill="var(--muted)">выпуск, шт/год</text><text x="14" y="${m.t+4}" font-size="12.5" fill="var(--muted)" transform="rotate(-90 14 ${m.t+4})" text-anchor="end">млн ₽</text>`;
+  // зоны убытка/прибыли
+  s+=`<path d="M${x(0)},${y(R.FC)} L${x(R.Qbe)},${y(R.Qbe*R.price)} L${x(0)},${y(0)} Z" fill="var(--crit)" opacity="0.08"/>`;
+  s+=`<path d="M${x(R.Qbe)},${y(R.Qbe*R.price)} L${x(qMax)},${y(qMax*R.price)} L${x(qMax)},${y(R.FC+qMax*R.AVC)} Z" fill="var(--good)" opacity="0.09"/>`;
+  s+=`<line x1="${x(0)}" x2="${x(qMax)}" y1="${y(R.FC)}" y2="${y(R.FC)}" stroke="var(--s3)" stroke-width="2" stroke-dasharray="6 5"/>`;
+  s+=`<line x1="${x(0)}" x2="${x(qMax)}" y1="${y(R.FC)}" y2="${y(R.FC+qMax*R.AVC)}" stroke="var(--s2)" stroke-width="2.5"/>`;
+  s+=`<line x1="${x(0)}" x2="${x(qMax)}" y1="${y(0)}" y2="${y(qMax*R.price)}" stroke="var(--s1)" stroke-width="2.5"/>`;
+  // точка безубыточности и программа
+  s+=`<line x1="${x(R.Qbe)}" x2="${x(R.Qbe)}" y1="${y(R.Qbe*R.price)}" y2="${y(0)}" stroke="var(--ink)" stroke-dasharray="3 3"/>`;
+  s+=`<circle cx="${x(R.Qbe)}" cy="${y(R.Qbe*R.price)}" r="6" fill="var(--accent)" stroke="var(--plot)" stroke-width="2"/>`;
+  s+=`<text x="${x(R.Qbe)+10}" y="${y(R.Qbe*R.price)+18}" font-size="13" fill="var(--ink)" font-weight="700">Qбу = ${nf(Math.ceil(R.Qbe))} шт</text>`;
+  s+=`<line x1="${x(R.N)}" x2="${x(R.N)}" y1="${m.t}" y2="${y(0)}" stroke="var(--accent)" stroke-width="1.5"/>`;
+  s+=`<text x="${x(R.N)-6}" y="${m.t+12}" font-size="12.5" fill="var(--ink)" text-anchor="end">программа ${nf(R.N)} шт</text>`;
+  s+=`<text x="${x(qMax)-4}" y="${y(qMax*R.price)-8}" text-anchor="end" font-size="12.5" fill="var(--ink)">выручка</text>`;
+  s+=`<text x="${x(qMax)-4}" y="${y(R.FC+qMax*R.AVC)+16}" text-anchor="end" font-size="12.5" fill="var(--ink)">полные затраты</text>`;
+  s+=`<text x="${x(qMax)-4}" y="${y(R.FC)-6}" text-anchor="end" font-size="12.5" fill="var(--muted)">постоянные затраты</text>`;
+  s+=`<text x="${x(R.Qbe*0.35)}" y="${y(R.FC*0.45)}" font-size="12.5" fill="var(--crit)" text-anchor="middle">убыток</text>`;
+  s+=`<text x="${x((R.Qbe+qMax)/2)+30}" y="${y(((R.Qbe+qMax)/2)*R.price)+ (y(0)-y(1))*0 - 6}" font-size="12.5" fill="var(--good)">прибыль</text>`;
+  s+=`<line id="hv" y1="${m.t}" y2="${y(0)}" stroke="var(--muted)" visibility="hidden"/><rect id="hit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/></svg><div class="tip" hidden></div>`;
+  el.innerHTML = s + `<div class="clegend"><span><i style="background:var(--s1)"></i>выручка Ц·Q</span><span><i style="background:var(--s2)"></i>полные затраты FC + AVC·Q</span><span><i style="background:var(--s3)"></i>постоянные затраты FC</span></div>`;
+  const svg=el.querySelector('svg'), tip=el.querySelector('.tip'), hv=svg.querySelector('#hv');
+  svg.querySelector('#hit').addEventListener('pointermove',ev=>{
+    const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)/r.width*W, q=Math.max(0,Math.min(qMax,(px-m.l)/(W-m.l-m.r)*qMax));
+    hv.setAttribute('x1',x(q)); hv.setAttribute('x2',x(q)); hv.setAttribute('visibility','visible');
+    const rev=q*R.price, tc=R.FC+q*R.AVC, pr=rev-tc;
+    tip.innerHTML = `Q = ${nf(q)} шт<br><span style="color:var(--s1)">●</span> выручка ${nf(rev/1e6,2)} млн ₽<br><span style="color:var(--s2)">●</span> затраты ${nf(tc/1e6,2)} млн ₽<br>${pr>=0?'прибыль':'убыток'} ${nf(Math.abs(pr)/1e6,2)} млн ₽`;
+    tip.hidden=false; const cr=el.getBoundingClientRect(); let lx=ev.clientX-cr.left+14; if(lx>cr.width-190) lx-=210; tip.style.left=lx+'px'; tip.style.top=(ev.clientY-cr.top-10)+'px';
+  });
+  svg.querySelector('#hit').addEventListener('pointerleave',()=>{ tip.hidden=true; hv.setAttribute('visibility','hidden'); });
+}
+
+// ======================= 3D: сборка-сварка корпуса =======================
+const KORPUS = (()=>{
+  const WMAP = {}; WELDS.forEach((w,i)=>WMAP[w.key]=i);
+  const GUIDE = ['05_napravlyayushchaya_'], STAKAN = ['02_stakan'], FLST = ['04_flanec_stakana'], DNO = ['06_dno'];
+  const side = n => /_L$/.test(n) ? -1 : (/_R$/.test(n) ? 1 : 0);
+  const OX = 230, OF = 120;
+  // доля готовности каждого шва по состоянию
+  function wfrac(S, key){
+    const i = WMAP[key]; if(i===undefined) return 0;
+    if(key.startsWith('shov_1_')) return Math.max(0, Math.min(1, S.n1 - (i)));
+    if(key==='shov_2_1_stakan_flanec') return S.w25;
+    if(key==='shov_3_dno_stakan') return S.w30;
+    if(key==='shov_2_2_patrubok_flanec_L') return Math.max(0,Math.min(1,S.n35));
+    if(key==='shov_2_3_patrubok_flanec_R') return Math.max(0,Math.min(1,S.n35-1));
+    if(key==='shov_2_4_patrubok_stakan_L') return Math.max(0,Math.min(1,S.n40));
+    if(key==='shov_2_5_patrubok_stakan_R') return Math.max(0,Math.min(1,S.n40-1));
+    return 0;
+  }
+  // смещение детали/шва в разнесённом состоянии
+  function offset(n, S){
+    const sg = side(n);
+    if(n.startsWith('05_')) return [0,0,240*(1-S.gG)];
+    if(n.startsWith('04_')) return [0,0,190*(1-S.gF)];
+    if(n.startsWith('06_')) return [0,0,-170*(1-S.gD)];
+    if(n.startsWith('01_') || n.startsWith('naplavka_') || n==='shov_2_2_patrubok_flanec_L' || n==='shov_2_3_patrubok_flanec_R') return [sg*OX*(1-S.aP),0,0];
+    if(n.startsWith('03_')) return [sg*(OX*(1-S.aP) + OF*(1-S.jF)),0,0];
+    return [0,0,0];
+  }
+  const cfg = {
+    model:'korpus',
+    cam:{pos:[-560,-640,420], target:[0,0,30]},
+    base:{gS:0, gG:0, gF:0, gD:0, gP:0, jF:0, aP:0, n1:0, w25:0, w30:0, n35:0, n40:0, torch:0, hyd:0, plug:0, grind:0},
+    setup(fx){
+      fx.torch = makeTorch(fx);
+      fx.tubes = {};
+      WELDS.forEach(w=>{ const g=new THREE.Group(); fx.fx.add(g); fx.tubes[w.key]=g; g.userData.last=-1; });
+      // заглушки и вода для гидроиспытания
+      const pm = new THREE.MeshStandardMaterial({color:0x7d8894, metalness:0.4, roughness:0.5, transparent:true});
+      const disc = (r,h)=>new THREE.CylinderGeometry(r,r,h,48);
+      fx.plugs = [];
+      const pT = new THREE.Mesh(disc(105,10), pm); pT.rotation.x = Math.PI/2; pT.position.set(0,0,160); fx.fx.add(pT); fx.plugs.push(pT);
+      for(const sg of [-1,1]){ const p=new THREE.Mesh(disc(105,10), pm); p.rotation.z=Math.PI/2; p.position.set(sg*117,0,0); fx.fx.add(p); fx.plugs.push(p); }
+      fx.waterClip = new THREE.Plane(V(0,0,-1), 0);
+      const wm = new THREE.MeshStandardMaterial({color:0x3f8fd8, transparent:true, opacity:0.55, roughness:0.2, clippingPlanes:[fx.waterClip], side:THREE.DoubleSide});
+      const w1 = new THREE.Mesh(new THREE.CylinderGeometry(58.8,58.8,208,48), wm); w1.rotation.x=Math.PI/2; w1.position.set(0,0,36); fx.fx.add(w1);
+      const w2 = new THREE.Mesh(new THREE.CylinderGeometry(49.3,49.3,224,48), wm); w2.rotation.z=Math.PI/2; fx.fx.add(w2);
+      fx.water = [w1,w2]; fx.water.forEach(o=>o.userData.nocut=true); fx.plugs.forEach(o=>o.userData.nocut=true);
+    },
+    pose(fx, S){
+      for(const n in fx.parts){
+        const o = offset(n,S), M = new THREE.Matrix4().makeTranslation(o[0],o[1],o[2]);
+        fx.setM(n, M);
+        if(n.startsWith('shov_')){ const f = wfrac(S,n); fx.parts[n].visible = f >= 0.999; }
+      }
+      setOpacity(fx,'02_stakan',S.gS); setOpacity(fx,'05_napravlyayushchaya_1',S.gS); setOpacity(fx,'05_napravlyayushchaya_2',S.gS);
+      setOpacity(fx,'04_flanec_stakana',S.gS); setOpacity(fx,'06_dno',S.gS);
+      for(const n of ['01_patrubok_L','01_patrubok_R','naplavka_sedla_L','naplavka_sedla_R','03_flanec_patrubka_L','03_flanec_patrubka_R']) setOpacity(fx,n,S.gP);
+      // растущие валики
+      let active = null;
+      WELDS.forEach(w=>{
+        const f = wfrac(S,w.key), g = fx.tubes[w.key];
+        if(f>0.001 && f<0.999) active = {w,f};
+        const key = f<0.001||f>=0.999 ? -1 : Math.round(f*60);
+        if(key!==g.userData.last){
+          g.clear(); g.userData.last=key;
+          if(key>0){ const P=w.pts.map(p=>V(...p)), nSeg=P.length-1, upto=Math.max(1,Math.round(nSeg*f));
+            const path=new THREE.CurvePath(); const k=f*nSeg; for(let i=0;i<Math.min(nSeg,Math.ceil(k));i++){ const a=P[i], b=(i+1<=k)?P[i+1]:P[i].clone().lerp(P[i+1],k-i); if(a.distanceTo(b)>0.01) path.add(new THREE.LineCurve3(a,b)); }
+            if(path.curves.length){ const m=new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(4,path.curves.length*3), 1.9, 8, false), new THREE.MeshStandardMaterial({color:0x5a3a24, roughness:0.6, metalness:0.2, emissive:0x301000})); m.userData.nocut=true; g.add(m); } }
+        }
+        const o = offset(w.key,S); g.position.set(o[0],o[1],o[2]);
+      });
+      // горелка на активном шве
+      fx.torch.visible = !!active && S.torch>0.02;
+      if(fx.torch.visible){
+        const {w,f} = active, P=w.pts, k=f*(P.length-1), i=Math.min(P.length-2,Math.floor(k)), t=k-i;
+        const p = V(...P[i]).lerp(V(...P[i+1]),t); const o=offset(w.key,S); p.add(V(o[0],o[1],o[2]));
+        let out;
+        if(w.key.startsWith('shov_1_')) out = V(0,-Math.sign(p.y)*0.25,1);
+        else if(w.key.includes('patrubok_flanec')) out = V(-Math.sign(p.x)*0.8,p.y,p.z).normalize().add(V(0,0,0.5));
+        else if(w.key.includes('patrubok_stakan')) out = V(Math.sign(p.x)*0.6, p.y/60, Math.max(0.3,p.z/60));
+        else out = V(p.x,p.y,0).normalize().add(V(0,0, w.key.includes('dno')?-0.6:0.7));
+        out.normalize();
+        aimTorch(fx.torch, p.clone().addScaledVector(out,3), p.clone().addScaledVector(out,300));
+        const arc = fx.playing; fx.torch.userData.spark.visible=arc; fx.torch.userData.light.intensity = arc ? 1.6+Math.random()*1.4 : 0;
+      }
+      // гидроиспытание
+      fx.plugs.forEach(pl=>{ pl.visible = S.plug>0.02; pl.material.opacity = S.plug; });
+      const level = -95 + S.hyd*260; fx.waterClip.set(V(0,0,-1), level).applyMatrix4(fx.asm.matrixWorld);
+      fx.water.forEach(o=>o.visible = S.hyd>0.01);
+      const p = S.hyd>0.95 ? 1.6*Math.min(1,(S.hyd-0.95)/0.05) : 0;
+      fx.hudVal.textContent = S.plug>0.02 ? `давление ${p.toFixed(2).replace('.',',')} МПа · σθ стакана = p·D/(2s) = ${(p*118/12).toFixed(1).replace('.',',')} МПа` : `швов наложено: ${WELDS.filter(w=>wfrac(S,w.key)>=0.999).length} из ${WELDS.length}`;
+    },
+    steps: [],
+  };
+  return cfg;
+})();
+function stepsFor(R){
+  const o=R.ops, mm=v=>nf(v,0), mi=v=>nf(v,2);
+  return [
+    {title:'Заготовки корпуса', dur:1.4, set:{gS:1, gP:1},
+     html:`<p>Детали изготовлены на заготовительном участке (лист 4): стакан поз.2 и патрубки поз.1 из трубы, направляющие поз.5 из квадрата, фланцы поз.3 и поз.4, дно поз.6 штамповкой. Все из стали 20.</p><p class="m">масса корпуса ≈ 17,5 кг · 11 деталей по 6 позициям</p>`},
+    {title:'020 · Направляющие в стакан (приспособление №1)', dur:2.6, set:{gG:1}, cut:true, focus:['05_','02_'],
+     html:`<p>Стакан и две направляющие ставят в приспособление №1 и зажимают. Размеры 90, 60⁺⁵ и 8₋₂ задаёт приспособление.</p><p class="m">Tв = ${mi(Vv.tv_020)} мин (установка, зажим, 8 прихваток, поворот, снятие)</p>`},
+    {title:'020 · Шов №1: 8 швов по 40 мм', dur:4.5, set:{n1:8, torch:1}, cut:true, focus:['05_'], cam:{pos:[-420,-520,560], target:[0,0,60]},
+     html:`<p>После прихватки направляющие приваривают окончательно: 8 швов по 40 мм, катет 3, «длина швов по шаблону». Результат — п/сб.1.</p><p class="m">L = ${mm(o['020'].L)} мм · Tо = ${mi(o['020'].to)} мин · Tшт = ${mi(o['020'].tsh)} мин</p>`},
+    {title:'025 · Фланец стакана (приспособление №2)', dur:2.4, set:{gF:1, torch:0}, focus:['04_'],
+     html:`<p>п/сб.1 ставят в приспособление №2: фланец надевается на установочный палец, выдерживается угол отверстий 22°30′±1°.</p>`},
+    {title:'025 · Кольцевой шов стакан—фланец', dur:4.2, set:{w25:1, torch:1}, focus:['04_'], cam:{pos:[-520,-520,520], target:[0,0,110]},
+     html:`<p>Стол вращается, горелка неподвижна: кольцевой шов K3 за один оборот. Результат — п/сб.2.</p><p class="m">L = ${mm(o['025'].L)} мм · Tо = ${mi(o['025'].to)} мин · Tшт = ${mi(o['025'].tsh)} мин</p>`},
+    {title:'030 · Дно и шов №3', dur:4.2, set:{gD:1, w30:1, torch:1}, focus:['06_'], cam:{pos:[-520,-560,-260], target:[0,0,-50]},
+     html:`<p>К п/сб.2 приваривают штампованное дно поз.6 (сварка в CO₂, узел Б листа 1). Шов №3 крупнее остальных: он заполняет разделку между торцом стакана и дном. Результат — п/сб.3.</p><p class="m">L = ${mm(o['030'].L)} мм · Tо = ${mi(o['030'].to)} мин · Tшт = ${mi(o['030'].tsh)} мин</p>`},
+    {title:'035 · Патрубки + фланцы (2 раза)', dur:4.8, set:{jF:1, n35:2, torch:1}, focus:['01_','03_'], cam:{pos:[-200,-760,300], target:[0,0,0]},
+     html:`<p>Отдельно, на другом посту, фланцы поз.3 приваривают к патрубкам поз.1: получаются два п/сб.4. Операция выполняется дважды.</p><p class="m">L = ${mm(o['035'].L)} мм (2 × ${mm(o['035'].L/2)}) · Tо = ${mi(o['035'].to)} мин · Tшт = ${mi(o['035'].tsh)} мин</p>`},
+    {title:'040 · Общая сборка: п/сб.3 + 2 п/сб.4', dur:2.6, set:{aP:1, torch:0}, focus:['01_','03_'],
+     html:`<p>Патрубки с фланцами вставляют в отверстия стакана и выставляют 34±1 мм между сёдлами и строительную длину 224 мм. Затем прихватывают.</p>`},
+    {title:'040 · Седловые швы патрубок—стакан', dur:5, set:{n40:2, torch:1}, focus:['01_'], cam:{pos:[-620,-420,380], target:[0,0,0]},
+     html:`<p>Два седловых шва по линии пересечения цилиндров Ø111 и Ø130. Горелка всё время меняет наклон, это самая трудоёмкая операция.</p><p class="m">L = ${mm(o['040'].L)} мм · Tо = ${mi(o['040'].to)} мин · Tшт = ${mi(o['040'].tsh)} мин</p>`},
+    {title:'045 · Слесарная: зачистка', dur:2, set:{torch:0, grind:1}, focus:['shov_'],
+     html:`<p>Швы проверяют на дефекты сварки, при необходимости исправляют подваркой, неровности зачищают шлифовальной машиной.</p><p class="m">Tшт = ${mi(o['045'].tsh)} мин</p>`},
+    {title:'050 · Гидроиспытание 1,6 МПа', dur:5, set:{plug:1, hyd:1}, cut:true, cam:{pos:[-560,-640,420], target:[0,0,30]},
+     html:`<p>Фланцы закрывают заглушками, корпус заполняют водой и поднимают давление до 1,6 МПа (технические требования листа 1). Утечки не допускаются.</p><p>Окружное напряжение в стенке стакана: σ = p·D/(2s) = 1,6·118/(2·6) ≈ 15,7 МПа. Это в 16 раз ниже предела текучести стали 20 (245 МПа).</p><p class="m">Tшт = ${mi(o['050'].tsh)} мин — это узкое место участка</p>`},
+  ];
+}
+
+// ======================= запуск =======================
+renderInputs(); renderEcon();
+KORPUS.steps = stepsFor(R);
+const fixtures = [];
+document.querySelectorAll('.fx').forEach(el=>{ const f = new Fixture(el, KORPUS); fixtures.push(f); f.init(); });
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ fixtures.forEach(f=>f.bg()); drawBE(); });
+new MutationObserver(()=>fixtures.forEach(f=>f.bg())).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+let last = performance.now();
+(function loop(now){ requestAnimationFrame(loop); const dt=Math.min(0.1,(now-last)/1000); last=now; fixtures.forEach(f=>{ if(!f.frozen) f.tick(dt); }); })(last);
+window.__rz = {
+  fixtures, compute, Vv,
+  ready: () => fixtures.every(f=>!!f.root),
+  steps: fi => fixtures[fi].cfg.steps.map(s=>({title:s.title, html:s.html, dur:s.dur||3})),
+  render(fi, step, t){ const f=fixtures[fi]; if(f.step!==step || !f._rec){ f.go(step,true); f._rec=true; } f.playAll=false; f.holdUntil=0; f.t=t; f.camK=1; f.playing=true; f.apply(); f.cfg.tick&&f.cfg.tick(f,0); f.playing=false; f.controls.update(); f.renderer.render(f.scene,f.camera); },
+  freeze(){ fixtures.forEach(f=>{ f.frozen=true; }); },
+};
+</script>
