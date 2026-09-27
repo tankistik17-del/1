@@ -4,10 +4,9 @@
 
   python3 make_video.py <папка назначения>        (ONLY_PDF=1 — только PDF)
 
-Результат: «Тепловой процесс сварки.mp4» (H.264, 1920×1080, 30 к/с) и «Тепловой процесс сварки.pdf».
+Результат: «Тепловой процесс сварки.mp4» (H.264, 3840×2160 4K, 30 к/с) и «Тепловой процесс сварки.pdf».
 Страница снимается с devicePixelRatio = S: холсты рисуются в том же разрешении, кадр не растягивается.
 """
-import base64
 import io
 import os
 import shutil
@@ -21,7 +20,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, S, Frames, caption_frame, encode, title_card  # noqa: E402
+from make_video import FPS, Frames, caption_frame, pdf_image, video_context, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 CASES = [("shov1", "Шов №1 (направляющая — стакан)"),
@@ -41,14 +40,13 @@ def main():
     only_pdf = bool(os.environ.get("ONLY_PDF"))
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None)
-        ctx = b.new_context(viewport={"width": 1300, "height": 1000}, offline=True, device_scale_factor=S)
+        ctx = video_context(b, width=1300)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page_file))
         pg.wait_for_function("window.__teplo && window.__teplo.ready()", timeout=300000)
         pg.evaluate("window.__frozen = true")
         pg.add_style_tag(content=".scene{grid-template-columns:1.1fr 1fr!important}")
-        fdir = os.path.join(tmp, "frames")
-        fw = Frames(fdir)
+        fw = Frames(None if only_pdf else os.path.join(dst, "Тепловой процесс сварки.mp4"))
         put = fw.put
         snaps = {}
 
@@ -102,16 +100,12 @@ def main():
                                   "Цвет — максимальная температура точки: металл шва, перегрев, нормализация, "
                                   "неполная перекристаллизация, рекристаллизация."), int(4 * FPS))
             print("готово:", key, flush=True)
-        if not only_pdf:
-            out = os.path.join(dst, "Тепловой процесс сварки.mp4")
-            encode(fdir, out)
+        out = fw.close()
+        if out:
             print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
 
         # PDF: интерактивные сцены заменяются снимками
-        def uri(im):
-            buf = io.BytesIO()
-            im.convert("RGB").save(buf, "JPEG", quality=88)
-            return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+        uri = pdf_image
         figs = [("Шов №1: поле температур при t = 0,9 с и термические циклы", snaps["shov1_t"]),
                 ("Шов №1: строение ЗТВ (максимальные температуры)", snaps["shov1_z"]),
                 ("Шов №2: поле температур при t = 0,9 с и термические циклы", snaps["shov2_t"]),

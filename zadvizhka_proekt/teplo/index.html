@@ -348,7 +348,7 @@ function buildTop(P){
   document.getElementById('topInfo').textContent = `δ = ${fmt(P.d,1)} мм · ванна ≈ ${fmt(melt,1)} мм за дугой · изотерма 735 °C: ${fmt(t735,0)} мм за дугой, полуширина ${fmt(w735,1)} мм`;
 }
 // холсты: растр ×devicePixelRatio при прежней логической геометрии (чётко на ретина-экранах и в видео)
-const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+const DPR = Math.min(window.__maxDPR || 2, Math.max(1, window.devicePixelRatio || 1));   // __maxDPR задаёт съёмка видео
 function hiDPI(id){ const cv=document.getElementById(id); cv._w=cv.width; cv._h=cv.height; cv.width=Math.round(cv._w*DPR); cv.height=Math.round(cv._h*DPR); }
 hiDPI('cvTop'); hiDPI('cvSec');
 function topImage(W,H,k=1){

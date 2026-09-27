@@ -259,7 +259,7 @@ class Fixture {
     this.barI = el.querySelector('.bar i'); this.hudSt = el.querySelector('.hud .st'); this.hudVal = el.querySelector('.hud .val');
     this.cutBox = el.querySelector('.cut');
     this.renderer = new THREE.WebGLRenderer({antialias:true});
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio,2)); this.renderer.localClippingEnabled = true;
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, window.__maxDPR || 2)); this.renderer.localClippingEnabled = true;
     this.renderer.outputEncoding = THREE.sRGBEncoding;
     this.stage.prepend(this.renderer.domElement);
     this.scene = new THREE.Scene();

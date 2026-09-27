@@ -4,7 +4,6 @@
 
   python3 make_video.py <папка>        (ONLY_PDF=1 — только PDF)
 """
-import base64
 import io
 import os
 import shutil
@@ -18,7 +17,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, S, W0, H0, BAR0, Frames, caption_frame, encode, first_sentence, title_card  # noqa: E402
+from make_video import FPS, W0, H0, BAR0, Frames, caption_frame, pdf_image, video_context, first_sentence, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
@@ -43,15 +42,14 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None,
                               args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=S)
+        ctx = video_context(b)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page))
         pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
                                  ".stage .hud .st,.stage .legend{display:none}" % (W0, H0 - BAR0))
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
-        fdir = os.path.join(tmp, "f")
-        fw = Frames(fdir)
+        fw = Frames(None if only_pdf else os.path.join(dst, "Контроль и испытания корпуса.mp4"))
         put = fw.put
 
         # (сцена, список шагов, брак?) — годный корпус, затем тот же корпус со свищом с шага выдержки
@@ -84,16 +82,13 @@ def main():
                     keys[fi].append((shot, s))
                 print(name, "шаг", i + 1, flush=True)
         pg.evaluate("v => window.__rz.setLeak(v)", False)
-        if not only_pdf:
-            out = os.path.join(dst, "Контроль и испытания корпуса.mp4")
-            encode(fdir, out)
+        out = fw.close()
+        if out:
             print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
         for fi in (0, 1):
             items = []
             for i, (im, s) in enumerate(keys[fi]):
-                buf = io.BytesIO()
-                crop(im).save(buf, "JPEG", quality=86)
-                items.append({"img": "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode(), "n": i + 1, "title": s["title"], "html": s["html"]})
+                items.append({"img": pdf_image(crop(im)), "n": i + 1, "title": s["title"], "html": s["html"]})
             pg.evaluate("""([fi, items]) => {
               const fx = document.querySelectorAll('.fx')[fi];
               const d = document.createElement('div'); d.className = 'pdfsteps';

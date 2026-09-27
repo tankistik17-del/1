@@ -7,8 +7,8 @@
 
 Страница razbor рендерится в headless Chromium покадрово (window.__rz.render), к каждому кадру
 добавляется подпись шага. Страница снимается с devicePixelRatio = S при прежней CSS-вёрстке
-(сцена 1280×604 CSS-px → 1920×906 px), поэтому кадр чёткий без масштабирования. Результат:
-  «Приспособление 1 - как работает.mp4», «Приспособление 2 - как работает.mp4» (H.264, 1920×1080, 30 к/с)
+(сцена 1280×604 CSS-px → 3840×1812 px), поэтому кадр чёткий без масштабирования. Результат:
+  «Приспособление 1 - как работает.mp4», «Приспособление 2 - как работает.mp4» (H.264, 3840×2160 4K, 30 к/с)
   «Приспособления - разбор.pdf» — тот же текст, что на странице, с кадрами каждого шага.
 """
 import base64
@@ -29,40 +29,74 @@ from playwright.sync_api import sync_playwright
 HERE = os.path.dirname(os.path.abspath(__file__))
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 FPS = 30
-S = 1.5                                  # плотность пикселей при съёмке страницы (devicePixelRatio)
+S = 3                                    # плотность пикселей при съёмке страницы (devicePixelRatio)
 W0, H0, BAR0 = 1280, 720, 116            # кадр в CSS-пикселях страницы
-W, H, BAR = round(W0 * S), round(H0 * S), round(BAR0 * S)   # 1920×1080, полоса подписи 174
+W, H, BAR = round(W0 * S), round(H0 * S), round(BAR0 * S)   # 3840×2160 (4K UHD), полоса подписи 348
+LEVEL = "5.1"                            # H.264 level для 3840×2160 при 30 к/с
+PDF_W = 1600                             # ширина кадров шагов в PDF, px
 
 
 def px(v):
     return round(v * S)
 
 
-class Frames:
-    """Кадры PNG для ffmpeg; повторы (удержание кадра) — жёсткие ссылки на уже записанный файл."""
+def video_context(browser, width=1320, height=1000):
+    """Контекст браузера для съёмки: прежняя CSS-вёрстка, devicePixelRatio = S.
+    window.__maxDPR снимает ограничение плотности (2) у three.js и холстов страниц."""
+    ctx = browser.new_context(viewport={"width": width, "height": height}, offline=True, device_scale_factor=S)
+    ctx.add_init_script("window.__maxDPR = %s;" % S)
+    return ctx
 
-    def __init__(self, d):
-        self.d, self.n = d, 0
-        os.makedirs(d, exist_ok=True)
+
+class Frames:
+    """Кадры W×H сразу в ffmpeg (сырой RGB через stdin), без промежуточных файлов.
+    Удержание кадра — повтор тех же байтов. out=None — только счёт кадров (режим ONLY_PDF)."""
+
+    def __init__(self, out):
+        self.out, self.n, self.p = out, 0, None
+        if out:
+            self.part = out[:-4] + ".part.mp4"
+            self.err = tempfile.TemporaryFile()
+            self.p = subprocess.Popen(
+                [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error",
+                 "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H), "-r", str(FPS), "-i", "-",
+                 "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-tune", "animation",
+                 "-profile:v", "high", "-level", LEVEL, "-pix_fmt", "yuv420p", "-r", str(FPS),
+                 "-movflags", "+faststart", self.part],
+                stdin=subprocess.PIPE, stderr=self.err)
 
     def put(self, im, count=1):
-        first = None
+        self.n += count
+        if not self.p:
+            return
+        im = im.convert("RGB")
+        assert im.size == (W, H), im.size
+        data = im.tobytes()
         for _ in range(count):
-            f = os.path.join(self.d, "%05d.png" % self.n)
-            if first is None:
-                im.save(f, compress_level=1)
-                first = f
-            else:
-                os.link(first, f)
-            self.n += 1
+            self.p.stdin.write(data)
+
+    def close(self):
+        """Дописать файл; возвращает путь к MP4 (или None без видео)."""
+        if not self.p:
+            return None
+        self.p.stdin.close()
+        if self.p.wait():
+            self.err.seek(0)
+            raise RuntimeError("ffmpeg: " + self.err.read().decode(errors="replace"))
+        os.replace(self.part, self.out)
+        return self.out
 
 
-def encode(frames_dir, out):
-    """H.264 High 4.1, yuv420p — открывается стандартным плеером Windows; высокое качество (crf 17)."""
-    subprocess.run([imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error", "-framerate", str(FPS),
-                    "-i", os.path.join(frames_dir, "%05d.png"), "-c:v", "libx264", "-preset", "slow", "-crf", "17",
-                    "-tune", "animation", "-profile:v", "high", "-level", "4.1", "-pix_fmt", "yuv420p",
-                    "-r", str(FPS), "-movflags", "+faststart", out], check=True)
+def pdf_image(im):
+    """Кадр для PDF: уменьшить до PDF_W по ширине (4K-кадры в PDF избыточны), JPEG."""
+    im = im.convert("RGB")
+    if im.width > PDF_W:
+        im = im.resize((PDF_W, round(im.height * PDF_W / im.width)), Image.LANCZOS)
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=88)
+    return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FONT_B = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 TITLES = ["Приспособление сварочное №1 (лист 6, операция 020)",
@@ -142,7 +176,7 @@ def main():
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=CHROME if os.path.exists(CHROME) else None,
                               args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
-        ctx = b.new_context(viewport={"width": 1320, "height": 1000}, offline=True, device_scale_factor=S)
+        ctx = video_context(b)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page_file))
         pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
@@ -154,15 +188,14 @@ def main():
             steps = pg.evaluate("fi => window.__rz.steps(fi)", fi)
             canvas = pg.locator(".stage canvas").nth(fi)
             canvas.scroll_into_view_if_needed()
-            fdir = os.path.join(tmp, "f%d" % fi)
-            fw = Frames(fdir)
+            only_pdf = os.environ.get("ONLY_PDF")
+            fw = Frames(None if only_pdf else os.path.join(dst, FILES[fi]))
             put = fw.put
             put(title_card(TITLES[fi], SUBS[fi]), int(2.5 * FPS))
             keyframes[fi] = []
             for i, s in enumerate(steps):
                 frames = max(2, int(round(s["dur"] * FPS)))
                 sub = first_sentence(s["html"])
-                only_pdf = os.environ.get("ONLY_PDF")
                 for k in (range(frames, frames + 1) if only_pdf else range(frames + 1)):
                     pg.evaluate("([fi,i,t]) => window.__rz.render(fi,i,t)", [fi, i, k / frames])
                     shot = Image.open(io.BytesIO(canvas.screenshot()))
@@ -170,17 +203,14 @@ def main():
                     put(fr, int(1.4 * FPS) if k == frames else 1)
                 keyframes[fi].append((shot, s))
                 print("лист %d, шаг %d/%d" % (6 + fi, i + 1, len(steps)), flush=True)
-            if os.environ.get("ONLY_PDF"):
-                continue
-            out = os.path.join(dst, FILES[fi])
-            encode(fdir, out)
-            print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
+            out = fw.close()
+            if out:
+                print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
 
         # PDF: те же разделы страницы, вместо 3D-сцен — кадры каждого шага с полным текстом
         for fi in range(2):
             items = []
             for i, (im, s) in enumerate(keyframes[fi]):
-                buf = io.BytesIO()
                 im = im.convert("RGB")
                 im = im.crop((4, 4, im.width - 4, im.height - 4))   # без рамки по краю кадра
                 from PIL import ImageChops
@@ -189,8 +219,7 @@ def main():
                 if box:
                     m = 16
                     im = im.crop((max(box[0] - m, 0), max(box[1] - m, 0), min(box[2] + m, im.width), min(box[3] + m, im.height)))
-                im.save(buf, "JPEG", quality=86)
-                items.append({"img": "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode(),
+                items.append({"img": pdf_image(im),
                               "n": i + 1, "title": s["title"], "html": s["html"]})
             pg.evaluate("""([fi, items]) => {
               const fx = document.querySelector(`.fx[data-fx="${fi+1}"]`);
