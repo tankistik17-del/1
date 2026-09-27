@@ -17,7 +17,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, W0, H0, BAR0, Frames, caption_frame, pdf_image, video_context, first_sentence, title_card  # noqa: E402
+from make_video import FPS, STAGE_CSS, Frames, pin, caption_frame, pdf_image, video_context, first_sentence, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
@@ -45,36 +45,38 @@ def main():
         ctx = video_context(b)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page))
-        pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud .st,.stage .legend{display:none}" % (W0, H0 - BAR0))
+        pg.add_style_tag(content=STAGE_CSS + ".stage .hud .st,.stage .legend{display:none}")
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         fw = Frames(None if only_pdf else os.path.join(dst, "Контроль и испытания корпуса.mp4"))
         put = fw.put
 
         # (сцена, список шагов, брак?) — годный корпус, затем тот же корпус со свищом с шага выдержки
-        parts = [(0, None, False, "ВИК"), (1, None, False, "Гидроиспытание"), (1, [3, 4, 6], True, "Гидроиспытание: корпус со свищом")]
+        parts = [(0, None, False, "ВИК", "Визуально-измерительный контроль 14 швов по РД 03-606-03: лупа, шаблон катета, обмер"),
+                 (1, None, False, "Гидроиспытание", "Прочность при Pпр = 2,0 МПа, затем герметичность при 1,6 МПа (ТТ п. 3 листа 1)"),
+                 (1, [3, 4, 6], True, "Гидроиспытание: корпус со свищом", "Тот же корпус со свищом в седловом шве: течь и падение давления — брак")]
         keys = {0: [], 1: []}
         if not only_pdf:
             put(title_card("Контроль и испытания корпуса задвижки",
-                           "Визуально-измерительный контроль швов и гидравлическое испытание пробным давлением (пояснительная записка, п. 1.13)"), int(2.5 * FPS))
-        for fi, only, leak, name in parts:
+                           "Визуально-измерительный контроль швов и гидравлическое испытание пробным давлением (пояснительная записка, п. 1.13)",
+                           kicker="КОНТРОЛЬ КАЧЕСТВА"), int(2.5 * FPS))
+        for fi, only, leak, name, desc in parts:
             if only_pdf and leak:
                 continue
             pg.evaluate("v => window.__rz.setLeak(v)", leak)
             pg.evaluate("fi => { window.__rz.fixtures[fi]._rec = false; }", fi)
             steps = pg.evaluate("fi => window.__rz.steps(fi)", fi)
+            pin(pg, ".stage", fi)
             canvas = pg.locator(".stage").nth(fi)
-            canvas.scroll_into_view_if_needed()
             idx = only if only is not None else range(len(steps))
             if not only_pdf:
-                put(title_card(name, ""), int(1.2 * FPS))
+                put(title_card(name, desc, kicker="КОНТРОЛЬ КАЧЕСТВА"), int(1.6 * FPS))
             for i in idx:
                 s = steps[i]
                 fr = max(2, int(round(s["dur"] * FPS)))
                 rng = range(fr, fr + 1) if only_pdf else range(fr + 1)
                 for k in rng:
-                    pg.evaluate("([f,i,t]) => window.__rz.render(f,i,t)", [fi, i, k / fr])
+                    pg.evaluate("([f,i,t,ms]) => { window.__clockMs = ms; window.__rz.render(f,i,t); }", [fi, i, k / fr, fw.n * 1000 / FPS])
                     shot = Image.open(io.BytesIO(canvas.screenshot()))
                     if not only_pdf:
                         put(caption_frame(shot, i + 1, len(steps), s["title"], first_sentence(s["html"])), int(1.3 * FPS) if k == fr else 1)

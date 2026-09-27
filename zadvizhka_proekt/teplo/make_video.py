@@ -20,11 +20,16 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, Frames, caption_frame, pdf_image, video_context, title_card  # noqa: E402
+from make_video import FPS, W0, Frames, caption_frame, pdf_image, pin, video_context, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 CASES = [("shov1", "Шов №1 (направляющая — стакан)"),
          ("shov2", "Шов №2 (стакан — фланец)")]
+
+
+# логический размер холста = его ширина на странице (растр = ширина × devicePixelRatio)
+FIT = """id => { const c = document.getElementById(id), w = Math.round(c.getBoundingClientRect().width), d = window.__maxDPR || 1;
+  if (c._w === w) return; c._h = Math.round(c._h * w / c._w); c._w = w; c.width = Math.round(w * d); c.height = Math.round(c._h * d); }"""
 
 
 def shot(loc):
@@ -55,11 +60,14 @@ def main():
         if not only_pdf:
             put(title_card("Тепловой процесс сварки корпуса задвижки",
                            "Расчёт по Рыкалину и численная модель сечения швов: I = 134 А, U = 23 В, v = 46 м/ч, "
-                           "q/v ≈ 193 Дж/мм, сталь 20"), int(3 * FPS))
+                           "q/v ≈ 193 Дж/мм, сталь 20", kicker="РАСЧЁТ И МОДЕЛИРОВАНИЕ"), int(3 * FPS))
         # 1. Вид сверху: движение дуги
         step += 1
+        # кадр на всю ширину W0 CSS-px и растр холста ровно под неё — снимок 1:1 без растяжения
+        pin(pg, "#vizTop .cv", 0, W0)
+        pg.evaluate(FIT, "cvTop")
+        pg.evaluate("() => { window.__teplo.TOP.img = null; window.__teplo.drawTop(); }")
         top = pg.locator("#vizTop .cv")
-        top.scroll_into_view_if_needed()
         for k in range(1 if only_pdf else int(7 * FPS)):
             pg.evaluate("s => { window.__teplo.TOP.shift = s; window.__teplo.drawTop(); }", k / FPS * 12.8)
             im = shot(top)
@@ -69,11 +77,14 @@ def main():
                                   "а остывает медленнее. Изотерма 735 °C (Ac₁) тянется за дугой на ≈ 9 мм."))
         snaps["top"] = im
         # 2. Сечения швов
+        pin(pg, "#vizTop .cv", -1)
+        pin(pg, "#vizSec .scene", 0, W0)
+        pg.evaluate(FIT, "cvSec")
         sc = pg.locator("#vizSec .scene")
         for key, title in CASES:
-            pg.click('.case[data-case="%s"]' % key)
-            pg.click('.view[data-view="temp"]')
-            pg.click('.zoom[data-zoom="near"]')
+            pg.evaluate("sel => document.querySelector(sel).click()", '.case[data-case="%s"]' % key)
+            pg.evaluate("sel => document.querySelector(sel).click()", '.view[data-view="temp"]')
+            pg.evaluate("sel => document.querySelector(sel).click()", '.zoom[data-zoom="near"]')
             sc.scroll_into_view_if_needed()
             step += 1
             ts = [0.45 + 3.55 * (k / (12 * FPS)) ** 1.6 for k in range(int(12 * FPS) + 1)]
@@ -91,7 +102,7 @@ def main():
                 put(fr, int(1.0 * FPS))   # удержание последнего кадра с подписью
             pg.evaluate("t => window.__teplo.setT(t)", 0.9)
             snaps[key + "_t"] = shot(sc)
-            pg.click('.view[data-view="zones"]')
+            pg.evaluate("sel => document.querySelector(sel).click()", '.view[data-view="zones"]')
             step += 1
             im = shot(sc)
             snaps[key + "_z"] = im
@@ -104,7 +115,8 @@ def main():
         if out:
             print(out, "%.1f МБ, %.0f с" % (os.path.getsize(out) / 1e6, fw.n / FPS))
 
-        # PDF: интерактивные сцены заменяются снимками
+        # PDF: интерактивные сцены заменяются снимками (сцены — обратно в поток страницы)
+        pin(pg, "#vizSec .scene", -1)
         uri = pdf_image
         figs = [("Шов №1: поле температур при t = 0,9 с и термические циклы", snaps["shov1_t"]),
                 ("Шов №1: строение ЗТВ (максимальные температуры)", snaps["shov1_z"]),

@@ -197,6 +197,8 @@ async function loadGLB(key){
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+// время анимаций (пульсация подсветки, поток воздуха); при съёмке видео задаётся кадром — window.__clockMs
+const nowMs = () => (window.__clockMs ?? performance.now());
 const V = (x,y,z)=>new THREE.Vector3(x,y,z);
 
 
@@ -299,7 +301,7 @@ class Fixture {
     // plane in world coordinates (CAD y = 0, keep y >= 0)
     this.clip.set(V(0,1,0),0).applyMatrix4(this.asm.matrixWorld);
     const s = this.cfg.steps[this.step];
-    const focus = s.focus||[]; const pulse = 0.28 + 0.18*Math.sin(performance.now()/260);
+    const focus = s.focus||[]; const pulse = 0.28 + 0.18*Math.sin(nowMs()/260);
     for(const n in this.parts){
       const on = focus.some(f=>n.startsWith(f));
       this.parts[n].traverse(o=>{ if(o.isMesh && !o.userData.cut && o.material.emissive) o.material.emissive.setRGB(on?pulse:0, on?pulse*0.55:0, 0); });
@@ -624,13 +626,13 @@ function stepsFor(R){
      html:`<p>Детали изготовлены на заготовительном участке (лист 4): стакан поз.2 и патрубки поз.1 из трубы, направляющие поз.5 из квадрата, фланцы поз.3 и поз.4, дно поз.6 штамповкой. Все из стали 20.</p><p class="m">масса корпуса ≈ 17,5 кг · 11 деталей по 6 позициям</p>`},
     {title:'020 · Направляющие в стакан (приспособление №1)', dur:2.6, set:{gG:1}, cut:true, focus:['05_','02_'],
      html:`<p>Стакан и две направляющие ставят в приспособление №1 и зажимают. Размеры 90, 60⁺⁵ и 8₋₂ задаёт приспособление.</p><p class="m">Tв = ${mi(Vv.tv_020)} мин (установка, зажим, 8 прихваток, поворот, снятие)</p>`},
-    {title:'020 · Шов №1: 8 швов по 40 мм', dur:4.5, set:{n1:8, torch:1}, cut:true, focus:['05_'], cam:{pos:[-420,-520,560], target:[0,0,60]},
+    {title:'020 · Шов №1: 8 швов по 40 мм', dur:4.5, set:{n1:8, torch:1}, cut:true, focus:['05_'], cam:{pos:[-670,-820,790], target:[0,0,50]},
      html:`<p>После прихватки направляющие приваривают окончательно: 8 швов по 40 мм, катет 3, «длина швов по шаблону». Результат — п/сб.1.</p><p class="m">L = ${mm(o['020'].L)} мм · Tо = ${mi(o['020'].to)} мин · Tшт = ${mi(o['020'].tsh)} мин</p>`},
     {title:'025 · Фланец стакана (приспособление №2)', dur:2.4, set:{gF:1, torch:0}, focus:['04_'],
      html:`<p>п/сб.1 ставят в приспособление №2: фланец надевается на установочный палец, выдерживается угол отверстий 22°30′±1°.</p>`},
-    {title:'025 · Кольцевой шов стакан—фланец', dur:4.2, set:{w25:1, torch:1}, focus:['04_'], cam:{pos:[-520,-520,520], target:[0,0,110]},
+    {title:'025 · Кольцевой шов стакан—фланец', dur:4.2, set:{w25:1, torch:1}, focus:['04_'], cam:{pos:[-800,-800,650], target:[-40,0,0]},
      html:`<p>Стол вращается, горелка неподвижна: кольцевой шов K3 за один оборот. Результат — п/сб.2.</p><p class="m">L = ${mm(o['025'].L)} мм · Tо = ${mi(o['025'].to)} мин · Tшт = ${mi(o['025'].tsh)} мин</p>`},
-    {title:'030 · Дно и шов №3', dur:4.2, set:{gD:1, w30:1, torch:1}, focus:['06_'], cam:{pos:[-520,-560,-260], target:[0,0,-50]},
+    {title:'030 · Дно и шов №3', dur:4.2, set:{gD:1, w30:1, torch:1}, focus:['06_'], cam:{pos:[-610,-660,-300], target:[0,0,-25]},
      html:`<p>К п/сб.2 приваривают штампованное дно поз.6 (сварка в CO₂, узел Б листа 1). Шов №3 крупнее остальных: он заполняет разделку между торцом стакана и дном. Результат — п/сб.3.</p><p class="m">L = ${mm(o['030'].L)} мм · Tо = ${mi(o['030'].to)} мин · Tшт = ${mi(o['030'].tsh)} мин</p>`},
     {title:'035 · Патрубки + фланцы (2 раза)', dur:4.8, set:{jF:1, n35:2, torch:1}, focus:['01_','03_'], cam:{pos:[-200,-760,300], target:[0,0,0]},
      html:`<p>Отдельно, на другом посту, фланцы поз.3 приваривают к патрубкам поз.1: получаются два п/сб.4. Операция выполняется дважды.</p><p class="m">L = ${mm(o['035'].L)} мм (2 × ${mm(o['035'].L/2)}) · Tо = ${mi(o['035'].to)} мин · Tшт = ${mi(o['035'].tsh)} мин</p>`},

@@ -372,6 +372,8 @@ async function loadGLB(key){
 function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
 function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+// время анимаций (пульсация подсветки, поток воздуха); при съёмке видео задаётся кадром — window.__clockMs
+const nowMs = () => (window.__clockMs ?? performance.now());
 const V = (x,y,z)=>new THREE.Vector3(x,y,z);
 
 // ---- spec tables ----
@@ -480,7 +482,7 @@ class Fixture {
     // plane in world coordinates (CAD y = 0, keep y >= 0)
     this.clip.set(V(0,1,0),0).applyMatrix4(this.asm.matrixWorld);
     const s = this.cfg.steps[this.step];
-    const focus = s.focus||[]; const pulse = 0.28 + 0.18*Math.sin(performance.now()/260);
+    const focus = s.focus||[]; const pulse = 0.28 + 0.18*Math.sin(nowMs()/260);
     for(const n in this.parts){
       const on = focus.some(f=>n.startsWith(f));
       this.parts[n].traverse(o=>{ if(o.isMesh && !o.userData.cut && o.material.emissive) o.material.emissive.setRGB(on?pulse:0, on?pulse*0.55:0, 0); });
@@ -623,7 +625,7 @@ const F1 = (()=>{
       }
       fx.hudVal.textContent = `ход штока ${(25-d).toFixed(1)} из 25 мм · поворот рычага ${(24.58 - phi*180/Math.PI).toFixed(1)}° · поворот ${(S.theta*180/Math.PI).toFixed(0)}°`;
     },
-    tick(fx){ const t = performance.now()/1000; [fx.airC,fx.airC2,fx.airR,fx.airR2].forEach(g=>flowAir(g,t)); },
+    tick(fx){ const t = nowMs()/1000; [fx.airC,fx.airC2,fx.airR,fx.airR2].forEach(g=>flowAir(g,t)); },
     steps:[
       {title:'Приспособление в исходном положении', dur:1.2, set:{}, cut:false,
        html:`<p>Приспособление стоит на столе сварщика. Основание поз.14 крепится к столу лапами с пазами 12 мм. Всё, что выше основания, поворачивается вокруг вертикальной оси.</p><p>Цилиндры разжаты: штоки разведены, толкатели поз.3 отведены к центру на 26,6 мм, внутри хватает места для деталей.</p><p class="why">Посмотрите модель мышью: слева и справа — два пневмоцилиндра, в середине — мост с толкателями, сверху — губки-ложементы под стакан.</p>`},
@@ -703,7 +705,7 @@ const F2 = (()=>{
       }
       fx.hudVal.textContent = `головка: ${S.dz.toFixed(1)} из 30 мм вверх · поворот стола ${(S.theta*180/Math.PI).toFixed(0)}°`;
     },
-    tick(fx){ const t = performance.now()/1000; [fx.airC,fx.airR].forEach(g=>flowAir(g,t)); },
+    tick(fx){ const t = nowMs()/1000; [fx.airC,fx.airR].forEach(g=>flowAir(g,t)); },
     steps:[
       {title:'Приспособление в исходном положении', dur:1.2, set:{}, cut:false,
        html:`<p>Приспособление закреплено на вращающемся столе (планшайбе) пазами плиты-основания Ø200. Головка поднята на 30 мм: рабочий ход пневмоцилиндра.</p><p class="why">В центре — вертикальный пневмоцилиндр, сверху — головка с рычагами-прихватами, снизу — корпус с вращающимся подводом воздуха (втулка поз.16 со штуцерами).</p>`},

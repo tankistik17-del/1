@@ -263,10 +263,13 @@ const Pt = () => IV.p_work*IV.k_test;
 
 // ======================= общая 3D-графика =======================
 function makeLabel(text, h=18, color='#1b2a3a'){
-  const c = document.createElement('canvas'), g = c.getContext('2d'), fs = 48;
-  g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`; const w = Math.ceil(g.measureText(text).width)+24;
-  c.width = w; c.height = fs+20; g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`;
-  g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(0,0,w,c.height); g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(text, 12, c.height/2+2);
+  // текстура с запасом под плотность пикселей экрана (чётко на ретина-экранах и в 4K-видео)
+  const q = Math.min(window.__maxDPR || 2, Math.max(1, window.devicePixelRatio || 1));
+  const c = document.createElement('canvas'), g = c.getContext('2d'), fs = Math.round(32*q);
+  const k = fs/48;   // поля и отступы — в тех же пропорциях, что и при fs = 48
+  g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`; const w = Math.ceil(g.measureText(text).width + 24*k);
+  c.width = w; c.height = Math.round(fs + 20*k); g.font = `700 ${fs}px "PT Sans Narrow", Arial, sans-serif`;
+  g.fillStyle = 'rgba(255,255,255,0.85)'; g.fillRect(0,0,w,c.height); g.fillStyle = color; g.textBaseline = 'middle'; g.fillText(text, 12*k, c.height/2+2*k);
   const tex = new THREE.CanvasTexture(c); tex.encoding = THREE.sRGBEncoding;
   const s = new THREE.Sprite(new THREE.SpriteMaterial({map:tex, depthTest:false, transparent:true}));
   s.scale.set(h*w/c.height, h, 1); s.renderOrder = 20; s.userData.nocut = true; return s;
@@ -376,7 +379,7 @@ const VIK = {
      html:`<p>Швы внутри стакана. Их осматривают до установки дна: потом доступ остаётся только через фланец. Проверяют длину 40 мм по шаблону, отсутствие непроваров по концам и кратеров.</p><p class="m">8 швов · катет 3 · длина 40±2 мм</p>`},
     {title:'Кольцевой шов стакан—фланец', dur:3.5, set:{v25:1}, cam:{pos:[-520,-520,360], target:[0,0,110]},
      html:`<p>Лупу ведут вдоль всего кольцевого шва. Особое внимание — к месту начала и конца шва, где возможен незаваренный кратер: шов выполнен за один оборот стола.</p><p class="m">L ≈ ${nf(WM['shov_2_1_stakan_flanec'].L)} мм</p>`},
-    {title:'Шов №3: дно—стакан', dur:3.5, set:{v30:1}, cam:{pos:[-520,-560,-300], target:[0,0,-50]},
+    {title:'Шов №3: дно—стакан', dur:3.5, set:{v30:1}, cam:{pos:[-600,-650,-330], target:[0,0,-25]},
      html:`<p>Шов крупнее остальных: он заполняет разделку между торцом стакана и дном и выступает на 1,5 мм (узел Б). Проверяют выпуклость и отсутствие подрезов по кромке дна.</p><p class="m">L ≈ ${nf(WM['shov_3_dno_stakan'].L)} мм</p>`},
     {title:'Швы патрубок—фланец (×2)', dur:4, set:{v35:1}, cam:{pos:[-200,-760,260], target:[0,0,0]},
      html:`<p>Осматривают оба кольцевых шва патрубков. Под лупой ищут поры: при нарушении газовой защиты (сквозняк, расход ниже 17–18 л/мин) они появляются прежде всего здесь, на наружных швах.</p><p class="m">2 × ${nf(WM['shov_2_2_patrubok_flanec_L'].L)} мм</p>`},
@@ -406,7 +409,7 @@ function pOf(S, leak){
 const LEAKW = 'shov_2_4_patrubok_stakan_L', LEAKP = [-66, 0, 56.5];
 const HYD = {
   model:'korpus',
-  cam:{pos:[80,-1080,360], target:[-90,0,-15]},
+  cam:{pos:[80,-1180,390], target:[-90,0,0]},
   base:{plug:0, fill:0, pr:0, hold:0, insp:0, drain:0, res:0},
   setup(fx){
     const pm = new THREE.MeshStandardMaterial({color:0x7d8894, metalness:0.4, roughness:0.5, transparent:true});
@@ -501,7 +504,7 @@ function hydSteps(){
     {title:`Выдержка ${nf(IV.t_hold)} мин при Pпр`, dur:4.5, set:{hold:1}, cut:true,
      html:`<p>Насос отключён, корпус под пробным давлением. Давление не должно падать: допускаются только колебания от изменения температуры воды. Стенки упруго расширяются на несколько микрометров (на модели ×500).</p><p class="m">Проверяется прочность стенок и швов при напряжениях в ${nf(IV.k_test,2)} раза выше рабочих</p>`,
      leak:{title:`Выдержка при Pпр: давление падает`, html:`<p class="bad">Через свищ в седловом шве бьёт струя воды, давление по обоим манометрам падает. Это не температурное колебание: падение непрерывное и одинаковое на МН1 и МН2.</p><p>Испытание прекращают, давление сбрасывают.</p>`}},
-    {title:`Снижение до Pр = ${Pw} МПа, осмотр швов`, dur:5, set:{insp:1}, cut:true, cam:{pos:[-420,-760,260], target:[-20,0,20]},
+    {title:`Снижение до Pр = ${Pw} МПа, осмотр швов`, dur:5, set:{insp:1}, cut:true, cam:{pos:[-520,-980,300], target:[-70,0,-5]},
      html:`<p>Давление снижают до рабочего, и только после этого контролёр подходит к корпусу. Он осматривает все наружные швы и поверхности: нет ли течи, «потения» и капель.</p><p class="why">Это проверка герметичности по чертежу: ТТ п. 3 листа 1 — «Проверить на герметичность при давлении 1,6 МПа, утечка жидкости не допускается»; ТТ п. 4 листа 2 — «Контроль сварных швов — гидравлическое испытание».</p><p class="m">Осмотр при Pр = ${Pw} МПа</p>`,
      leak:{title:'Давление сброшено, место течи отмечено', html:`<p class="bad">Давление снижено до нуля, место течи отмечено мелом.</p><p>Далее: свищ вышлифовывают до чистого металла, заваривают и повторяют ВИК и гидроиспытание полностью.</p>`}},
     {title:'Сброс давления и слив', dur:3.5, set:{drain:1}, cut:true,

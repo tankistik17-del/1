@@ -48,6 +48,21 @@ def video_context(browser, width=1320, height=1000):
     return ctx
 
 
+def pin(pg, sel, i=0, width=None):
+    """Элемент sel[i] — в левый верхний угол окна (position: fixed) на целых пикселях: снимок без
+    пересэмплирования с полупиксельным сдвигом. Остальные элементы sel возвращаются на место."""
+    pg.evaluate("""([sel, i, w]) => document.querySelectorAll(sel).forEach((e, j) => {
+        const on = j === i;
+        e.style.position = on ? 'fixed' : ''; e.style.left = on ? '0' : ''; e.style.top = on ? '0' : '';
+        e.style.zIndex = on ? '1000' : ''; if (w) e.style.width = on ? w + 'px' : '';
+    })""", [sel, i, width])
+
+
+# CSS для съёмки 3D-сцен: сцена без рамки (рамка сдвигала холст на полпикселя), ровно W0×(H0−BAR0)
+STAGE_CSS = (".fx{grid-template-columns:1fr!important}"
+             ".stage{width:%dpx!important;height:%dpx!important;border:0!important}" % (W0, H0 - BAR0))
+
+
 class Frames:
     """Кадры W×H сразу в ffmpeg (сырой RGB через stdin), без промежуточных файлов.
     Удержание кадра — повтор тех же байтов. out=None — только счёт кадров (режим ONLY_PDF)."""
@@ -61,7 +76,9 @@ class Frames:
                 [imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-loglevel", "error",
                  "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H), "-r", str(FPS), "-i", "-",
                  "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-tune", "animation",
-                 "-profile:v", "high", "-level", LEVEL, "-pix_fmt", "yuv420p", "-r", str(FPS),
+                 "-profile:v", "high", "-level", LEVEL,
+                 "-vf", "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p",
+                 "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-r", str(FPS),
                  "-movflags", "+faststart", self.part],
                 stdin=subprocess.PIPE, stderr=self.err)
 
@@ -110,11 +127,20 @@ def plain(h):
     return html.unescape(re.sub(r"<[^>]+>", "", h))
 
 
+ABBR = ("п", "пп", "поз", "рис", "см", "ст", "табл", "гл", "разд", "т.е", "т.д", "т.п", "др", "прим", "стр", "с")
+
+
 def first_sentence(h):
+    """Первое предложение первого абзаца. Конец предложения — [.!?] перед пробелом и заглавной буквой,
+    кроме сокращений («п. 3», «рис. 1.3»), поэтому ссылки в скобках не обрезаются."""
     m = re.search(r"<p(?:\s[^>]*)?>(.*?)</p>", h, re.S)
-    t = plain(m.group(1) if m else h).strip()
-    s = re.split(r"(?<=[.!?])\s", t)[0]
-    return s
+    t = re.sub(r"\s+", " ", plain(m.group(1) if m else h)).strip()
+    for e in re.finditer(r"[.!?](?=\s+[А-ЯЁA-Z«\"])", t):
+        word = re.search(r"([\w.]+)$", t[:e.start()])
+        if e.group() == "." and word and word.group(1).lower() in ABBR:
+            continue
+        return t[:e.end()]
+    return t
 
 
 def wrap(draw, text, font, width):
@@ -133,7 +159,6 @@ def wrap(draw, text, font, width):
 
 def caption_frame(img, n, total, title, sub):
     f_t = ImageFont.truetype(FONT_B, px(25))
-    f_s = ImageFont.truetype(FONT, px(19))
     f_n = ImageFont.truetype(FONT_B, px(17))
     canvas = Image.new("RGB", (W, H), (238, 241, 244))
     img = img.convert("RGB")
@@ -147,22 +172,37 @@ def caption_frame(img, n, total, title, sub):
     canvas.paste(im, ((W - im.width) // 2, (H - BAR - im.height) // 2))
     d = ImageDraw.Draw(canvas)
     d.rectangle([0, H - BAR, W, H], fill=(27, 42, 58))
-    d.text((px(28), H - BAR + px(14)), "ШАГ %d / %d" % (n, total), font=f_n, fill=(224, 149, 74))
-    d.text((px(150), H - BAR + px(10)), title, font=f_t, fill=(255, 255, 255))
-    for j, line in enumerate(wrap(d, sub, f_s, W - px(178))[:2]):
-        d.text((px(150), H - BAR + px(48) + j * px(26)), line, font=f_s, fill=(200, 212, 226))
+    label = "ШАГ %d / %d" % (n, total)
+    d.text((px(28), H - BAR + px(14)), label, font=f_n, fill=(224, 149, 74))
+    x = max(px(150), px(28) + round(d.textlength(label, font=f_n)) + px(22))   # заголовок не прилипает к «ШАГ 10 / 11»
+    d.text((x, H - BAR + px(10)), title, font=f_t, fill=(255, 255, 255))
+    # подпись: 2 строки кеглем 19, если не влезает — 3 строки мельче; обрезка только с многоточием
+    for size, rows, y0, step in ((19, 2, 48, 26), (16, 3, 44, 22), (14, 3, 44, 21)):
+        f_s = ImageFont.truetype(FONT, px(size))
+        lines = wrap(d, sub, f_s, W - x - px(28))
+        if len(lines) <= rows:
+            break
+    if len(lines) > rows:
+        lines = lines[:rows]
+        while lines[-1] and d.textlength(lines[-1] + " …", font=f_s) > W - x - px(28):
+            lines[-1] = lines[-1].rsplit(" ", 1)[0]
+        lines[-1] += " …"
+    for j, line in enumerate(lines):
+        d.text((x, H - BAR + px(y0) + j * px(step)), line, font=f_s, fill=(200, 212, 226))
     return canvas
 
 
-def title_card(title, sub):
+def title_card(title, sub, kicker="КАК РАБОТАЕТ"):
     c = Image.new("RGB", (W, H), (27, 42, 58))
     d = ImageDraw.Draw(c)
     f_k, f_t, f_s = ImageFont.truetype(FONT_B, px(24)), ImageFont.truetype(FONT_B, px(44)), ImageFont.truetype(FONT, px(24))
-    d.text((px(80), px(250)), "КАК РАБОТАЕТ", font=f_k, fill=(224, 149, 74))
-    for j, line in enumerate(wrap(d, title, f_t, W - px(160))):
+    d.text((px(80), px(250)), kicker, font=f_k, fill=(224, 149, 74))
+    lines = wrap(d, title, f_t, W - px(160))
+    for j, line in enumerate(lines):
         d.text((px(80), px(290) + j * px(56)), line, font=f_t, fill=(255, 255, 255))
+    y = max(px(420), px(290) + len(lines) * px(56) + px(18))
     for j, line in enumerate(wrap(d, sub, f_s, W - px(160))):
-        d.text((px(80), px(420) + j * px(34)), line, font=f_s, fill=(200, 212, 226))
+        d.text((px(80), y + j * px(34)), line, font=f_s, fill=(200, 212, 226))
     return c
 
 
@@ -179,15 +219,14 @@ def main():
         ctx = video_context(b)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page_file))
-        pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud,.stage .legend{display:none}" % (W0, H0 - BAR0))
+        pg.add_style_tag(content=STAGE_CSS + ".stage .hud,.stage .legend{display:none}")
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         pg.wait_for_timeout(500)
         for fi in range(2):
             steps = pg.evaluate("fi => window.__rz.steps(fi)", fi)
+            pin(pg, ".stage", fi)
             canvas = pg.locator(".stage canvas").nth(fi)
-            canvas.scroll_into_view_if_needed()
             only_pdf = os.environ.get("ONLY_PDF")
             fw = Frames(None if only_pdf else os.path.join(dst, FILES[fi]))
             put = fw.put
@@ -197,7 +236,8 @@ def main():
                 frames = max(2, int(round(s["dur"] * FPS)))
                 sub = first_sentence(s["html"])
                 for k in (range(frames, frames + 1) if only_pdf else range(frames + 1)):
-                    pg.evaluate("([fi,i,t]) => window.__rz.render(fi,i,t)", [fi, i, k / frames])
+                    pg.evaluate("([fi,i,t,ms]) => { window.__clockMs = ms; window.__rz.render(fi,i,t); }",
+                                [fi, i, k / frames, fw.n * 1000 / FPS])
                     shot = Image.open(io.BytesIO(canvas.screenshot()))
                     fr = caption_frame(shot, i + 1, len(steps), s["title"], sub)
                     put(fr, int(1.4 * FPS) if k == frames else 1)

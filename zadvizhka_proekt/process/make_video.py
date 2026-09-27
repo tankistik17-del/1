@@ -17,7 +17,7 @@ from playwright.sync_api import sync_playwright
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
-from make_video import FPS, W0, H0, BAR0, Frames, caption_frame, pdf_image, video_context, first_sentence, title_card  # noqa: E402
+from make_video import FPS, STAGE_CSS, Frames, pin, caption_frame, pdf_image, video_context, first_sentence, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
@@ -45,24 +45,24 @@ def main():
         ctx = video_context(b)
         pg = ctx.new_page()
         pg.goto("file://" + urllib.parse.quote(page))
-        pg.add_style_tag(content=".fx{grid-template-columns:1fr!important}.stage{width:%dpx;height:%dpx!important}"
-                                 ".stage .hud .st,.stage .legend{display:none}" % (W0, H0 - BAR0))
+        pg.add_style_tag(content=STAGE_CSS + ".stage .hud .st,.stage .legend{display:none}")
         pg.wait_for_function("window.__rz && window.__rz.ready()", timeout=120000)
         pg.evaluate("window.__rz.freeze()")
         steps = pg.evaluate("() => window.__rz.steps(0)")
+        pin(pg, ".stage", 0)
         canvas = pg.locator(".stage").first
-        canvas.scroll_into_view_if_needed()
         fw = Frames(None if only_pdf else os.path.join(dst, "Сборка-сварка корпуса.mp4"))
         put = fw.put
         if not only_pdf:
             put(title_card("Сборка-сварка корпуса задвижки: операции 020–050",
-                           "Детали, швы, нормы времени и гидроиспытание — по маршрутному техпроцессу (листы 2, 4, 5)"), int(2.5 * FPS))
+                           "Детали, швы, нормы времени и гидроиспытание — по маршрутному техпроцессу (листы 2, 4, 5)",
+                           kicker="ТЕХНОЛОГИЧЕСКИЙ ПРОЦЕСС"), int(2.5 * FPS))
         keys = []
         for i, s in enumerate(steps):
             fr = max(2, int(round(s["dur"] * FPS)))
             rng = range(fr, fr + 1) if only_pdf else range(fr + 1)
             for k in rng:
-                pg.evaluate("([i,t]) => window.__rz.render(0,i,t)", [i, k / fr])
+                pg.evaluate("([i,t,ms]) => { window.__clockMs = ms; window.__rz.render(0,i,t); }", [i, k / fr, fw.n * 1000 / FPS])
                 shot = Image.open(io.BytesIO(canvas.screenshot()))
                 if not only_pdf:
                     put(caption_frame(shot, i + 1, len(steps), s["title"], first_sentence(s["html"])), int(1.3 * FPS) if k == fr else 1)
