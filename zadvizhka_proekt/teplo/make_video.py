@@ -85,11 +85,12 @@ def main():
                 pg.evaluate("t => window.__teplo.setT(t)", t)
                 im = shot(sc)
                 if not only_pdf:
-                    put(caption_frame(im, step, total, title + " — нагрев и остывание",
-                                      "Слева поле температур в сечении, справа термические циклы точек ЗТВ. "
-                                      "Полоса 800–500 °C — интервал t₈/₅."))
+                    fr = caption_frame(im, step, total, title + " — нагрев и остывание",
+                                       "Слева поле температур в сечении, справа термические циклы точек ЗТВ. "
+                                       "Полоса 800–500 °C — интервал t₈/₅.")
+                    put(fr)
             if not only_pdf:
-                put(im, int(1.0 * FPS))
+                put(fr, int(1.0 * FPS))   # удержание последнего кадра с подписью
             pg.evaluate("t => window.__teplo.setT(t)", 0.9)
             snaps[key + "_t"] = shot(sc)
             pg.click('.view[data-view="zones"]')

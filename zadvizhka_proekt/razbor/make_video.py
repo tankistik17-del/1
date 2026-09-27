@@ -104,12 +104,12 @@ def caption_frame(img, n, total, title, sub):
     canvas = Image.new("RGB", (W, H), (238, 241, 244))
     img = img.convert("RGB")
     k = min(W / img.width, (H - BAR) / img.height)
-    if abs(k - 1) < 0.01:
-        # снимок уже в размер кадра (±несколько px от рамки) — без пересэмплирования, лишнее обрезать
+    if 0.99 < k < 1.03:
+        # снимок уже почти в размер кадра — без пересэмплирования: лишнее обрезать, недостающее — поле фона
         dx, dy = max(0, img.width - W), max(0, img.height - (H - BAR))
         im = img.crop((dx // 2, dy // 2, img.width - (dx - dx // 2), img.height - (dy - dy // 2)))
     else:
-        im = img.resize((int(img.width * k), int(img.height * k)), Image.LANCZOS)
+        im = img.resize((round(img.width * k), round(img.height * k)), Image.LANCZOS)
     canvas.paste(im, ((W - im.width) // 2, (H - BAR - im.height) // 2))
     d = ImageDraw.Draw(canvas)
     d.rectangle([0, H - BAR, W, H], fill=(27, 42, 58))

@@ -352,13 +352,17 @@ const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
 function hiDPI(id){ const cv=document.getElementById(id); cv._w=cv.width; cv._h=cv.height; cv.width=Math.round(cv._w*DPR); cv.height=Math.round(cv._h*DPR); }
 hiDPI('cvTop'); hiDPI('cvSec');
 function topImage(W,H,k=1){
-  // растр поля считается один раз; при движении смещается только пластина
-  const F=TOP.field, c=document.createElement('canvas'), Wp=Math.round(W*k), Hp=Math.round(H*k); c.width=Wp; c.height=Hp;
-  const ctx=c.getContext('2d'), img=ctx.createImageData(Wp,Hp), D=img.data, L=TOP.X1-TOP.X0;
-  for(let px=0;px<Wp;px++){ const i=Math.min(F.nx-1,Math.round((px/Wp*L)/F.dx));
-    for(let py=0;py<Hp;py++){ const j=Math.min(F.ny-1,Math.round((py/Hp*TOP.H)/F.dx)); const c2=heatRGB(F.f[i*F.ny+j],TOP.P.T0), o=(py*Wp+px)*4; D[o]=c2[0];D[o+1]=c2[1];D[o+2]=c2[2];D[o+3]=255; } }
-  ctx.putImageData(img,0,0);
+  // растр поля считается один раз; при движении смещается только пластина.
+  // Цветовой растр — в логическом размере (сетка поля всё равно мельче), изолинии и подписи — в разрешении экрана.
+  const F=TOP.field, r=document.createElement('canvas'); r.width=W; r.height=H;
+  const rc=r.getContext('2d'), img=rc.createImageData(W,H), D=img.data, L=TOP.X1-TOP.X0;
+  for(let px=0;px<W;px++){ const i=Math.min(F.nx-1,Math.round((px/W*L)/F.dx));
+    for(let py=0;py<H;py++){ const j=Math.min(F.ny-1,Math.round((py/H*TOP.H)/F.dx)); const c2=heatRGB(F.f[i*F.ny+j],TOP.P.T0), o=(py*W+px)*4; D[o]=c2[0];D[o+1]=c2[1];D[o+2]=c2[2];D[o+3]=255; } }
+  rc.putImageData(img,0,0);
+  const c = k===1 ? r : Object.assign(document.createElement('canvas'), {width:Math.round(W*k), height:Math.round(H*k)});
+  const ctx=c.getContext('2d');
   ctx.setTransform(k,0,0,k,0,0);
+  if(c!==r){ ctx.imageSmoothingEnabled=true; ctx.drawImage(r,0,0,W,H); }
   ctx.lineWidth=1.5; ctx.strokeStyle=INK; ctx.globalAlpha=0.6;
   for(const Lv of ISO) contour(ctx,(i,j)=>F.f[i*F.ny+j],F.nx,F.ny,Lv,i=>i*F.dx/L*W,j=>j*F.dx/TOP.H*H);
   ctx.globalAlpha=1;
