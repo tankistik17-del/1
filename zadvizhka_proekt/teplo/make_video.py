@@ -24,8 +24,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(HERE), "razbor"))
 from make_video import FPS, caption_frame, title_card  # noqa: E402
 
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
-CASES = [("shov1", "Шов №1: направляющая — стенка стакана (операция 020)"),
-         ("shov2", "Шов №2: стенка стакана — фланец (операция 025)")]
+CASES = [("shov1", "Шов №1 (направляющая — стакан)"),
+         ("shov2", "Шов №2 (стакан — фланец)")]
 
 
 def shot(loc):
