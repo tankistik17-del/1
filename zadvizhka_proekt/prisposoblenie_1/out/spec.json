@@ -1,0 +1,509 @@
+[
+ {
+  "key": "izdelie_stakan",
+  "pos": "",
+  "name_ru": "Изделие: стакан (поз.2 корпуса задвижки), труба 133×5",
+  "qty": 1,
+  "material": "Сталь 20 ГОСТ 1050-2013",
+  "standard": "Труба 133×5 ГОСТ 8732-78",
+  "note": "Изделие (не входит в приспособление); отверстия Ø112 под патрубки",
+  "nodes": [
+   "izdelie_stakan"
+  ]
+ },
+ {
+  "key": "izdelie_napravl",
+  "pos": "",
+  "name_ru": "Изделие: направляющая (поз.5 корпуса), 8×14×193",
+  "qty": 2,
+  "material": "Сталь 20 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "Изделие; прижимается толкателем поз.3 к стенке стакана",
+  "nodes": [
+   "izdelie_napravl_L",
+   "izdelie_napravl_R"
+  ]
+ },
+ {
+  "key": "p14_osnovanie",
+  "pos": "14",
+  "name_ru": "Основание",
+  "qty": 1,
+  "material": "СЧ 20 ГОСТ 1412-85",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p14_osnovanie"
+  ]
+ },
+ {
+  "key": "p11_koltso",
+  "pos": "11",
+  "name_ru": "Кольцо прижимное",
+  "qty": 1,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p11_koltso"
+  ]
+ },
+ {
+  "key": "p21_vint",
+  "pos": "21",
+  "name_ru": "Винт М6-6g×16.58 ГОСТ 1491-80",
+  "qty": 6,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 1491-80",
+  "note": "",
+  "nodes": [
+   "p21_vint_1",
+   "p21_vint_2",
+   "p21_vint_3",
+   "p21_vint_4",
+   "p21_vint_5",
+   "p21_vint_6"
+  ]
+ },
+ {
+  "key": "p07_korpus",
+  "pos": "7",
+  "name_ru": "Корпус",
+  "qty": 1,
+  "material": "СЧ 20 ГОСТ 1412-85",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p07_korpus"
+  ]
+ },
+ {
+  "key": "p12_os_povorotnaya",
+  "pos": "12",
+  "name_ru": "Ось поворотная (распределитель воздуха)",
+  "qty": 1,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p12_os_povorotnaya"
+  ]
+ },
+ {
+  "key": "x_zaglushka",
+  "pos": "",
+  "name_ru": "Заглушка Ø5 u8 (штифт) - позиция на чертеже не указана",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "Посадка Ø5 H8/u8",
+  "nodes": [
+   "x_zaglushka_1",
+   "x_zaglushka_2"
+  ]
+ },
+ {
+  "key": "x_bolt_planshayby",
+  "pos": "",
+  "name_ru": "Болт М6-6g×32.58 ГОСТ 7798-70 - позиция не указана",
+  "qty": 4,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 7798-70",
+  "note": "Окружность Ø83; головка под планшайбой поз.12, ввёрнут в планшайбу (как на чертеже)",
+  "nodes": [
+   "x_bolt_planshayby_1",
+   "x_bolt_planshayby_2",
+   "x_bolt_planshayby_3",
+   "x_bolt_planshayby_4"
+  ]
+ },
+ {
+  "key": "x_shtift_osi",
+  "pos": "",
+  "name_ru": "Штифт 6m6×16 ГОСТ 3128-70 - ДОПУЩЕНИЕ (на чертеже не показан)",
+  "qty": 1,
+  "material": "Сталь 45",
+  "standard": "ГОСТ 3128-70",
+  "note": "Фиксирует ось поз.12 от проворота относительно корпуса поз.7 (совпадение воздушных каналов)",
+  "nodes": [
+   "x_shtift_osi"
+  ]
+ },
+ {
+  "key": "p13_vtulka",
+  "pos": "13",
+  "name_ru": "Втулка распределителя",
+  "qty": 1,
+  "material": "БрАЖ9-4 ГОСТ 18175-78",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p13_vtulka"
+  ]
+ },
+ {
+  "key": "p15_shayba",
+  "pos": "15",
+  "name_ru": "Шайба упорная",
+  "qty": 1,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p15_shayba"
+  ]
+ },
+ {
+  "key": "p23_gayka",
+  "pos": "23",
+  "name_ru": "Гайка М12 ГОСТ 5916-70",
+  "qty": 2,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 5916-70",
+  "note": "",
+  "nodes": [
+   "p23_gayka_1",
+   "p23_gayka_2"
+  ]
+ },
+ {
+  "key": "p25_koltso",
+  "pos": "25",
+  "name_ru": "Кольцо 020-030-58-2-2 ГОСТ 9833-73",
+  "qty": 3,
+  "material": "Резина 7-В-14",
+  "standard": "ГОСТ 9833-73",
+  "note": "Показано в свободном состоянии",
+  "nodes": [
+   "p25_koltso_1",
+   "p25_koltso_2",
+   "p25_koltso_3"
+  ]
+ },
+ {
+  "key": "p18_shtutser",
+  "pos": "18",
+  "name_ru": "Штуцер ввертной М10 (S14)",
+  "qty": 2,
+  "material": "Латунь ЛС59-1",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p18_shtutser_vvertnoy_1",
+   "p18_shtutser_vvertnoy_2"
+  ]
+ },
+ {
+  "key": "p17_shtutser",
+  "pos": "17",
+  "name_ru": "Штуцер (ниппель) под шланг Ø8",
+  "qty": 2,
+  "material": "Латунь ЛС59-1",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p17_shtutser_1",
+   "p17_shtutser_2"
+  ]
+ },
+ {
+  "key": "p10_kryshka",
+  "pos": "10",
+  "name_ru": "Крышка цилиндра",
+  "qty": 2,
+  "material": "СЧ 20 ГОСТ 1412-85",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p10_kryshka_L",
+   "p10_kryshka_R"
+  ]
+ },
+ {
+  "key": "p09_prokladka",
+  "pos": "9",
+  "name_ru": "Прокладка",
+  "qty": 2,
+  "material": "Паронит ПОН ГОСТ 481-80",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p09_prokladka_L",
+   "p09_prokladka_R"
+  ]
+ },
+ {
+  "key": "p08_porshen",
+  "pos": "8",
+  "name_ru": "Поршень",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p08_porshen_L",
+   "p08_porshen_R"
+  ]
+ },
+ {
+  "key": "x_shtok",
+  "pos": "",
+  "name_ru": "Шток Ø24 h6 - позиция на чертеже не указана",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "Хвостовик М16 ввёрнут в поршень",
+  "nodes": [
+   "x_shtok_L",
+   "x_shtok_R"
+  ]
+ },
+ {
+  "key": "p27_koltso",
+  "pos": "27",
+  "name_ru": "Кольцо 050-060-58-2-2 ГОСТ 9833-73",
+  "qty": 2,
+  "material": "Резина 7-В-14",
+  "standard": "ГОСТ 9833-73",
+  "note": "Показано в свободном состоянии",
+  "nodes": [
+   "p27_koltso_L",
+   "p27_koltso_R"
+  ]
+ },
+ {
+  "key": "p26_koltso",
+  "pos": "26",
+  "name_ru": "Кольцо 024-034-58-2-2 ГОСТ 9833-73",
+  "qty": 2,
+  "material": "Резина 7-В-14",
+  "standard": "ГОСТ 9833-73",
+  "note": "Показано в свободном состоянии",
+  "nodes": [
+   "p26_koltso_L",
+   "p26_koltso_R"
+  ]
+ },
+ {
+  "key": "p19_bolt",
+  "pos": "19",
+  "name_ru": "Болт М6-6g×18.58 ГОСТ 7798-70",
+  "qty": 10,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 7798-70",
+  "note": "",
+  "nodes": [
+   "p19_bolt_L1",
+   "p19_bolt_L2",
+   "p19_bolt_L3",
+   "p19_bolt_L4",
+   "p19_bolt_L5",
+   "p19_bolt_R1",
+   "p19_bolt_R2",
+   "p19_bolt_R3",
+   "p19_bolt_R4",
+   "p19_bolt_R5"
+  ]
+ },
+ {
+  "key": "p05_korpus_tolkateley",
+  "pos": "5",
+  "name_ru": "Корпус толкателей",
+  "qty": 1,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p05_korpus_tolkateley"
+  ]
+ },
+ {
+  "key": "x_vint_flantsa",
+  "pos": "",
+  "name_ru": "Винт М6-6g×20.58 ГОСТ 1491-80 - позиция не указана",
+  "qty": 3,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 1491-80",
+  "note": "Крепление поз.5 к корпусу (Ø126), 3 шт. через 120°",
+  "nodes": [
+   "x_vint_flantsa_1",
+   "x_vint_flantsa_2",
+   "x_vint_flantsa_3"
+  ]
+ },
+ {
+  "key": "x_opora_rychagov",
+  "pos": "",
+  "name_ru": "Опора рычагов Ø88 f9 - позиция на чертеже не указана",
+  "qty": 1,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "x_opora_rychagov"
+  ]
+ },
+ {
+  "key": "p04_rychag",
+  "pos": "4",
+  "name_ru": "Рычаг",
+  "qty": 2,
+  "material": "Сталь 40Х ГОСТ 4543-2016",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p04_rychag_L",
+   "p04_rychag_R"
+  ]
+ },
+ {
+  "key": "p06_os",
+  "pos": "6",
+  "name_ru": "Ось рычага Ø8",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p06_os_L",
+   "p06_os_R"
+  ]
+ },
+ {
+  "key": "x_opora_stakana",
+  "pos": "",
+  "name_ru": "Опора стакана (ложемент) - позиция на чертеже не указана",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "x_opora_stakana_L",
+   "x_opora_stakana_R"
+  ]
+ },
+ {
+  "key": "x_shtift",
+  "pos": "",
+  "name_ru": "Штифт 8m6×18 ГОСТ 3128-70 - позиция не указана",
+  "qty": 2,
+  "material": "Сталь 45",
+  "standard": "ГОСТ 3128-70",
+  "note": "Посадка Ø8 H7/m8",
+  "nodes": [
+   "x_shtift_osi",
+   "x_shtift_L",
+   "x_shtift_R"
+  ]
+ },
+ {
+  "key": "p01_gubka",
+  "pos": "1",
+  "name_ru": "Губка (ложемент)",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p01_gubka_L",
+   "p01_gubka_R"
+  ]
+ },
+ {
+  "key": "p03_tolkatel",
+  "pos": "3",
+  "name_ru": "Толкатель",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p03_tolkatel_L",
+   "p03_tolkatel_R"
+  ]
+ },
+ {
+  "key": "p02_planka",
+  "pos": "2",
+  "name_ru": "Планка",
+  "qty": 2,
+  "material": "Сталь 65Г ГОСТ 14959-2016",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "p02_planka_L",
+   "p02_planka_R"
+  ]
+ },
+ {
+  "key": "p22_vint",
+  "pos": "22",
+  "name_ru": "Винт М3-6g×8.58 ГОСТ 17473-80",
+  "qty": 4,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "",
+  "nodes": [
+   "p22_vint_L1",
+   "p22_vint_L2",
+   "p22_vint_R1",
+   "p22_vint_R2"
+  ]
+ },
+ {
+  "key": "x_vint_gubki",
+  "pos": "",
+  "name_ru": "Винт М3-6g×12.58 ГОСТ 17473-80 - позиция не указана",
+  "qty": 2,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "Крепление торца губки поз.1 к опоре стакана (вид сверху, y=-70)",
+  "nodes": [
+   "x_vint_gubki_L",
+   "x_vint_gubki_bok_L",
+   "x_vint_gubki_R",
+   "x_vint_gubki_bok_R"
+  ]
+ },
+ {
+  "key": "x_vint_gubki_bok",
+  "pos": "",
+  "name_ru": "Винт М3-6g×8.58 ГОСТ 17473-80 - ДОПУЩЕНИЕ (на чертеже не показан)",
+  "qty": 2,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "Второе крепление губки поз.1 к опоре стакана со стороны +Y (y=50), принято конструктивно",
+  "nodes": [
+   "x_vint_gubki_bok_L",
+   "x_vint_gubki_bok_R"
+  ]
+ },
+ {
+  "key": "x_planka_tortsevaya",
+  "pos": "",
+  "name_ru": "Планка торцевая - позиция на чертеже не указана",
+  "qty": 2,
+  "material": "Сталь 45 ГОСТ 1050-2013",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "x_planka_tortsevaya_L",
+   "x_planka_tortsevaya_R"
+  ]
+ },
+ {
+  "key": "p16_vint",
+  "pos": "16",
+  "name_ru": "Винт М3-6g×8.58 ГОСТ 17473-80",
+  "qty": 4,
+  "material": "Сталь 35",
+  "standard": "ГОСТ 17473-80",
+  "note": "",
+  "nodes": [
+   "p16_vint_L1",
+   "p16_vint_L2",
+   "p16_vint_R1",
+   "p16_vint_R2"
+  ]
+ }
+]

@@ -1,0 +1,521 @@
+[
+ {
+  "key": "poz1_ballon_*_korpus",
+  "pos": "1",
+  "name_ru": "Баллон 40 л (№1 — аргон, серый; №2 — CO2, чёрный)",
+  "qty": 2,
+  "material": "сталь 45 (баллон), латунь ЛС59-1 (вентиль, редуктор)",
+  "standard": "ГОСТ 949-73 (40 л, Ø219)",
+  "note": "окраска по ГОСТ 949-73: аргон — серый, углекислота — чёрный",
+  "nodes": [
+   "poz1_ballon_1_korpus",
+   "poz1_ballon_2_korpus"
+  ]
+ },
+ {
+  "key": "poz1_ballon_*_bashmak",
+  "pos": "1",
+  "name_ru": "Башмак баллона",
+  "qty": 2,
+  "material": "сталь 45 (баллон), латунь ЛС59-1 (вентиль, редуктор)",
+  "standard": "ГОСТ 949-73",
+  "note": "",
+  "nodes": [
+   "poz1_ballon_1_bashmak",
+   "poz1_ballon_2_bashmak"
+  ]
+ },
+ {
+  "key": "poz1_ballon_*_ventil",
+  "pos": "1",
+  "name_ru": "Вентиль баллонный",
+  "qty": 2,
+  "material": "сталь 45 (баллон), латунь ЛС59-1 (вентиль, редуктор)",
+  "standard": "",
+  "note": "габариты по векторам листа",
+  "nodes": [
+   "poz1_ballon_1_ventil",
+   "poz1_ballon_2_ventil"
+  ]
+ },
+ {
+  "key": "poz1_ballon_*_reduktor",
+  "pos": "1",
+  "name_ru": "Редуктор баллонный",
+  "qty": 2,
+  "material": "сталь 45 (баллон), латунь ЛС59-1 (вентиль, редуктор)",
+  "standard": "",
+  "note": "корпус Ø56, накидная гайка S30, по векторам листа",
+  "nodes": [
+   "poz1_ballon_1_reduktor",
+   "poz1_ballon_2_reduktor"
+  ]
+ },
+ {
+  "key": "poz1_ballon_*_manometr_*",
+  "pos": "1",
+  "name_ru": "Манометр редуктора",
+  "qty": 4,
+  "material": "сталь 45 (баллон), латунь ЛС59-1 (вентиль, редуктор)",
+  "standard": "",
+  "note": "Ø30 по векторам листа",
+  "nodes": [
+   "poz1_ballon_1_manometr_1",
+   "poz1_ballon_1_manometr_2",
+   "poz1_ballon_2_manometr_1",
+   "poz1_ballon_2_manometr_2"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_korpus",
+  "pos": "2",
+  "name_ru": "Источник питания ВС-300Б — шкаф",
+  "qty": 1,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "ТУ на ВС-300Б",
+  "note": "285 (ширина шкафа по векторам) × 520 (глубина — допущение) × 575",
+  "nodes": [
+   "poz2_istochnik_korpus"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_proushina_*",
+  "pos": "2",
+  "name_ru": "Рым-проушина ВС-300Б",
+  "qty": 2,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "верх = 148×5 = 740",
+  "nodes": [
+   "poz2_istochnik_proushina_1",
+   "poz2_istochnik_proushina_2"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_panel",
+  "pos": "2",
+  "name_ru": "Органы управления на лицевой панели ВС-300Б",
+  "qty": 1,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "по векторам листа: прибор, таблички, автомат, ручки, колодка, розетка",
+  "nodes": [
+   "poz2_istochnik_panel"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_klemma_*",
+  "pos": "2",
+  "name_ru": "Силовая клемма ВС-300Б",
+  "qty": 3,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "Ø40 по векторам (кольцо), шестигранник 26",
+  "nodes": [
+   "poz2_istochnik_klemma_1",
+   "poz2_istochnik_klemma_2",
+   "poz2_istochnik_klemma_3"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_peremychka",
+  "pos": "2",
+  "name_ru": "Перемычка клемм ВС-300Б",
+  "qty": 1,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz2_istochnik_peremychka"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_koleso_*",
+  "pos": "2",
+  "name_ru": "Колесо ВС-300Б (заднее)",
+  "qty": 2,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "Ø148 × 52; размер 84×5 = 420 — по наружным плоскостям колёс",
+  "nodes": [
+   "poz2_istochnik_koleso_1",
+   "poz2_istochnik_koleso_2"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_os",
+  "pos": "2",
+  "name_ru": "Ось задних колёс с кронштейнами",
+  "qty": 1,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz2_istochnik_os"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_rolik_*",
+  "pos": "2",
+  "name_ru": "Ролик ВС-300Б (передний)",
+  "qty": 2,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "Ø80 × 50",
+  "nodes": [
+   "poz2_istochnik_rolik_1",
+   "poz2_istochnik_rolik_2"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_vilka_*",
+  "pos": "2",
+  "name_ru": "Вилка ролика ВС-300Б",
+  "qty": 2,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz2_istochnik_vilka_1",
+   "poz2_istochnik_vilka_2"
+  ]
+ },
+ {
+  "key": "poz2_istochnik_poperechina",
+  "pos": "2",
+  "name_ru": "Поперечина передних роликов",
+  "qty": 1,
+  "material": "сталь листовая (шкаф), резина (колёса)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz2_istochnik_poperechina"
+  ]
+ },
+ {
+  "key": "poz3_pdg_korpus",
+  "pos": "3",
+  "name_ru": "Механизм подачи ПДГ-312-5 — корпус (кожух)",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "ТУ на ПДГ-312-5",
+  "note": "250 (50×5) × 450 (глубина — допущение) × 322; лист 2 мм",
+  "nodes": [
+   "poz3_pdg_korpus"
+  ]
+ },
+ {
+  "key": "poz3_pdg_ruchka",
+  "pos": "3",
+  "name_ru": "Ручка ПДГ-312-5",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "верх = 90×5 = 450 мм",
+  "nodes": [
+   "poz3_pdg_ruchka"
+  ]
+ },
+ {
+  "key": "poz3_pdg_kasseta",
+  "pos": "3",
+  "name_ru": "Кассета с электродной проволокой Св-08Г2С",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "проволока Св-08Г2С ГОСТ 2246-70, кассета Ø200",
+  "note": "внутри кожуха",
+  "nodes": [
+   "poz3_pdg_kasseta"
+  ]
+ },
+ {
+  "key": "poz3_pdg_os_kassety",
+  "pos": "3",
+  "name_ru": "Ось кассеты",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz3_pdg_os_kassety"
+  ]
+ },
+ {
+  "key": "poz3_pdg_razemy",
+  "pos": "3",
+  "name_ru": "Разъёмы и индикаторы ПДГ-312-5",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz3_pdg_razemy"
+  ]
+ },
+ {
+  "key": "poz3_pdg_evrorazem",
+  "pos": "3",
+  "name_ru": "Евроразъём горелки",
+  "qty": 1,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz3_pdg_evrorazem"
+  ]
+ },
+ {
+  "key": "poz3_pdg_rolik_*",
+  "pos": "3",
+  "name_ru": "Ролик ПДГ-312-5",
+  "qty": 4,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "Ø48 × 25",
+  "nodes": [
+   "poz3_pdg_rolik_11",
+   "poz3_pdg_rolik_12",
+   "poz3_pdg_rolik_21",
+   "poz3_pdg_rolik_22"
+  ]
+ },
+ {
+  "key": "poz3_pdg_vilka_*",
+  "pos": "3",
+  "name_ru": "Вилка ролика ПДГ-312-5",
+  "qty": 4,
+  "material": "сталь листовая (кожух), резина/сталь (ролики)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz3_pdg_vilka_11",
+   "poz3_pdg_vilka_12",
+   "poz3_pdg_vilka_21",
+   "poz3_pdg_vilka_22"
+  ]
+ },
+ {
+  "key": "poz4_gorelka_rukoyatka",
+  "pos": "4",
+  "name_ru": "Рукоятка горелки",
+  "qty": 1,
+  "material": "пластмасса (рукоятка), медь/латунь (шейка, сопло)",
+  "standard": "",
+  "note": "Ø36,4 × 195 по векторам",
+  "nodes": [
+   "poz4_gorelka_rukoyatka"
+  ]
+ },
+ {
+  "key": "poz4_gorelka_kurok",
+  "pos": "4",
+  "name_ru": "Курок горелки",
+  "qty": 1,
+  "material": "пластмасса (рукоятка), медь/латунь (шейка, сопло)",
+  "standard": "",
+  "note": "",
+  "nodes": [
+   "poz4_gorelka_kurok"
+  ]
+ },
+ {
+  "key": "poz4_gorelka_sheyka",
+  "pos": "4",
+  "name_ru": "Шейка (гусак) горелки",
+  "qty": 1,
+  "material": "пластмасса (рукоятка), медь/латунь (шейка, сопло)",
+  "standard": "",
+  "note": "Ø22,8, гиб R50/48°",
+  "nodes": [
+   "poz4_gorelka_sheyka"
+  ]
+ },
+ {
+  "key": "poz4_gorelka_soplo",
+  "pos": "4",
+  "name_ru": "Сопло горелки",
+  "qty": 1,
+  "material": "пластмасса (рукоятка), медь/латунь (шейка, сопло)",
+  "standard": "",
+  "note": "Ø18 × 46",
+  "nodes": [
+   "poz4_gorelka_soplo"
+  ]
+ },
+ {
+  "key": "poz4_gorelka_kabel_shlang",
+  "pos": "4",
+  "name_ru": "Кабель-шланг горелки",
+  "qty": 1,
+  "material": "пластмасса (рукоятка), медь/латунь (шейка, сопло)",
+  "standard": "",
+  "note": "Ø32 по векторам; трасса — средняя линия контуров чертежа, в глубину уходит от евроразъёма",
+  "nodes": [
+   "poz4_gorelka_kabel_shlang"
+  ]
+ },
+ {
+  "key": "poz5_izdelie",
+  "pos": "5",
+  "name_ru": "Свариваемое изделие — корпус задвижки в сборе (детали поз.1–6 листа 2 и швы №1–3, 25 тел)",
+  "qty": 25,
+  "material": "Сталь 20 ГОСТ 1050-2013",
+  "standard": "лист 2 проекта",
+  "note": "модель ../korpus/build.py; изделие перевёрнуто фланцем стакана вниз",
+  "nodes": [
+   "poz5_izdelie_01_patrubok_L",
+   "poz5_izdelie_01_patrubok_R",
+   "poz5_izdelie_naplavka_sedla_L",
+   "poz5_izdelie_naplavka_sedla_R",
+   "poz5_izdelie_02_stakan",
+   "poz5_izdelie_03_flanec_patrubka_L",
+   "poz5_izdelie_03_flanec_patrubka_R",
+   "poz5_izdelie_04_flanec_stakana",
+   "poz5_izdelie_05_napravlyayushchaya_1",
+   "poz5_izdelie_05_napravlyayushchaya_2",
+   "poz5_izdelie_06_dno",
+   "poz5_izdelie_shov_1_1",
+   "poz5_izdelie_shov_1_2",
+   "poz5_izdelie_shov_1_3",
+   "poz5_izdelie_shov_1_4",
+   "poz5_izdelie_shov_1_5",
+   "poz5_izdelie_shov_1_6",
+   "poz5_izdelie_shov_1_7",
+   "poz5_izdelie_shov_1_8",
+   "poz5_izdelie_shov_2_1_stakan_flanec",
+   "poz5_izdelie_shov_2_2_patrubok_flanec_L",
+   "poz5_izdelie_shov_2_3_patrubok_flanec_R",
+   "poz5_izdelie_shov_2_4_patrubok_stakan_L",
+   "poz5_izdelie_shov_2_5_patrubok_stakan_R",
+   "poz5_izdelie_shov_3_dno_stakan"
+  ]
+ },
+ {
+  "key": "poz6_stol_stoleshnica",
+  "pos": "6",
+  "name_ru": "Столешница стола сварщика",
+  "qty": 1,
+  "material": "сталь Ст3 ГОСТ 380-2005",
+  "standard": "",
+  "note": "601,1 (120,22×5), толщина 50",
+  "nodes": [
+   "poz6_stol_stoleshnica"
+  ]
+ },
+ {
+  "key": "poz6_stol_tumba",
+  "pos": "6",
+  "name_ru": "Тумба (каркас с обшивкой) стола",
+  "qty": 1,
+  "material": "сталь Ст3 ГОСТ 380-2005",
+  "standard": "",
+  "note": "лист 2 мм",
+  "nodes": [
+   "poz6_stol_tumba"
+  ]
+ },
+ {
+  "key": "poz6_stol_opora_*",
+  "pos": "6",
+  "name_ru": "Опора стола",
+  "qty": 4,
+  "material": "сталь Ст3 ГОСТ 380-2005",
+  "standard": "",
+  "note": "50,8 × 50,8 × 98",
+  "nodes": [
+   "poz6_stol_opora_1",
+   "poz6_stol_opora_2",
+   "poz6_stol_opora_3",
+   "poz6_stol_opora_4"
+  ]
+ },
+ {
+  "key": "poz7_vozduhopriemnik",
+  "pos": "7",
+  "name_ru": "Воздухоприёмник (зонт)",
+  "qty": 1,
+  "material": "сталь оцинкованная, лист 1,5",
+  "standard": "",
+  "note": "наклонная кромка 84,19×5 = 421; ширина по Y 500 — допущение; переход на Ø143",
+  "nodes": [
+   "poz7_vozduhopriemnik"
+  ]
+ },
+ {
+  "key": "poz8_shiber_korpus",
+  "pos": "8",
+  "name_ru": "Шибер — корпус (обечайка)",
+  "qty": 1,
+  "material": "сталь оцинкованная",
+  "standard": "",
+  "note": "Ø143 × 51 по векторам (1693,7…1744,5)",
+  "nodes": [
+   "poz8_shiber_korpus"
+  ]
+ },
+ {
+  "key": "poz8_shiber_zaslonka",
+  "pos": "8",
+  "name_ru": "Шибер — заслонка с осью и рукояткой",
+  "qty": 1,
+  "material": "сталь оцинкованная",
+  "standard": "",
+  "note": "заслонка повёрнута на 30° (частично открыта)",
+  "nodes": [
+   "poz8_shiber_zaslonka"
+  ]
+ },
+ {
+  "key": "poz9_vozduhovod",
+  "pos": "9",
+  "name_ru": "Воздуховод",
+  "qty": 1,
+  "material": "сталь оцинкованная, лист 1,5",
+  "standard": "",
+  "note": "Ø143, показан до линии обрыва чертежа",
+  "nodes": [
+   "poz9_vozduhovod"
+  ]
+ },
+ {
+  "key": "shlang_gaz_*",
+  "pos": "",
+  "name_ru": "Рукав газовый (баллон → ВС-300Б)",
+  "qty": 2,
+  "material": "резина (рукав)",
+  "standard": "ГОСТ 9356-75 (III-6,3)",
+  "note": "трасса по чертежу; скрытый участок — за баллоном 2",
+  "nodes": [
+   "shlang_gaz_1",
+   "shlang_gaz_2"
+  ]
+ },
+ {
+  "key": "kabel_[1-5]",
+  "pos": "",
+  "name_ru": "Кабели ВС-300Б → ПДГ-312-5 (сварочные Ø24/Ø21/Ø16 и управления Ø20/Ø13)",
+  "qty": 5,
+  "material": "медь + резиновая изоляция",
+  "standard": "КГ ГОСТ 24334-80 / ТУ",
+  "note": "трасса по чертежу",
+  "nodes": [
+   "kabel_1",
+   "kabel_2",
+   "kabel_5",
+   "kabel_3",
+   "kabel_4"
+  ]
+ },
+ {
+  "key": "kabel_obratnyi",
+  "pos": "",
+  "name_ru": "Обратный (заземляющий) провод к столу",
+  "qty": 1,
+  "material": "медь + резиновая изоляция",
+  "standard": "КГ ГОСТ 24334-80",
+  "note": "по полу (линия 12,6 над полом на чертеже)",
+  "nodes": [
+   "kabel_obratnyi"
+  ]
+ }
+]

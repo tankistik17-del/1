@@ -1,0 +1,754 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Сварочные приспособления: разбор</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#f8f9fb; --ink:#1b2a3a; --muted:#566779; --line:#c9d2dc;
+  --blue:#2f5d9a; --accent:#c9731f; --sel:#e0ebf8; --canvas:#e3e8ee;
+  --air:#2f7fe0; --air2:#d4862b; --ok:#2e7d4f;
+  --f-head:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  --f-body:"PT Sans",Arial,sans-serif;
+  --f-mono:"PT Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--air:#5aa2ff;--air2:#f0a24a;--ok:#5cbf86;}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#91a0b1;--line:#2b3642;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a222b;--air:#5aa2ff;--air2:#f0a24a;--ok:#5cbf86;}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding-inline:16px;padding-block:18px}
+.wrap{max-width:1320px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-head);text-wrap:balance;margin:0}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline;justify-content:space-between}
+header.top h1{font-size:34px;line-height:1.1}
+.sub{color:var(--muted);font-size:15px;max-width:70ch}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;margin-bottom:26px}
+nav.toc a{color:var(--blue);text-decoration:none;border-bottom:1px solid transparent}
+nav.toc a:hover{border-bottom-color:var(--blue)}
+section.block{margin-bottom:44px}
+.eyebrow{font-family:var(--f-mono);font-size:12.5px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h2{font-size:28px;margin:2px 0 8px}
+h3{font-size:20px;margin:0 0 6px}
+p{margin:0 0 10px;max-width:72ch}
+.lead{font-size:17px;max-width:78ch}
+.route{overflow-x:auto;background:var(--sheet);border:1px solid var(--line);padding:12px}
+.route svg{display:block;min-width:860px;width:100%;height:auto}
+.fx{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:14px;margin-top:10px}
+@media (max-width:980px){.fx{grid-template-columns:1fr}}
+.stage{position:relative;background:var(--canvas);border:1px solid var(--line);height:min(66vh,620px);min-height:360px}
+.stage canvas{display:block;width:100%;height:100%;outline:none}
+.stage .load{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-family:var(--f-mono);font-size:14px;text-align:center;padding:16px}
+.stage .hud{position:absolute;left:10px;top:8px;right:10px;display:flex;justify-content:space-between;gap:10px;pointer-events:none;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.legend{position:absolute;left:10px;bottom:8px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12.5px;color:var(--muted);pointer-events:none}
+.legend i{display:inline-block;width:18px;height:5px;border-radius:3px;vertical-align:middle;margin-right:5px}
+.panel{background:var(--sheet);border:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+.steps{list-style:none;margin:0;padding:6px 0;border-bottom:1px solid var(--line);max-height:250px;overflow:auto}
+.steps li button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:6px;width:100%;padding:5px 12px;cursor:pointer;font-size:14.5px;line-height:1.3}
+.steps li button .n{font-family:var(--f-mono);color:var(--muted);font-size:13px}
+.steps li button:hover{background:var(--sel)}
+.steps li button[aria-current=step]{background:var(--sel);font-weight:700}
+.steps li button[aria-current=step] .n{color:var(--accent)}
+.steps li button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ctrl{display:flex;gap:6px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.ctrl button{font:inherit;font-size:14px;padding:5px 11px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer}
+.ctrl button.pri{background:var(--blue);color:var(--sheet)}
+.ctrl button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctrl label{display:flex;gap:5px;align-items:center;font-size:14px;cursor:pointer;margin-left:4px}
+.ctrl input{accent-color:var(--blue)}
+.bar{height:3px;background:var(--line)}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.say{padding:12px 14px;overflow:auto;flex:1;font-size:15px}
+.say h4{font-size:19px;margin-bottom:6px}
+.say p{margin-bottom:8px}
+.say .why{border-left:3px solid var(--accent);padding-left:10px;color:var(--ink)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-top:14px}
+.card{background:var(--sheet);border:1px solid var(--line);padding:14px 16px}
+.card p,.card li{font-size:15px}
+.card ul{margin:0;padding-left:18px}
+.card li{margin-bottom:4px}
+.f{font-family:var(--f-mono);font-size:14px;background:var(--paper);padding:8px 10px;margin:6px 0 8px;overflow-x:auto;white-space:nowrap}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{font-family:var(--f-head);font-weight:400;color:var(--muted);text-align:left;border-bottom:1.5px solid var(--ink);padding:4px 6px}
+table.t td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+table.t td.m{font-family:var(--f-mono);white-space:nowrap}
+.tw{overflow-x:auto}
+details{background:var(--sheet);border:1px solid var(--line);margin-top:12px}
+details summary{cursor:pointer;padding:10px 14px;font-family:var(--f-head);font-size:18px}
+details .in{padding:0 14px 12px}
+.pn{overflow-x:auto}
+.pn svg{display:block;min-width:620px;width:100%;height:auto}
+.why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.why-grid .card h3{font-size:19px}
+.why-grid .card .k{font-family:var(--f-mono);font-size:13px;color:var(--accent)}
+.note{color:var(--muted);font-size:14px}
+svg text{font-family:var(--f-body)}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1>Как работают сварочные приспособления</h1>
+    <div class="sub">Разбор листов 6 и 7 дипломного проекта «Технология сборки-сварки корпуса задвижки трубопровода»: пошаговые 3D-анимации, пневмосхемы, кинематика, усилия и роль каждой позиции.</div>
+  </div>
+</header>
+<nav class="toc" aria-label="Разделы">
+  <a href="#route">Место в техпроцессе</a><a href="#ps1">Приспособление №1</a><a href="#ps2">Приспособление №2</a><a href="#why">Чем приспособления помогают при сварке</a>
+</nav>
+
+<section class="block" id="route">
+  <div class="eyebrow">Листы 4 и 5 · маршрутный техпроцесс</div>
+  <h2>Где приспособления в техпроцессе</h2>
+  <p class="lead">Корпус задвижки сваривается из шести деталей за пять сварочных операций. Приспособления нужны на первых двух: они собирают стакан с направляющими (операция 020) и стакан с фланцем (025). Остальные соединения проще: их базируют по готовым поверхностям.</p>
+  <div class="route">
+  <svg viewBox="0 0 1080 250" role="img" aria-label="Схема маршрута сборки-сварки корпуса">
+    <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+    <g font-size="14">
+      <g>
+        <rect x="10" y="20" width="160" height="92" fill="var(--sheet)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="20" y="42" font-weight="700" fill="var(--accent)">020 · Приспособление №1</text>
+        <text x="20" y="64" fill="var(--ink)">Стакан поз.2</text>
+        <text x="20" y="82" fill="var(--ink)">+ 2 направляющие поз.5</text>
+        <text x="20" y="102" fill="var(--muted)">прихватка → шов №1</text>
+      </g>
+      <text x="90" y="134" text-anchor="middle" fill="var(--ink)" font-weight="700">п/сб.1</text>
+      <line x1="172" y1="66" x2="214" y2="66" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <g>
+        <rect x="216" y="20" width="176" height="92" fill="var(--sheet)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="226" y="42" font-weight="700" fill="var(--accent)">025 · Приспособление №2</text>
+        <text x="226" y="64" fill="var(--ink)">п/сб.1 + фланец стакана</text>
+        <text x="226" y="82" fill="var(--ink)">поз.4 (угол 22°30′±1°)</text>
+        <text x="226" y="102" fill="var(--muted)">кольцевой шов K3</text>
+      </g>
+      <text x="304" y="134" text-anchor="middle" fill="var(--ink)" font-weight="700">п/сб.2</text>
+      <line x1="394" y1="66" x2="432" y2="66" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <g>
+        <rect x="434" y="20" width="150" height="92" fill="var(--sheet)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="444" y="42" font-weight="700" fill="var(--ink)">030</text>
+        <text x="444" y="64" fill="var(--ink)">п/сб.2 + дно поз.6</text>
+        <text x="444" y="102" fill="var(--muted)">шов №3</text>
+      </g>
+      <text x="509" y="134" text-anchor="middle" fill="var(--ink)" font-weight="700">п/сб.3</text>
+      <g>
+        <rect x="434" y="150" width="150" height="80" fill="var(--sheet)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="444" y="172" font-weight="700" fill="var(--ink)">035 (×2)</text>
+        <text x="444" y="194" fill="var(--ink)">патрубок поз.1</text>
+        <text x="444" y="212" fill="var(--ink)">+ фланец поз.3</text>
+      </g>
+      <text x="600" y="206" fill="var(--ink)" font-weight="700">п/сб.4</text>
+      <line x1="586" y1="66" x2="632" y2="66" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <path d="M586,190 C612,190 610,90 632,82" fill="none" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <g>
+        <rect x="634" y="20" width="160" height="92" fill="var(--sheet)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="644" y="42" font-weight="700" fill="var(--ink)">040</text>
+        <text x="644" y="64" fill="var(--ink)">п/сб.3 + 2 п/сб.4</text>
+        <text x="644" y="82" fill="var(--ink)">34±1 между сёдлами</text>
+        <text x="644" y="102" fill="var(--muted)">седловые швы №2</text>
+      </g>
+      <line x1="796" y1="66" x2="834" y2="66" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <g>
+        <rect x="836" y="20" width="110" height="92" fill="var(--sheet)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="846" y="42" font-weight="700" fill="var(--ink)">045</text>
+        <text x="846" y="64" fill="var(--ink)">слесарная</text>
+        <text x="846" y="82" fill="var(--muted)">зачистка</text>
+      </g>
+      <line x1="948" y1="66" x2="966" y2="66" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#ar)"/>
+      <g>
+        <rect x="968" y="20" width="104" height="92" fill="var(--sheet)" stroke="var(--line)" stroke-width="1.5"/>
+        <text x="978" y="42" font-weight="700" fill="var(--ink)">050</text>
+        <text x="978" y="64" fill="var(--ink)">контроль</text>
+        <text x="978" y="82" fill="var(--muted)">осмотр,</text>
+        <text x="978" y="100" fill="var(--muted)">гидроиспыт.</text>
+      </g>
+      <text x="10" y="176" fill="var(--muted)" font-size="13.5">Все операции — полуавтоматическая сварка в защитном газе (Ar 75% + CO₂ 25%),</text>
+      <text x="10" y="195" fill="var(--muted)" font-size="13.5">проволока Св-08Г2С Ø1,2 ГОСТ 2246-70, Iсв = 134 А, Uд = 23 В, Vсв = 46 м/ч,</text>
+      <text x="10" y="214" fill="var(--muted)" font-size="13.5">источник ВС-300Б, подающий механизм ПДГ-312-5; швы ГОСТ 14771-76-Т1-ИП-◺3.</text>
+    </g>
+  </svg>
+  </div>
+</section>
+
+<section class="block" id="ps1">
+  <div class="eyebrow">Лист 6 · операция 020 · ПС-1</div>
+  <h2>Приспособление сварочное №1: стакан + направляющие</h2>
+  <p class="lead">Задача — поставить две направляющие поз.5 внутрь стакана поз.2 строго на своё место: 90 мм между ними, 60⁺⁵ мм от оси прохода, 8₋₂ мм от торца. На листе 2 эти размеры помечены «*¹ — обеспечиваются приспособлением»: сварщик их не размечает, их задаёт само приспособление. Пневмоцилиндры через рычаги прижимают направляющие изнутри к стенке стакана, сварщик прихватывает их и снимает узел.</p>
+  <div class="fx" data-fx="1">
+    <div class="stage"><div class="load">загрузка 3D-модели…</div>
+      <div class="hud"><span class="st"></span><span class="val"></span></div>
+      <div class="legend"><span><i style="background:var(--air)"></i>воздух: зажим</span><span><i style="background:var(--air2)"></i>воздух: разжим</span><span><i style="background:#ffb347"></i>подсвечены детали шага</span></div>
+    </div>
+    <div class="panel">
+      <ol class="steps"></ol>
+      <div class="ctrl">
+        <button class="pri play" type="button">▶ Показать всё</button>
+        <button class="prev" type="button" aria-label="Предыдущий шаг">◀</button>
+        <button class="next" type="button" aria-label="Следующий шаг">▶</button>
+        <label><input type="checkbox" class="cut"> Разрез</label>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="say" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Базирование: как деталь находит своё место</h3>
+      <ul>
+        <li><b>Стакан</b> (труба 133×5 по модели) лежит горизонтально на двух губках поз.1 с ложементом R66,6 и на двух опорах. Ложементы исключают смещение вниз и вбок.</li>
+        <li><b>Нижнее отверстие стакана Ø112</b> надевается на трубу корпуса толкателей поз.5 (Ø112 H7/Js6). Это задаёт положение стакана вдоль оси и не даёт ему провернуться: отверстие под патрубок всегда смотрит вниз.</li>
+        <li><b>Направляющие</b> 8×14 укладываются в пазы толкателей поз.3 и прижимаются сверху планками поз.2. Паз толкателя и Т-паз моста поз.5 (38/54 мм) держат направляющие параллельно оси и на нужной высоте.</li>
+        <li>Поэтому 90 мм между направляющими, 60⁺⁵ от оси и 8₋₂ от торца получаются сами, без разметки.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Механизм зажима</h3>
+      <p>Два оппозитных пневмоцилиндра Ø60 в корпусе поз.7. При зажиме штоки Ø24 идут к центру и поворачивают рычаги поз.4 на осях поз.6. Верхние шаровые головки рычагов разводят толкатели поз.3 наружу, и те прижимают направляющие к стенке стакана.</p>
+      <p>Рычаг — двуплечий, почти 1:1: нижнее плечо 60,1 мм, верхнее 63,5 мм (√(24² + 58,8²)). Шаровые головки Ø12 и Ø10 работают без заеданий при любом угле поворота.</p>
+      <div class="f">φ = arcsin(d / 60,1) · при d = 25 мм: φ = 24,6°<br>Δ = 24·(1 − cos φ) + 58,8·sin φ = 26,6 мм — отход толкателя</div>
+      <p class="note">Ход штока до упора в крышку — 32 мм. Разжим на 25 мм освобождает 26,6 мм для укладки направляющих. В зажатом состоянии до упора поршня остаётся запас 3,8 мм: усилие гарантированно передаётся на деталь, а не на упор.</p>
+    </div>
+    <div class="card">
+      <h3>Усилия при давлении 0,4 МПа</h3>
+      <div class="f">S = π·D²/4 = π·60²/4 = 2827 мм² → F = p·S = 0,4·2827 = 1131 Н<br>штоковая полость: S = 2827 − π·24²/4 = 2375 мм² → 950 Н</div>
+      <p>На каждую направляющую приходится около 1,1 кН (≈ 110 кгс) с учётом отношения плеч 60,1/63,5. Этого хватает, чтобы выбрать зазор и удержать направляющую от сварочной деформации при прихватке: стягивающее усилие от короткого шва K3 значительно меньше.</p>
+      <p class="note">Давление 0,4 МПа взято из технических требований листа 6 (испытание пневмосистемы: 0,4 МПа, 15 мин, падение не более 0,02 МПа).</p>
+    </div>
+    <div class="card">
+      <h3>Поворот и вращающийся подвод воздуха</h3>
+      <p>Верхняя часть приспособления вместе со стаканом поворачивается на основании поз.14 (удерживается кольцом поз.11). Сварщик разворачивает узел к себе нужной стороной, не перекладывая деталь.</p>
+      <p>Чтобы шланги не закручивались, воздух идёт через вращающееся соединение. Ось поз.12 крутится во втулке поз.13. На оси — две кольцевые проточки, разделённые кольцами 020-030-58 ГОСТ 9833-73. Воздух из неподвижного штуцера попадает в проточку и оттуда в каналы оси при любом угле поворота.</p>
+    </div>
+  </div>
+
+  <details>
+    <summary>Пневмосхема приспособления №1</summary>
+    <div class="in pn">
+    <svg viewBox="0 0 900 300" role="img" aria-label="Пневмосхема приспособления №1">
+      <g font-size="13" fill="var(--ink)">
+        <rect x="10" y="120" width="90" height="50" fill="none" stroke="var(--muted)"/><text x="20" y="142">Сеть</text><text x="20" y="160">0,4 МПа</text>
+        <rect x="140" y="110" width="120" height="70" fill="none" stroke="var(--muted)" stroke-dasharray="4 3"/><text x="150" y="132">Распределитель</text><text x="150" y="150" fill="var(--muted)">(на листе не</text><text x="150" y="166" fill="var(--muted)">показан)</text>
+        <line x1="100" y1="145" x2="140" y2="145" stroke="var(--muted)" stroke-width="2"/>
+        <path d="M260,128 H320 V70 H360" fill="none" stroke="var(--air)" stroke-width="3"/>
+        <path d="M260,162 H320 V230 H360" fill="none" stroke="var(--air2)" stroke-width="3"/>
+        <rect x="360" y="40" width="170" height="220" fill="none" stroke="var(--ink)"/>
+        <text x="370" y="60" font-weight="700">Вращающееся соединение</text>
+        <text x="370" y="78">втулка 13 / ось 12</text>
+        <text x="370" y="104" fill="var(--air)">штуцер 17/18 (+Y), z 38</text><text x="370" y="122" fill="var(--air)">→ проточка 1 → канал x −5</text>
+        <text x="370" y="208" fill="var(--air2)">штуцер 17/18 (−Y), z 38</text><text x="370" y="226" fill="var(--air2)">→ проточка 2 → канал x +5</text>
+        <text x="370" y="162" fill="var(--muted)">кольца 25 (×3) разделяют</text><text x="370" y="178" fill="var(--muted)">проточки</text>
+        <path d="M530,110 H600 V70 H640" fill="none" stroke="var(--air)" stroke-width="3"/>
+        <path d="M530,210 H600 V230 H640" fill="none" stroke="var(--air2)" stroke-width="3"/>
+        <rect x="640" y="40" width="250" height="220" fill="none" stroke="var(--ink)"/>
+        <text x="650" y="60" font-weight="700">Цилиндры Ø60 (×2), корпус 7</text>
+        <text x="650" y="86" fill="var(--air)">канал z 87,9 → крышки 10 →</text><text x="650" y="104" fill="var(--air)">поршневые полости: штоки к центру</text><text x="650" y="122" fill="var(--air)">= ЗАЖИМ, 1131 Н на цилиндр</text>
+        <text x="650" y="196" fill="var(--air2)">канал z 100,4 → штоковые полости:</text><text x="650" y="214" fill="var(--air2)">штоки наружу = РАЗЖИМ, 950 Н</text>
+        <text x="650" y="150" fill="var(--muted)">поршень 8: кольцо 050-060-58</text><text x="650" y="166" fill="var(--muted)">шток: кольцо 024-034-58</text>
+      </g>
+    </svg>
+    <p class="note">Каналы, выходящие за плоскость разреза (подвод к правому поршню и к левой штоковой полости), и второй штуцер (−Y) на листе не показаны; в модели они достроены так, чтобы схема была работоспособной.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Посадки и зачем они</summary>
+    <div class="in tw"><table class="t">
+      <thead><tr><th>Соединение</th><th>Посадка</th><th>Смысл</th></tr></thead>
+      <tbody>
+        <tr><td>Корпус толкателей 5 — корпус 7</td><td class="m">Ø112 H7/Js6</td><td>переходная: точное центрирование, на неё же надевается стакан</td></tr>
+        <tr><td>Опора рычагов — корпус толкателей</td><td class="m">Ø88 H8/f9</td><td>с зазором: лёгкая сборка при соосности</td></tr>
+        <tr><td>Поршень 8 — цилиндр</td><td class="m">Ø60 H9/f9</td><td>подвижная с зазором; герметичность даёт резиновое кольцо</td></tr>
+        <tr><td>Крышка 10 — цилиндр</td><td class="m">Ø60 Js7/h7</td><td>центрирование крышки относительно расточки</td></tr>
+        <tr><td>Шток — корпус</td><td class="m">Ø24 H7/h6</td><td>точная направляющая штока, минимальный перекос</td></tr>
+        <tr><td>Ось рычага 6 — корпус</td><td class="m">Ø8 H7/m8</td><td>переходная: ось не выпадает, рычаг качается на ней</td></tr>
+        <tr><td>Ось поворотная 12</td><td class="m">Ø30 H6/m6</td><td>точная посадка распределителя</td></tr>
+        <tr><td>Заглушки каналов</td><td class="m">Ø5 H8/u8</td><td>с натягом: запрессованы и герметично закрывают технологические сверления</td></tr>
+      </tbody>
+    </table></div>
+  </details>
+
+  <details>
+    <summary>Все позиции приспособления №1</summary>
+    <div class="in tw"><table class="t spec1"><thead><tr><th>Поз.</th><th>Наименование</th><th>Кол.</th><th>Материал, стандарт</th></tr></thead><tbody></tbody></table>
+    <p class="note">Детали без номера на чертеже отмечены прочерком; позиции с пометкой «допущение» достроены в модели, на листе их нет.</p></div>
+  </details>
+</section>
+
+<section class="block" id="ps2">
+  <div class="eyebrow">Лист 7 · операция 025</div>
+  <h2>Приспособление сварочное №2: стакан + фланец</h2>
+  <p class="lead">Задача — приварить фланец стакана поз.4 к п/сб.1 так, чтобы отверстия фланца стояли под углом 22°30′±1° к оси направляющих («размер обеспечивается приспособлением» на эскизе операции 025), а стакан был перпендикулярен фланцу. Пневмоцилиндр сверху прижимает узел к плите, стол вращается, горелка стоит на месте. Так получается кольцевой шов в нижнем положении за один проход.</p>
+  <div class="fx" data-fx="2">
+    <div class="stage"><div class="load">загрузка 3D-модели…</div>
+      <div class="hud"><span class="st"></span><span class="val"></span></div>
+      <div class="legend"><span><i style="background:var(--air)"></i>воздух: зажим</span><span><i style="background:var(--air2)"></i>воздух: разжим</span><span><i style="background:#ffb347"></i>подсвечены детали шага</span></div>
+    </div>
+    <div class="panel">
+      <ol class="steps"></ol>
+      <div class="ctrl">
+        <button class="pri play" type="button">▶ Показать всё</button>
+        <button class="prev" type="button" aria-label="Предыдущий шаг">◀</button>
+        <button class="next" type="button" aria-label="Следующий шаг">▶</button>
+        <label><input type="checkbox" class="cut"> Разрез</label>
+      </div>
+      <div class="bar"><i></i></div>
+      <div class="say" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h3>Базирование</h3>
+      <ul>
+        <li><b>Фланец</b> (Ø210, 8 отв. Ø18 на Ø180) садится выступом на плиту корпуса поз.15, отверстием — на горловину R58,25. Это задаёт положение по высоте и соосность.</li>
+        <li><b>Угол</b> фиксирует палец установочный поз.24 (Ø16 H8/u8, запрессован в плиту на R90): он входит в одно из отверстий фланца. Отсюда 22°30′±1°.</li>
+        <li><b>Стакан</b> (п/сб.1) вставляется в расточку фланца и центрируется по гильзе цилиндра и крышке с зазором 0,35 мм. Стакан встаёт перпендикулярно фланцу.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Пневмоцилиндр и головка</h3>
+      <p>Вертикальный цилиндр: гильза поз.18 (Ø77 H9), поршень поз.14 (Ø77 f9) с двумя кольцами 067-077-58, шток поз.2 Ø20 h6. Рабочий ход — 30 мм («30*¹» на листе).</p>
+      <p>На штоке — головка: траверса поз.10, рычаги-прихваты поз.5 на осях поз.9 (Ø8 H7/m6 в траверсе, H11/h11 в проушине, чтобы рычаг качался), подпружиненные фиксаторы поз.6/7 в корпусах со скобами поз.8. Горловина крышки поз.11 с пазом работает как направляющая: головка ходит без перекоса.</p>
+      <div class="f">зажим (сверху на поршень): S = π·77²/4 − π·20²/4 = 4343 мм² → 1737 Н<br>подъём (под поршень): S = π·77²/4 = 4657 мм² → 1863 Н</div>
+    </div>
+    <div class="card">
+      <h3>Поворот при сварке</h3>
+      <p>Всё приспособление, кроме втулки поз.16 со штуцерами, вращается на планшайбе (стол на листе не показан, приспособление крепится к нему пазами 12 мм плиты-основания). Горелка неподвижна, шов всегда в нижнем положении: самом удобном и качественном.</p>
+      <div class="f">длина шва: π·2·64 = 402 мм · Vсв = 46 м/ч = 12,8 мм/с<br>время оборота: 402 / 12,8 ≈ 31 с</div>
+      <p>Воздух во время вращения идёт через втулку поз.16 с тремя кольцами 110-120-58: кольцевые канавки корпуса поз.15 всегда совпадают со штуцерами.</p>
+    </div>
+    <div class="card">
+      <h3>Путь воздуха к надпоршневой полости</h3>
+      <p>Шток занимает центр, поэтому воздух к верхней полости идёт в обход, через трубку поз.13 (Ø12, уплотнена кольцами 007-012-30):</p>
+      <p class="note">нижний штуцер поз.3 (z 32) → канавка → радиальный канал → сверление под 22,5° → вертикальный канал в корпусе → трубка 13 → канал в крышке 11 (горизонтальный закрыт заглушкой поз.12 Ø5 u8) → карман над поршнем.</p>
+      <p class="note">Верхний штуцер (z 57) → полость Ø56 под поршнем → головка поднимается (разжим).</p>
+    </div>
+  </div>
+
+  <details>
+    <summary>Допущения модели №2</summary>
+    <div class="in">
+      <p>По чертежу модель построена с поршнем внизу. Накладки рычагов совпадают по сечению со стенкой стакана, поэтому принято: <b>поршень внизу — зажато</b> (крюки рычагов давят на верхний торец полноразмерного стакана), <b>+30 мм — разжато</b>. На листе это прямо не подписано.</p>
+      <p>Как рычаги пропускают стакан при установке (откидываются вокруг осей поз.9), на листе не показано. В анимации головка только поднимается и опускается, рычаги не откидываются. Стакан в модели укорочен до изображённого на листе.</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>Все позиции приспособления №2</summary>
+    <div class="in tw"><table class="t spec2"><thead><tr><th>Поз.</th><th>Наименование</th><th>Кол.</th><th>Материал, стандарт</th></tr></thead><tbody></tbody></table></div>
+  </details>
+</section>
+
+<section class="block" id="why">
+  <div class="eyebrow">Итог</div>
+  <h2>Чем приспособления помогают при сварке</h2>
+  <div class="why-grid">
+    <div class="card"><div class="k">точность без разметки</div><h3>Размеры задаёт оснастка</h3><p>90 мм между направляющими, 60⁺⁵ от оси, 8₋₂ от торца, 22°30′±1° отверстий фланца. На чертеже они отмечены «*¹ — обеспечиваются приспособлением». Каждый корпус получается одинаковым, разметка и подгонка не нужны.</p></div>
+    <div class="card"><div class="k">против деформаций</div><h3>Держат детали, пока шов остывает</h3><p>При сварке металл шва стягивает детали. Зажатые с усилием 1–2 кН детали не уводит, зазор не меняется, направляющие не отходят от стенки. После прихватки узел уже держит форму сам.</p></div>
+    <div class="card"><div class="k">нижнее положение шва</div><h3>Удобный доступ горелкой</h3><p>Поворот на основании (№1) и вращение стола (№2) подставляют шов под горелку. Кольцевой шов варится непрерывно, с постоянной скоростью и углом горелки: меньше пор, непроваров и наплывов.</p></div>
+    <div class="card"><div class="k">производительность</div><h3>Зажим за секунду</h3><p>Пневмоцилиндр зажимает и разжимает деталь поворотом крана, без ключей и струбцин. Установка и снятие занимают секунды, а время горения дуги на кольцевом шве — около 31 с.</p></div>
+    <div class="card"><div class="k">повторяемость</div><h3>Одинаковый результат у любого сварщика</h3><p>Базирование «жёсткое»: деталь можно поставить только правильно (отверстие Ø112 на трубу, отверстие фланца на палец). Ошибка установки исключена конструкцией.</p></div>
+    <div class="card"><div class="k">безопасность и качество</div><h3>Руки не держат деталь</h3><p>Сварщик не держит детали руками у дуги. Усилие зажима постоянно: его задаёт давление сети, а не сила рабочего. Герметичность пневмосистемы проверяется при 0,4 МПа, падение не более 0,02 МПа за 15 мин.</p></div>
+  </div>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const DATA = /*__DATA__*/{};
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+window.ZADV_MODELS = window.ZADV_MODELS || {};
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('файл '+src+' не загрузился'));document.head.appendChild(s);});}
+async function loadGLB(key){
+  if(!window.ZADV_MODELS[key]) await loadScript(DATA.models[key]);
+  const b64 = window.ZADV_MODELS[key]; const bin = atob(b64), u8 = new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+  return await new Promise((res,rej)=>new THREE.GLTFLoader().parse(u8.buffer,'',res,rej));
+}
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const ease = t => t<0.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+// время анимаций (пульсация подсветки, поток воздуха); при съёмке видео задаётся кадром — window.__clockMs
+const nowMs = () => (window.__clockMs ?? performance.now());
+const V = (x,y,z)=>new THREE.Vector3(x,y,z);
+
+// ---- spec tables ----
+function fillSpec(sel, spec){
+  const tb = document.querySelector(sel+' tbody');
+  tb.innerHTML = spec.map(s=>`<tr><td class="m">${esc(s.pos||'—')}</td><td>${esc(s.name_ru||s.key)}</td><td class="m">${esc(s.qty??'')}</td><td>${esc([s.material,s.standard].filter(Boolean).join('; '))}</td></tr>`).join('');
+}
+fillSpec('.spec1', DATA.spec1||[]); fillSpec('.spec2', DATA.spec2||[]);
+
+// ---- generic fixture scene ----
+class Fixture {
+  constructor(el, cfg){
+    this.el = el; this.cfg = cfg;
+    this.stage = el.querySelector('.stage'); this.say = el.querySelector('.say');
+    this.barI = el.querySelector('.bar i'); this.hudSt = el.querySelector('.hud .st'); this.hudVal = el.querySelector('.hud .val');
+    this.cutBox = el.querySelector('.cut');
+    this.renderer = new THREE.WebGLRenderer({antialias:true});
+    this.renderer.setPixelRatio(Math.min(devicePixelRatio, window.__maxDPR || 2)); this.renderer.localClippingEnabled = true;
+    this.renderer.outputEncoding = THREE.sRGBEncoding;
+    this.stage.prepend(this.renderer.domElement);
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(32,1,5,20000);
+    this.controls = new THREE.OrbitControls(this.camera, this.renderer.domElement); this.controls.enableDamping = true;
+    this.scene.add(new THREE.HemisphereLight(0xffffff,0x8090a0,0.85));
+    const d1 = new THREE.DirectionalLight(0xffffff,0.65); d1.position.set(-600,900,700); this.scene.add(d1);
+    const d2 = new THREE.DirectionalLight(0xffffff,0.25); d2.position.set(700,-300,-500); this.scene.add(d2);
+    this.clip = new THREE.Plane(V(0,1,0),0);
+    new ResizeObserver(()=>this.resize()).observe(this.stage); this.resize();
+    this.step = 0; this.t = 1; this.playing = false; this.playAll = false;
+    this.buildUI();
+    this.cutBox.addEventListener('change',()=>{ this.userCut = this.cutBox.checked; this.applyCut(); });
+  }
+  resize(){ const w=this.stage.clientWidth,h=this.stage.clientHeight; this.renderer.setSize(w,h,false); this.camera.aspect=w/h; this.camera.updateProjectionMatrix(); }
+  bg(){ this.scene.background = new THREE.Color(css('--canvas')||'#e3e8ee'); }
+  buildUI(){
+    const ol = this.el.querySelector('.steps');
+    ol.innerHTML = this.cfg.steps.map((s,i)=>`<li><button type="button" data-i="${i}"><span class="n">${String(i+1).padStart(2,'0')}</span><span>${esc(s.title)}</span></button></li>`).join('');
+    ol.querySelectorAll('button').forEach(b=>b.onclick=()=>{ this.playAll=false; this.go(+b.dataset.i); });
+    this.el.querySelector('.play').onclick=()=>{ if(this.playing && this.playAll){ this.playing=false; this.playAll=false; this.updCtrl(); return;} this.playAll=true; this.go(0); };
+    this.el.querySelector('.prev').onclick=()=>{ this.playAll=false; this.go(Math.max(0,this.step-1)); };
+    this.el.querySelector('.next').onclick=()=>{ this.playAll=false; this.go(Math.min(this.cfg.steps.length-1,this.step+1)); };
+  }
+  updCtrl(){ this.el.querySelector('.play').textContent = (this.playing && this.playAll) ? '❚❚ Пауза' : '▶ Показать всё'; }
+  async init(){
+    try{
+      const g = await loadGLB(this.cfg.model);
+      this.root = g.scene; this.scene.add(this.root); this.bg();
+      this.parts = {}; this.root.children[0].children.forEach(o=>{ this.parts[o.name]=o; o.matrixAutoUpdate=false; });
+      this.asm = this.root.children[0];
+      const meshes=[]; this.root.traverse(o=>{ if(o.isMesh) meshes.push(o); });
+      meshes.forEach(o=>{
+        const m = o.material.clone(); m.side = THREE.FrontSide; m.clippingPlanes=[];
+        if('metalness' in m){ m.metalness=Math.min(m.metalness??0,0.3); m.roughness=Math.max(m.roughness??0.5,0.5); }
+        m.userData.op = m.opacity; m.userData.tr = m.transparent; o.material = m;
+        const cm = new THREE.MeshBasicMaterial({color:m.color.clone().lerp(new THREE.Color(0xffffff),0.35), side:THREE.BackSide, clippingPlanes:[]});
+        const back = new THREE.Mesh(o.geometry, cm); back.userData.cut=true; back.visible=false; o.add(back);
+      });
+      this.root.updateMatrixWorld(true);
+      this.fx = new THREE.Group(); this.asm.add(this.fx);   // extra objects in CAD frame
+      this.cfg.setup(this);
+      this.states = [ Object.assign({}, this.cfg.base) ];
+      this.cfg.steps.forEach((s,i)=>{ const prev = this.states[i]; this.states.push(Object.assign({}, prev, s.set||{})); });
+      this.stage.querySelector('.load').hidden = true;
+      this.go(0, true);
+    }catch(err){ console.error(err); this.stage.querySelector('.load').textContent = 'Не удалось загрузить модель: '+(err&&err.message||err); }
+  }
+  cad2w(v){ return this.asm.localToWorld(v.clone()); }
+  go(i, instant){
+    this.step = i; this.t = instant ? 1 : 0; this.playing = !instant;
+    const s = this.cfg.steps[i];
+    this.el.querySelectorAll('.steps button').forEach(b=>b.setAttribute('aria-current', +b.dataset.i===i ? 'step' : 'false'));
+    const cur = this.el.querySelector(`.steps button[data-i="${i}"]`); if(cur) cur.scrollIntoView({block:'nearest'});
+    this.say.innerHTML = `<h4>${esc(s.title)}</h4>${s.html}`;
+    this.hudSt.textContent = `шаг ${i+1} из ${this.cfg.steps.length}`;
+    this.userCut = undefined; this.cutBox.checked = !!s.cut; this.applyCut();
+    this.flyTo(s.cam || this.cfg.cam, instant);
+    this.from = this.states[i]; this.to = this.states[i+1];
+    this.cfg.enter && this.cfg.enter(this, s);
+    this.updCtrl();
+    this.apply();
+  }
+  applyCut(){
+    const on = this.userCut!==undefined ? this.userCut : this.cutBox.checked;
+    this.cutOn = on;
+    this.root && this.root.traverse(o=>{ if(!o.isMesh) return; if(o.userData.cut){ o.visible=on; o.material.clippingPlanes=on?[this.clip]:[]; } else if(!o.userData.nocut){ o.material.clippingPlanes = on?[this.clip]:[]; o.material.needsUpdate=true; } });
+  }
+  flyTo(c, instant){
+    const tgt = this.cad2w(V(...c.target)), pos = this.cad2w(V(...c.pos));
+    this.camFrom = {p:this.camera.position.clone(), t:this.controls.target.clone()};
+    this.camTo = {p:pos, t:tgt}; this.camK = (instant||reduceMotion) ? 1 : 0;
+    if(instant||reduceMotion){ this.camera.position.copy(pos); this.controls.target.copy(tgt); this.controls.update(); }
+  }
+  state(){
+    const k = ease(this.t), S = {};
+    for(const key in this.to){
+      const a = this.from[key], b = this.to[key];
+      S[key] = (typeof b === 'number' && typeof a === 'number') ? a + (b-a)*k : (this.t>0 ? b : a);
+    }
+    S._t = this.t; S._k = k; return S;
+  }
+  setM(name, M){ const p = this.parts[name]; if(!p) return; p.matrix.copy(M); p.matrixWorldNeedsUpdate = true; }
+  apply(){
+    if(!this.root) return;
+    const S = this.state();
+    this.cfg.pose(this, S);
+    // plane in world coordinates (CAD y = 0, keep y >= 0)
+    this.clip.set(V(0,1,0),0).applyMatrix4(this.asm.matrixWorld);
+    const s = this.cfg.steps[this.step];
+    const focus = s.focus||[]; const pulse = 0.28 + 0.18*Math.sin(nowMs()/260);
+    for(const n in this.parts){
+      const on = focus.some(f=>n.startsWith(f));
+      this.parts[n].traverse(o=>{ if(o.isMesh && !o.userData.cut && o.material.emissive) o.material.emissive.setRGB(on?pulse:0, on?pulse*0.55:0, 0); });
+    }
+    this.barI.style.width = (this.t*100)+'%';
+  }
+  tick(dt){
+    if(!this.root) return;
+    if(this.camK < 1){ this.camK = Math.min(1, this.camK + dt/1.1); const k=ease(this.camK);
+      this.camera.position.lerpVectors(this.camFrom.p, this.camTo.p, k); this.controls.target.lerpVectors(this.camFrom.t, this.camTo.t, k); }
+    if(this.playing){
+      const dur = reduceMotion ? 0.001 : (this.cfg.steps[this.step].dur||3);
+      this.t = Math.min(1, this.t + dt/dur);
+      if(this.t>=1){ this.playing=false; if(this.playAll && this.step < this.cfg.steps.length-1){ this.holdUntil = performance.now() + (reduceMotion?200:1100); } else { this.playAll=false; } this.updCtrl(); }
+    }
+    if(this.holdUntil && performance.now() > this.holdUntil){ this.holdUntil = 0; if(this.playAll) this.go(this.step+1); }
+    this.apply();
+    this.cfg.tick && this.cfg.tick(this, dt);
+    this.controls.update(); this.renderer.render(this.scene, this.camera);
+  }
+}
+
+// ---- helpers for workpiece opacity, air paths, torch ----
+function setOpacity(fx, name, op){
+  const p = fx.parts[name]; if(!p) return;
+  p.visible = op > 0.02;
+  p.traverse(o=>{ if(o.isMesh && !o.userData.cut){ const m=o.material; m.transparent = true; m.opacity = (m.userData.tr ? m.userData.op : 1) * op; m.depthWrite = op>0.98 && !m.userData.tr; } });
+}
+function airPath(fx, pts, color){
+  // pts: [[x,y,z,static?],...] in CAD; rotating points transformed by Rz(theta) at build time
+  const g = new THREE.Group(); g.userData = {pts, color}; fx.fx.add(g); return g;
+}
+function buildAir(fx, g, theta){
+  g.clear();
+  const R = new THREE.Matrix4().makeRotationZ(theta);
+  const P = g.userData.pts.map(p=>{ const v=V(p[0],p[1],p[2]); return p[3] ? v : v.applyMatrix4(R); });
+  const path = new THREE.CurvePath(); for(let i=0;i<P.length-1;i++) path.add(new THREE.LineCurve3(P[i],P[i+1]));
+  const col = new THREE.Color(g.userData.color);
+  const tube = new THREE.Mesh(new THREE.TubeGeometry(path, P.length*24, 2.6, 8, false),
+    new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.55, depthTest:false}));
+  tube.renderOrder = 10; tube.userData.nocut = true; g.add(tube);
+  g.userData.path = path; g.userData.dots = [];
+  for(let i=0;i<14;i++){ const d = new THREE.Mesh(new THREE.SphereGeometry(4.2,12,8), new THREE.MeshBasicMaterial({color:0xffffff, depthTest:false}));
+    d.renderOrder = 11; d.userData.nocut = true; g.add(d); g.userData.dots.push(d); }
+}
+function flowAir(g, time){
+  if(!g.userData.path) return;
+  g.userData.dots.forEach((d,i)=>{ const u = ((time*0.22) + i/g.userData.dots.length) % 1; d.position.copy(g.userData.path.getPointAt(u)); });
+}
+function makeTorch(fx){
+  const g = new THREE.Group();
+  const mat = new THREE.MeshStandardMaterial({color:0x303740, metalness:0.4, roughness:0.4});
+  const noz = new THREE.Mesh(new THREE.CylinderGeometry(7,9,70,20), new THREE.MeshStandardMaterial({color:0xb08a3c, metalness:0.6, roughness:0.35}));
+  noz.position.y = 35; g.add(noz);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(11,11,110,20), mat); body.position.y = 125; g.add(body);
+  const hose = new THREE.Mesh(new THREE.CylinderGeometry(9,9,180,16), new THREE.MeshStandardMaterial({color:0x1a1d22, roughness:0.8}));
+  hose.position.y = 270; g.add(hose);
+  const spark = new THREE.Mesh(new THREE.SphereGeometry(5,16,12), new THREE.MeshBasicMaterial({color:0xfff2c0}));
+  g.add(spark); g.userData.spark = spark;
+  const light = new THREE.PointLight(0xffc27a, 0, 380); g.add(light); g.userData.light = light;
+  g.traverse(o=>{ if(o.isMesh) o.userData.nocut = true; });
+  fx.fx.add(g); g.visible = false; return g;
+}
+function aimTorch(torch, tip, from){
+  // local +Y of torch points from tip to "from"
+  torch.position.copy(tip);
+  const dir = from.clone().sub(tip).normalize();
+  torch.quaternion.setFromUnitVectors(V(0,1,0), dir);
+}
+// воздух показываем только на шагах подачи воздуха, зажима и разжима
+function airStep(s){ const k = s.set||{}; return 'air' in k || 'd' in k || 'dz' in k; }
+function weldBead(r){ return new THREE.Mesh(new THREE.SphereGeometry(r,14,10), new THREE.MeshStandardMaterial({color:0x5a3a24, roughness:0.6, metalness:0.2, emissive:0x000000})); }
+
+// ================= Fixture 1 =================
+const F1 = (()=>{
+  const STATIC = ['p14_osnovanie','p11_koltso','p21_vint','p13_vtulka','p17_shtutser','p18_shtutser'];
+  const PISTON = ['x_shtok_','p08_porshen_','p27_koltso_'];
+  const PUSHER = ['p03_tolkatel_','p02_planka_','p22_vint_','x_planka_tortsevaya_','p16_vint_'];
+  const PIV = {x:22, z:188.1};
+  const side = n => n.endsWith('_L')||/_L\d$/.test(n) ? -1 : (n.endsWith('_R')||/_R\d$/.test(n) ? 1 : 0);
+  const Delta = d => { const f = Math.asin(Math.min(d,60)/60.1); return 24*(1-Math.cos(f)) + 58.8*Math.sin(f); };
+  const TACKS = [];
+  for(const sg of [-1,1]) for(const y of [-52,111]) for(const z of [259,275]) TACKS.push([sg*60, y, z]);
+  const cfg = {
+    model:'prisposoblenie_1',
+    cam:{pos:[-380,-620,460], target:[0,20,190]},
+    base:{d:25, stZ:170, stOp:0, gY:-240, gOp:0, follow:'y', theta:0, tacks:0, air:'', torch:0},
+    setup(fx){
+      fx.airC = airPath(fx, [[0,74,38,1],[0,14,38,1],[0,0,38,1],[-5,0,38],[-5,0,88],[-72,0,88],[-151.5,0,88],[-151.5,0,128],[-132,0,128]], css('--air')||'#2f7fe0');
+      fx.airC2 = airPath(fx, [[-5,0,88],[-5,-20,88],[66,0,88],[151.5,0,88],[151.5,0,128],[132,0,128]], css('--air')||'#2f7fe0');
+      fx.airR = airPath(fx, [[0,-74,38,1],[0,-20.5,38,1],[0,-20.5,67,1],[0,0,67,1],[5,0,67],[5,0,100.4],[89.7,0,100.4],[93,0,112]], css('--air2')||'#d4862b');
+      fx.airR2 = airPath(fx, [[5,0,100.4],[5,20,100.4],[-66,0,100.4],[-89.7,0,100.4],[-93,0,112]], css('--air2')||'#d4862b');
+      fx.torch = makeTorch(fx);
+      fx.beads = TACKS.map(p=>{ const b = weldBead(3.4); b.position.set(...p); b.visible=false; fx.fx.add(b); return b; });
+      fx.lastAir = null;
+    },
+    enter(fx, s){
+      const S = fx.states[fx.step+1], show = airStep(s);
+      [fx.airC,fx.airC2,fx.airR,fx.airR2].forEach(g=>{ g.clear(); g.userData.path=null; });
+      if(!show) return;
+      if(S.air==='clamp'){ buildAir(fx, fx.airC, S.theta); buildAir(fx, fx.airC2, S.theta); }
+      if(S.air==='release'){ buildAir(fx, fx.airR, S.theta); buildAir(fx, fx.airR2, S.theta); }
+    },
+    pose(fx, S){
+      const Rz = new THREE.Matrix4().makeRotationZ(S.theta), I = new THREE.Matrix4();
+      const d = S.d, phi = Math.asin(d/60.1), Dl = Delta(d);
+      for(const n in fx.parts){
+        let L = new THREE.Matrix4();
+        const sg = side(n);
+        if(PISTON.some(p=>n.startsWith(p))) L.makeTranslation(sg*d,0,0);
+        else if(n.startsWith('p04_rychag_')){
+          const P = V(sg*PIV.x,0,PIV.z);
+          L = new THREE.Matrix4().makeTranslation(P.x,P.y,P.z).multiply(new THREE.Matrix4().makeRotationY(-sg*phi)).multiply(new THREE.Matrix4().makeTranslation(-P.x,-P.y,-P.z));
+        }
+        else if(PUSHER.some(p=>n.startsWith(p))) L.makeTranslation(-sg*Dl,0,0);
+        else if(n==='izdelie_stakan') L.makeTranslation(0,0,S.stZ);
+        else if(n.startsWith('izdelie_napravl_')) L.makeTranslation(S.follow==='y' ? -sg*Dl : 0, S.gY, S.follow==='y' ? 0 : S.stZ);
+        const M = STATIC.some(p=>n.startsWith(p)) ? L : Rz.clone().multiply(L);
+        fx.setM(n, M);
+      }
+      setOpacity(fx,'izdelie_stakan',S.stOp);
+      const gop = S.follow==='y' ? S.gOp : S.stOp;
+      setOpacity(fx,'izdelie_napravl_L',gop); setOpacity(fx,'izdelie_napravl_R',gop);
+      // tack beads rotate with the fixture, move with the workpiece when lifted
+      const nT = Math.floor(S.tacks + 1e-6);
+      fx.beads.forEach((b,i)=>{ b.visible = i < nT && S.stOp > 0.05;
+        const p = V(...TACKS[i]); p.z += S.stZ; b.position.copy(p.applyMatrix4(Rz)); });
+      // torch
+      fx.torch.visible = S.torch > 0.02;
+      if(fx.torch.visible){
+        const i = Math.min(TACKS.length-1, Math.max(0, Math.floor(S.tacks)));
+        const frac = S.tacks - Math.floor(S.tacks);
+        const p = V(...TACKS[Math.min(i, TACKS.length-1)]);
+        const out = V(0, p.y<40 ? -1 : 1, 0.55).normalize();
+        const tip = p.clone().addScaledVector(out, 6).applyMatrix4(Rz);
+        const from = p.clone().addScaledVector(out, 300).applyMatrix4(Rz);
+        aimTorch(fx.torch, tip, from);
+        const arc = fx.playing && fx.cfg.steps[fx.step].weld && frac > 0.15 && frac < 0.85;
+        fx.torch.userData.spark.visible = arc; fx.torch.userData.light.intensity = arc ? 1.6 + Math.random()*1.4 : 0;
+      }
+      fx.hudVal.textContent = `ход штока ${(25-d).toFixed(1)} из 25 мм · поворот рычага ${(24.58 - phi*180/Math.PI).toFixed(1)}° · поворот ${(S.theta*180/Math.PI).toFixed(0)}°`;
+    },
+    tick(fx){ const t = nowMs()/1000; [fx.airC,fx.airC2,fx.airR,fx.airR2].forEach(g=>flowAir(g,t)); },
+    steps:[
+      {title:'Приспособление в исходном положении', dur:1.2, set:{}, cut:false,
+       html:`<p>Приспособление стоит на столе сварщика. Основание поз.14 крепится к столу лапами с пазами 12 мм. Всё, что выше основания, поворачивается вокруг вертикальной оси.</p><p>Цилиндры разжаты: штоки разведены, толкатели поз.3 отведены к центру на 26,6 мм, внутри хватает места для деталей.</p><p class="why">Посмотрите модель мышью: слева и справа — два пневмоцилиндра, в середине — мост с толкателями, сверху — губки-ложементы под стакан.</p>`},
+      {title:'Базирование стакана', dur:2.6, set:{stZ:0, stOp:1}, focus:['p01_gubka','x_opora_stakana','p05_korpus_tolkateley'],
+       html:`<p>Стакан поз.2 (труба) кладут сверху. Нижнее отверстие Ø112 надевается на трубу корпуса толкателей поз.5, а стенка ложится в губки поз.1 (ложемент R66,6) и на опоры.</p><p class="why">Отверстие на трубе Ø112 сразу задаёт и положение вдоль оси, и угол поворота стакана. Поставить стакан неправильно нельзя.</p>`},
+      {title:'Укладка направляющих', dur:2.6, set:{gY:0, gOp:1}, focus:['p03_tolkatel','p02_planka'], cut:true,
+       html:`<p>Две направляющие поз.5 (пруток 8×14) задвигают через открытый торец стакана в пазы толкателей поз.3. Сверху их придерживают планки поз.2.</p><p class="why">Паз толкателя задаёт высоту и параллельность направляющей: 60⁺⁵ от оси прохода и 90 мм между направляющими. Включён разрез: видна середина механизма.</p>`},
+      {title:'Подача воздуха на зажим', dur:2.2, set:{air:'clamp'}, cut:true, focus:['p17_shtutser_1','p18_shtutser_vvertnoy_1','p12_os_povorotnaya','p13_vtulka','p10_kryshka'],
+       html:`<p>Распределитель подаёт сжатый воздух 0,4 МПа в штуцер со стороны +Y. Синяя линия показывает путь: втулка поз.13 → кольцевая проточка оси поз.12 → вертикальный канал → горизонтальный канал корпуса → крышки поз.10 → поршневые полости обоих цилиндров.</p><p class="why">Проточка кольцевая, поэтому воздух доходит до цилиндров при любом угле поворота приспособления. Шланги не закручиваются.</p>`},
+      {title:'Зажим: поршни, рычаги, толкатели', dur:3.2, set:{d:0}, cut:true, focus:['p08_porshen','x_shtok','p04_rychag','p03_tolkatel'],
+       html:`<p>Давление двигает поршни поз.8 к центру (1131 Н на каждый). Штоки упираются шаровыми головками в рычаги поз.4 и поворачивают их на осях поз.6 на 24,6°. Верхние концы рычагов расходятся и выталкивают толкатели поз.3 наружу на 26,6 мм.</p><p>Толкатели прижимают направляющие к внутренней стенке стакана примерно с 1,1 кН. До упора поршня остаётся 3,8 мм, поэтому всё усилие идёт на деталь.</p><p class="why">Счётчик сверху показывает ход штока и угол рычага.</p>`},
+      {title:'Прихватка левой направляющей', dur:4, set:{tacks:4, torch:1}, weld:true, cut:false, focus:['izdelie_napravl_L'],
+       cam:{pos:[-520,-560,420], target:[-40,20,260]},
+       html:`<p>Сварщик прихватывает направляющую к стенке короткими швами K3 «в доступных местах»: у обоих торцов стакана, с двух сторон направляющей. Средняя часть закрыта толкателями.</p><p class="why">Режим: Iсв = 134 А, Uд = 23 В, проволока Св-08Г2С Ø1,2, Ar+CO₂. Пока шов остывает, толкатели держат направляющую, и стягивание металла её не уводит.</p>`},
+      {title:'Поворот приспособления', dur:2.6, set:{theta:Math.PI, torch:0}, focus:['p07_korpus'],
+       html:`<p>Верхняя часть приспособления вместе со стаканом поворачивается на основании на 180°. Вторая направляющая оказывается со стороны сварщика.</p><p class="why">Не нужно ни перекладывать деталь, ни тянуться горелкой. Пневмосистема при этом остаётся под давлением: зажим не ослабевает.</p>`},
+      {title:'Прихватка правой направляющей', dur:4, set:{tacks:8, torch:1}, weld:true, focus:['izdelie_napravl_R'],
+       cam:{pos:[-520,-560,420], target:[-40,20,260]},
+       html:`<p>Так же прихватывается вторая направляющая: всего 8 прихваток. После этого узел держит форму сам.</p>`},
+      {title:'Разжим', dur:3.2, set:{air:'release', d:25, follow:'n', torch:0}, cut:true, focus:['p17_shtutser_2','p08_porshen','p04_rychag','p03_tolkatel'],
+       html:`<p>Распределитель переключается: воздух (оранжевая линия) идёт через вторую проточку оси в штоковые полости. Поршни расходятся (950 Н), рычаги поворачиваются обратно, толкатели отходят к центру.</p><p class="why">Направляющие уже приварены и остаются на стенке стакана. Толкатели отходят от них и освобождают узел.</p>`},
+      {title:'Снятие п/сб.1', dur:2.6, set:{stZ:180, stOp:0, air:''}, cut:false,
+       html:`<p>Стакан с прихваченными направляющими (п/сб.1) снимают. Дальше по техпроцессу его «сваривают окончательно согласно эскизу»: 8 швов №1 по 40 мм (40⁺⁴), катет 3 мм, длина по шаблону.</p><p class="why">Следующая операция 025 — приспособление №2.</p>`},
+    ],
+  };
+  return cfg;
+})();
+
+// ================= Fixture 2 =================
+const F2 = (()=>{
+  const STATIC = ['vtulka_16','shtucer_3_','shaiba_4_'];
+  const MOVING = ['porshen_14','kolco_28_','shtok_2','kolco_26','gaika_23_','traversa_10','os_9_','rychag_5_','korpus_fiks_','skoba_8_','fiksator_6_','pruzhina_7_','nakladka_5_','bolt_20_','kolodka'];
+  const R = 65.2, ZW = 109.6;
+  const cfg = {
+    model:'prisposoblenie_2',
+    cam:{pos:[-420,-560,420], target:[0,0,165]},
+    base:{dz:30, flZ:160, flOp:0, stZ:230, stOp:0, theta:0, arc:0, torch:0, air:''},
+    setup(fx){
+      fx.airC = airPath(fx, [[-112,0,32,1],[-61,0,32,1],[0,0,32],[44.9,18.6,32],[44.9,18.6,196],[21.2,8.8,196],[21.2,8.8,155]], css('--air')||'#2f7fe0');
+      fx.airR = airPath(fx, [[-112,0,57,1],[-61,0,57,1],[-27,0,57],[0,0,57],[0,0,104]], css('--air2')||'#d4862b');
+      fx.torch = makeTorch(fx);
+      fx.bead = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshStandardMaterial({color:0x5a3a24, roughness:0.6, metalness:0.2}));
+      fx.bead.userData.nocut = true; fx.fx.add(fx.bead); fx.lastArc = -1;
+    },
+    enter(fx, s){
+      const S = fx.states[fx.step+1];
+      [fx.airC,fx.airR].forEach(g=>{ g.clear(); g.userData.path=null; });
+      if(!airStep(s)) return;
+      if(S.air==='clamp') buildAir(fx, fx.airC, S.theta);
+      if(S.air==='release') buildAir(fx, fx.airR, S.theta);
+    },
+    pose(fx, S){
+      const Rz = new THREE.Matrix4().makeRotationZ(S.theta);
+      for(const n in fx.parts){
+        let L = new THREE.Matrix4();
+        if(MOVING.some(p=>n.startsWith(p))) L.makeTranslation(0,0,S.dz);
+        else if(n==='flanec_17') L.makeTranslation(0,0,S.flZ);
+        else if(n==='stakan_zagotovka') L.makeTranslation(0,0,S.stZ);
+        fx.setM(n, STATIC.some(p=>n.startsWith(p)) ? L : Rz.clone().multiply(L));
+      }
+      setOpacity(fx,'flanec_17',S.flOp); setOpacity(fx,'stakan_zagotovka',S.stOp);
+      // weld bead: arc of the circle in part frame, rotating with the table
+      const A = S.arc*2*Math.PI;
+      if(Math.abs(A - fx.lastArc) > 0.01){
+        fx.lastArc = A; fx.bead.geometry.dispose();
+        fx.bead.geometry = A > 0.02 ? new THREE.TorusGeometry(R, 2.1, 8, Math.max(6, Math.round(96*S.arc)), A) : new THREE.BufferGeometry();
+      }
+      fx.bead.visible = A > 0.02 && S.flOp > 0.05;
+      const mb = new THREE.Matrix4().makeTranslation(0,0,ZW + Math.min(S.flZ, S.stZ)).multiply(new THREE.Matrix4().makeRotationZ(Math.PI - A));
+      fx.bead.matrixAutoUpdate = false; fx.bead.matrix.copy(Rz.clone().multiply(mb)); fx.bead.matrixWorldNeedsUpdate = true;
+      fx.torch.visible = S.torch > 0.02;
+      if(fx.torch.visible){
+        const tip = V(-R-3, 0, ZW+2), from = V(-R-260, 0, ZW+190);
+        aimTorch(fx.torch, tip, from);
+        const arc = fx.playing && fx.cfg.steps[fx.step].weld;
+        fx.torch.userData.spark.visible = arc; fx.torch.userData.light.intensity = arc ? 1.6 + Math.random()*1.4 : 0;
+      }
+      fx.hudVal.textContent = `головка: ${S.dz.toFixed(1)} из 30 мм вверх · поворот стола ${(S.theta*180/Math.PI).toFixed(0)}°`;
+    },
+    tick(fx){ const t = nowMs()/1000; [fx.airC,fx.airR].forEach(g=>flowAir(g,t)); },
+    steps:[
+      {title:'Приспособление в исходном положении', dur:1.2, set:{}, cut:false,
+       html:`<p>Приспособление закреплено на вращающемся столе (планшайбе) пазами плиты-основания Ø200. Головка поднята на 30 мм: рабочий ход пневмоцилиндра.</p><p class="why">В центре — вертикальный пневмоцилиндр, сверху — головка с рычагами-прихватами, снизу — корпус с вращающимся подводом воздуха (втулка поз.16 со штуцерами).</p>`},
+      {title:'Установка фланца на палец', dur:2.6, set:{flZ:0, flOp:1}, focus:['palec_24','korpus_15'],
+       html:`<p>Фланец стакана поз.4 (Ø210) опускают на плиту корпуса поз.15: отверстием на горловину, одним из восьми отверстий Ø18 — на установочный палец поз.24.</p><p class="why">Палец запрессован на радиусе 90 мм под углом 22°30′. Поэтому отверстия фланца после сварки стоят точно под 22°30′±1° к направляющим стакана. Это требование эскиза операции 025.</p>`},
+      {title:'Установка стакана (п/сб.1)', dur:2.6, set:{stZ:0, stOp:1}, focus:['gilza_18','kryshka_11'], cut:true,
+       html:`<p>Стакан с прихваченными направляющими опускают в расточку фланца. Внутри он центрируется по наружной поверхности гильзы и крышки цилиндра (зазор 0,35 мм).</p><p class="why">Стакан встаёт соосно и перпендикулярно фланцу: будущий шов имеет одинаковый зазор по всей окружности.</p>`},
+      {title:'Подача воздуха на зажим', dur:2.4, set:{air:'clamp'}, cut:true, focus:['shtucer_3_1','vtulka_16','trubka_13','kryshka_11','zaglushka_12'],
+       html:`<p>Воздух 0,4 МПа подаётся в нижний штуцер поз.3. Путь (синяя линия): втулка → канавка корпуса → сверление под 22,5° → трубка поз.13 → канал в крышке поз.11 → полость над поршнем.</p><p class="why">В центре стоит шток, поэтому к верхней полости воздух идёт в обход, по трубке 13. Горизонтальное сверление в крышке снаружи закрыто заглушкой поз.12.</p>`},
+      {title:'Зажим: головка опускается', dur:3.2, set:{dz:0}, cut:true, focus:['porshen_14','shtok_2','traversa_10','rychag_5','korpus_fiks','kolodka'],
+       html:`<p>Поршень поз.14 со штоком идёт вниз на 30 мм с усилием 1737 Н. Головка с рычагами-прихватами поз.5 опускается и прижимает узел: стакан к фланцу, фланец к плите.</p><p class="why">Горловина крышки с пазом не даёт головке провернуться. Подпружиненные фиксаторы поз.6 держат рычаги в рабочем положении.</p>`},
+      {title:'Кольцевой шов с вращением стола', dur:6, set:{theta:2*Math.PI, arc:1, torch:1}, weld:true, cut:false, focus:['flanec_17'],
+       cam:{pos:[-560,-420,360], target:[-20,0,120]},
+       html:`<p>Горелка стоит неподвижно, стол с приспособлением и деталью делает полный оборот. Угловой шов K3 «стакан — фланец» ложится непрерывно по всей окружности.</p><p>Длина шва π·128 ≈ 402 мм; при Vсв = 46 м/ч (12,8 мм/с) оборот занимает около 31 с. Втулка поз.16 со штуцерами не вращается, воздух держит зажим всё время сварки.</p><p class="why">Шов всё время в нижнем положении, скорость и угол горелки постоянны. Так получается ровный шов без непроваров и перерывов.</p>`},
+      {title:'Разжим', dur:3, set:{air:'release', dz:30, torch:0}, cut:true, focus:['shtucer_3_2','porshen_14','traversa_10'],
+       html:`<p>Воздух переключается на верхний штуцер (оранжевая линия) и идёт в полость под поршнем. Головка поднимается на 30 мм с усилием 1863 Н и освобождает узел.</p>`},
+      {title:'Снятие п/сб.2', dur:2.6, set:{flZ:170, stZ:170, flOp:0, stOp:0, air:''}, cut:false,
+       html:`<p>Стакан с приваренным фланцем (п/сб.2) снимают вверх. Дальше по техпроцессу, операция 030: приварка дна поз.6 (шов №3), затем общая сборка с патрубками (040).</p>`},
+    ],
+  };
+  return cfg;
+})();
+
+const fixtures = [];
+document.querySelectorAll('.fx').forEach(el=>{
+  const f = new Fixture(el, el.dataset.fx==='1' ? F1 : F2); fixtures.push(f); f.init();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>fixtures.forEach(f=>f.bg()));
+new MutationObserver(()=>fixtures.forEach(f=>f.bg())).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+// служебный доступ для покадровой записи видео и PDF (make_video.py)
+window.__rz = {
+  fixtures,
+  ready: () => fixtures.every(f=>!!f.root),
+  steps: fi => fixtures[fi].cfg.steps.map(s=>({title:s.title, html:s.html, dur:s.dur||3})),
+  render(fi, step, t){
+    const f = fixtures[fi];
+    if(f.step!==step || !f._rec){ f.go(step, true); f._rec = true; }
+    f.playAll = false; f.holdUntil = 0; f.t = t; f.camK = 1; f.playing = true;
+    f.apply(); f.cfg.tick && f.cfg.tick(f, 0); f.playing = false;
+    f.controls.update(); f.renderer.render(f.scene, f.camera);
+  },
+  freeze(){ fixtures.forEach(f=>{ f.frozen = true; }); },
+};
+let last = performance.now();
+(function loop(now){ requestAnimationFrame(loop); const dt = Math.min(0.1,(now-last)/1000); last = now; fixtures.forEach(f=>{ if(!f.frozen) f.tick(dt); }); })(last);
+</script>

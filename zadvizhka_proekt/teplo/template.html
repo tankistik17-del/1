@@ -1,0 +1,639 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тепловой процесс сварки</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=PT+Sans+Narrow:wght@400;700&family=PT+Sans:wght@400;700&family=PT+Mono&display=swap">
+<style>
+:root{
+  --paper:#eef1f4; --sheet:#f8f9fb; --ink:#1b2a3a; --muted:#566779; --line:#c9d2dc; --grid:#dde3ea;
+  --blue:#2f5d9a; --accent:#c9731f; --sel:#e0ebf8; --canvas:#fcfcfb;
+  /* последовательная шкала температуры: один тон (оранжевый), светлый = холодный */
+  --h0:#fbf3ec; --h1:#fbe0cf; --h2:#f6bf9f; --h3:#f0976a; --h4:#eb6834; --h5:#c24c1c; --h6:#8f3410; --h7:#5c1f07; --melt:#2a1004;
+  /* строение ЗТВ: порядковая шкала того же тона + нейтральный основной металл */
+  --z0:#e4e8ec; --z1:#f6bf9f; --z2:#f0976a; --z3:#eb6834; --z4:#b84716; --z5:#6e270a;
+  /* термические циклы: порядковая синяя шкала (горячая точка — самая тёмная) */
+  --c1:#0d366b; --c2:#1c5cab; --c3:#3987e5; --c4:#86b6ef; --band:rgba(201,115,31,.12);
+  --f-head:"PT Sans Narrow","Arial Narrow",Arial,sans-serif;
+  --f-body:"PT Sans",Arial,sans-serif;
+  --f-mono:"PT Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#93a2b3;--line:#2b3642;--grid:#232c36;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a1a19;
+  --h0:#221a15;--h1:#3a2418;--h2:#5e3218;--h3:#8a4420;--h4:#b9582a;--h5:#e2743f;--h6:#f39a6c;--h7:#fbc7a6;--melt:#fff1e6;
+  --z0:#262d35;--z1:#5e3218;--z2:#8a4420;--z3:#b9582a;--z4:#e2743f;--z5:#fbc7a6;
+  --c1:#cde2fb;--c2:#9ec5f4;--c3:#5598e7;--c4:#2a78d6;--band:rgba(224,149,74,.14);}}
+:root[data-theme="dark"]{
+  color-scheme:dark;--paper:#11161c;--sheet:#171e26;--ink:#d9e1ea;--muted:#93a2b3;--line:#2b3642;--grid:#232c36;
+  --blue:#7fa9e0;--accent:#e0954a;--sel:#1f2d3e;--canvas:#1a1a19;
+  --h0:#221a15;--h1:#3a2418;--h2:#5e3218;--h3:#8a4420;--h4:#b9582a;--h5:#e2743f;--h6:#f39a6c;--h7:#fbc7a6;--melt:#fff1e6;
+  --z0:#262d35;--z1:#5e3218;--z2:#8a4420;--z3:#b9582a;--z4:#e2743f;--z5:#fbc7a6;
+  --c1:#cde2fb;--c2:#9ec5f4;--c3:#5598e7;--c4:#2a78d6;--band:rgba(224,149,74,.14);}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5;margin:0;padding-inline:16px;padding-block:18px}
+.wrap{max-width:1280px;margin:0 auto}
+h1,h2,h3,h4{font-family:var(--f-head);text-wrap:balance;margin:0}
+header.top{border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:12px}
+header.top h1{font-size:34px;line-height:1.1}
+.sub{color:var(--muted);font-size:15px;max-width:76ch}
+nav.toc{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:15px;margin-bottom:24px}
+nav.toc a{color:var(--blue);text-decoration:none}
+section.block{margin-bottom:44px}
+.eyebrow{font-family:var(--f-mono);font-size:12.5px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+h2{font-size:28px;margin:2px 0 8px}
+h3{font-size:20px;margin:0 0 6px}
+p{margin:0 0 10px;max-width:74ch}
+.lead{font-size:17px;max-width:80ch}
+.note{color:var(--muted);font-size:14px}
+.card{background:var(--sheet);border:1px solid var(--line);padding:14px 16px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.f{font-family:var(--f-mono);font-size:14px;background:var(--paper);padding:8px 10px;margin:6px 0 8px;overflow-x:auto;white-space:nowrap}
+/* калькулятор */
+.calc{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:12px}
+@media (max-width:860px){.calc{grid-template-columns:1fr}}
+.inputs{display:grid;grid-template-columns:1fr 110px;gap:8px 10px;align-items:center;font-size:15px}
+.inputs input{font:inherit;font-family:var(--f-mono);width:100%;padding:4px 6px;border:1px solid var(--line);background:var(--canvas);color:var(--ink)}
+.inputs input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.inputs .u{font-size:13px;color:var(--muted)}
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.res .k{background:var(--sheet);border:1px solid var(--line);padding:10px 12px}
+.res .k .l{font-size:13px;color:var(--muted);line-height:1.3}
+.res .k .v{font-family:var(--f-mono);font-size:22px;font-variant-numeric:tabular-nums;margin-top:2px}
+.res .k .s{font-size:12.5px;color:var(--muted)}
+.btn{font:inherit;font-size:14px;padding:5px 12px;border:1px solid var(--blue);background:transparent;color:var(--blue);cursor:pointer}
+.btn.pri{background:var(--blue);color:var(--sheet)}
+.btn[aria-pressed=true]{background:var(--blue);color:var(--sheet)}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.seg{display:inline-flex}
+.seg .btn+.btn{border-left:0}
+/* сцены */
+.viz{background:var(--sheet);border:1px solid var(--line)}
+.viz .bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
+.viz .bar label{display:flex;gap:6px;align-items:center;font-size:14px}
+.viz .bar input[type=range]{width:220px;accent-color:var(--accent)}
+.viz .bar .t{font-family:var(--f-mono);font-size:14px;min-width:92px}
+.scene{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:0}
+@media (max-width:980px){.scene{grid-template-columns:1fr}}
+.cv{position:relative;background:var(--canvas);border-right:1px solid var(--line);min-height:300px}
+@media (max-width:980px){.cv{border-right:0;border-bottom:1px solid var(--line)}}
+.cv canvas{display:block;width:100%;height:auto}
+.cv .cap{position:absolute;left:10px;top:8px;background:var(--canvas);padding:1px 6px;font-family:var(--f-mono);font-size:12.5px;color:var(--muted);pointer-events:none}
+.cv .busy{position:absolute;inset:0;display:grid;place-items:center;font-family:var(--f-mono);color:var(--muted);background:var(--canvas)}
+.chart{position:relative;padding:10px 12px 8px;background:var(--canvas)}
+.chart svg{display:block;width:100%;height:auto}
+.chart .tip{position:absolute;pointer-events:none;background:var(--sheet);border:1px solid var(--line);padding:6px 8px;font-size:12.5px;font-family:var(--f-mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted);padding:6px 12px 10px}
+.legend i{display:inline-block;width:14px;height:10px;vertical-align:-1px;margin-right:5px;border-radius:2px}
+.legend i.ln{height:3px;vertical-align:3px;width:18px}
+.ramp{height:10px;width:200px;border-radius:2px;display:inline-block;vertical-align:middle}
+table.t{border-collapse:collapse;width:100%;font-size:14px}
+table.t th{font-family:var(--f-head);font-weight:400;color:var(--muted);text-align:left;border-bottom:1.5px solid var(--ink);padding:4px 6px}
+table.t td{border-bottom:1px solid var(--line);padding:4px 6px;vertical-align:top}
+table.t td.m{font-family:var(--f-mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto}
+i.sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;margin-top:12px}
+.card p,.card li{font-size:15px}
+.card ul{margin:0;padding-left:18px}
+details{background:var(--sheet);border:1px solid var(--line);margin-top:12px}
+details summary{cursor:pointer;padding:10px 14px;font-family:var(--f-head);font-size:18px}
+details .in{padding:0 14px 12px}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="eyebrow">Дипломный проект · технология сборки-сварки корпуса задвижки</div>
+  <h1>Тепловой процесс сварки и зона термического влияния</h1>
+  <div class="sub">Как нагревается и остывает металл при сварке корпуса на режимах техпроцесса: расчёт по Н.Н. Рыкалину и численное моделирование сечения швов №1 и №2, строение ЗТВ стали 20, время охлаждения t₈/₅.</div>
+</header>
+<nav class="toc" aria-label="Разделы">
+  <a href="#calc">Расчёт по Рыкалину</a><a href="#top">Тепловое поле сверху</a><a href="#sec">Сечение шва во времени</a><a href="#steel">Сталь 20 и выводы</a><a href="#model">Допущения</a>
+</nav>
+
+<section class="block" id="calc">
+  <div class="eyebrow">Лист 5 · режимы операций 020–040</div>
+  <h2>Исходные данные и расчёт по Рыкалину</h2>
+  <p class="lead">Режим взят из маршрутного техпроцесса: полуавтоматическая сварка в Ar + CO₂ проволокой Св-08Г2С Ø1,2. Значения можно менять: все результаты ниже, включая численную модель сечения, пересчитываются.</p>
+  <div class="calc">
+    <div class="card">
+      <h3>Режим и материал</h3>
+      <div class="inputs">
+        <label for="iI">Сварочный ток I, А</label><input id="iI" type="number" value="134" step="1" min="60" max="400">
+        <label for="iU">Напряжение дуги U, В</label><input id="iU" type="number" value="23" step="0.5" min="14" max="40">
+        <label for="iV">Скорость сварки, м/ч</label><input id="iV" type="number" value="46" step="1" min="5" max="120">
+        <label for="iEta">КПД дуги η</label><input id="iEta" type="number" value="0.8" step="0.05" min="0.5" max="0.95">
+        <label for="iD">Толщина стенки δ, мм</label><input id="iD" type="number" value="6" step="0.5" min="2" max="40">
+        <label for="iT0">Начальная температура / подогрев, °C</label><input id="iT0" type="number" value="20" step="10" min="-40" max="300">
+      </div>
+      <p class="note" style="margin-top:10px">Сталь 20: λ = 0,042 Вт/(мм·К), cρ = 5,2·10⁻³ Дж/(мм³·К), a = λ/cρ = 8,1 мм²/с; средние значения для низкоуглеродистой стали в интервале температур сварки (Рыкалин).</p>
+    </div>
+    <div>
+      <div class="res" id="res"></div>
+      <div class="card" style="margin-top:12px">
+        <h3>Формулы</h3>
+        <div class="f">q = η·U·I · погонная энергия q/v · критическая толщина δкр = √[ q/v / (2cρ) · (1/(500−T₀) + 1/(800−T₀)) ]</div>
+        <div class="f">тонкая пластина (δ &lt; δкр): t₈/₅ = (q/v)² / (4πλcρδ²) · [1/(500−T₀)² − 1/(800−T₀)²]</div>
+        <div class="f">массивное тело (δ &gt; δкр): t₈/₅ = (q/v) / (2πλ) · [1/(500−T₀) − 1/(800−T₀)]</div>
+        <div class="f">ширина ЗТВ до изотермы Tp (Адамс, тонкая пластина): y = (q/v) / (√(2πe)·cρ·δ) · [1/(Tp−T₀) − 1/(Tпл−T₀)]</div>
+        <p class="note">Сверка по EN 1011-2 (эмпирические формулы для t₈/₅ с коэффициентами формы соединения: для таврового углового шва F₂ = 0,45–0,67, F₃ = 0,67) приведена в таблице результатов.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="top">
+  <div class="eyebrow">Аналитическое решение · линейный источник в тонкой пластине</div>
+  <h2>Тепловое поле при движении дуги (вид сверху)</h2>
+  <p class="lead">Дуга движется вдоль шва со скоростью сварки, за ней тянется «тепловой след». Впереди дуги изотермы сжаты: металл прогревается резко. Позади они вытянуты: металл остывает медленнее. Показана стенка стакана δ = 6 мм.</p>
+  <div class="viz" id="vizTop">
+    <div class="bar">
+      <button class="btn pri" id="topPlay" type="button">❚❚ Пауза</button>
+      <span class="note" id="topInfo"></span>
+    </div>
+    <div class="cv" style="border-right:0"><canvas id="cvTop" width="1200" height="505" aria-label="Тепловое поле пластины при движении дуги"></canvas><div class="cap" id="topCap"></div></div>
+    <div class="legend" id="legTop"></div>
+  </div>
+</section>
+
+<section class="block" id="sec">
+  <div class="eyebrow">Численный расчёт · теплопроводность в поперечном сечении</div>
+  <h2>Сечение шва: нагрев, остывание и строение ЗТВ</h2>
+  <p class="lead">Уравнение теплопроводности решается методом конечных разностей (сетка 0,25 мм) прямо в браузере для реальной геометрии швов корпуса. Дуга проходит через сечение за доли секунды, дальше металл остывает, отдавая тепло в соседние детали. Время на анимации замедлено.</p>
+  <div class="viz" id="vizSec">
+    <div class="bar">
+      <div class="seg" role="group" aria-label="Шов">
+        <button class="btn case" data-case="shov1" aria-pressed="true" type="button">Шов №1: направляющая — стакан</button><button class="btn case" data-case="shov2" aria-pressed="false" type="button">Шов №2: стакан — фланец</button><button class="btn case" data-case="plate6" aria-pressed="false" type="button">Проверка: пластина 6 мм</button>
+      </div>
+      <div class="seg" role="group" aria-label="Что показывать">
+        <button class="btn view" data-view="temp" aria-pressed="true" type="button">Температура</button><button class="btn view" data-view="zones" aria-pressed="false" type="button">Строение ЗТВ</button>
+      </div>
+      <div class="seg" role="group" aria-label="Масштаб">
+        <button class="btn zoom" data-zoom="near" aria-pressed="true" type="button">Вблизи шва</button><button class="btn zoom" data-zoom="far" aria-pressed="false" type="button">Всё сечение</button>
+      </div>
+    </div>
+    <div class="bar">
+      <button class="btn pri" id="secPlay" type="button">▶ Пуск</button>
+      <label for="secT">время <input type="range" id="secT" min="0" max="1000" value="0"></label><span class="t" id="secTv">0,00 с</span>
+      <button class="btn" id="rerun" type="button">Пересчитать по режиму выше</button>
+    </div>
+    <div class="scene">
+      <div class="cv"><canvas id="cvSec" width="760" height="600" aria-label="Поле температур в сечении шва"></canvas><div class="cap" id="secCap"></div><div class="busy" id="busy">расчёт…</div></div>
+      <div>
+        <div class="chart" id="chart"></div>
+        <div class="legend" id="legCyc"></div>
+      </div>
+    </div>
+    <div class="legend" id="legSec"></div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="card"><h3>Результаты численного расчёта</h3><div class="tw"><table class="t" id="tabRes"></table></div></div>
+    <div class="card"><h3>Как читать картину</h3>
+      <p>Слева — поле температур в сечении шва. Контуры — изотермы 1500 (расплав), 1100, 850 (Ac₃), 735 (Ac₁) и 500 °C. В режиме «Строение ЗТВ» цвет показывает максимальную температуру, до которой нагрелась точка. По ней определяется участок ЗТВ.</p>
+      <p>Справа — термические циклы в четырёх точках ЗТВ. Точки выбраны автоматически на луче от корня шва в основной металл: первые ячейки сетки, где максимальная температура ниже 1450, 1100, 850 и 735 °C. Их фактические Tmax указаны в подписи. Полоса 800–500 °C — интервал, по которому считают t₈/₅.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="steel">
+  <div class="eyebrow">Лист 2 · таблица №1, сталь 20 ГОСТ 1050-88</div>
+  <h2>Сталь 20: строение ЗТВ и выводы</h2>
+  <div class="cards">
+    <div class="card"><h3>Участки ЗТВ низкоуглеродистой стали</h3>
+      <div class="tw"><table class="t">
+        <thead><tr><th>Участок</th><th>Tmax, °C</th><th>Что происходит</th></tr></thead>
+        <tbody>
+          <tr><td><i class="sw" style="background:var(--z5)"></i> Металл шва, сплавление</td><td class="m">&gt; 1470</td><td>плавление и кристаллизация</td></tr>
+          <tr><td><i class="sw" style="background:var(--z4)"></i> Перегрев</td><td class="m">1100–1470</td><td>рост зерна аустенита, крупнозернистая структура, пониженная ударная вязкость</td></tr>
+          <tr><td><i class="sw" style="background:var(--z3)"></i> Нормализация</td><td class="m">850–1100</td><td>полная перекристаллизация, мелкое зерно, лучшие свойства</td></tr>
+          <tr><td><i class="sw" style="background:var(--z2)"></i> Неполная перекристаллизация</td><td class="m">735–850</td><td>между Ac₁ и Ac₃: часть феррита не превращается</td></tr>
+          <tr><td><i class="sw" style="background:var(--z1)"></i> Рекристаллизация, старение</td><td class="m">500–735</td><td>без фазовых превращений</td></tr>
+        </tbody></table></div>
+      <p class="note">Ac₁ ≈ 735 °C, Ac₃ ≈ 850 °C для стали 20 (справочные данные, марочник сталей).</p>
+    </div>
+    <div class="card"><h3>Углеродный эквивалент</h3>
+      <div class="f">Сэкв = C + Mn/6 + (Cr+Mo+V)/5 + (Ni+Cu)/15 (МИС)</div>
+      <p>По таблице №1 листа 2 (C 0,17–0,24; Mn 0,35–0,65; Cr, Ni, Cu ≤ 0,25):</p>
+      <ul>
+        <li>верхний предел состава: 0,24 + 0,108 + 0,05 + 0,033 = <b>0,43</b>;</li>
+        <li>средний состав (C 0,20; Mn 0,50; Cr, Ni, Cu 0,1): <b>≈ 0,32</b>.</li>
+      </ul>
+      <p>При Сэкв ≤ 0,35 сталь сваривается без подогрева. Верхний предел 0,43 попадает в зону ограниченной свариваемости.</p>
+    </div>
+    <div class="card"><h3>Что показал расчёт</h3>
+      <ul id="concl"></ul>
+    </div>
+    <div class="card"><h3>Практические выводы для техпроцесса</h3>
+      <ul>
+        <li>Режим 134 А / 23 В / 46 м/ч даёт малую погонную энергию (≈ 190 Дж/мм). ЗТВ узкая, около 1 мм, деформации корпуса невелики. Это обоснованный выбор для тонкостенного корпуса.</li>
+        <li>Обратная сторона — быстрое охлаждение (t₈/₅ ≈ 0,5–1 с) и склонность участка перегрева к закалке. Для стали 20 среднего состава это допустимо. При плавках с верхним пределом C и Mn, а также при сварке в холодном цехе (ниже 0 °C) стоит предусмотреть подогрев 100 °C: калькулятор выше показывает, что t₈/₅ растёт примерно в 1,5 раза.</li>
+        <li>Прихватки (операция 020) короткие и остывают ещё быстрее основного шва. Их лучше перекрывать при окончательной сварке, а не оставлять отдельными участками.</li>
+        <li>Шов №2 на массивном фланце (20 мм) охлаждается быстрее, чем на стенке 6 мм. Поэтому начинать кольцевой шов на фланце лучше без остановок: непрерывное вращение стола в приспособлении №2 это и обеспечивает.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="model">
+  <div class="eyebrow">Честность модели</div>
+  <h2>Допущения</h2>
+  <div class="card">
+    <ul>
+      <li>Теплофизические свойства постоянны (средние по интервалу температур). Скрытая теплота плавления не учитывается. Поэтому температуры выше 1500 °C в расплаве завышены и показаны просто как «расплав». На охлаждение ЗТВ (t₈/₅) это влияет слабо.</li>
+      <li>Источник быстродвижущийся: тепло вдоль шва не распространяется, дуга проходит сечение за время ≈ 2rп/v. Это те же предпосылки, на которых основаны формулы Рыкалина для t₈/₅. Проверка на пластине 6 мм даёт совпадение с аналитикой в пределах 10%.</li>
+      <li>Распределение тепла — нормальное с радиусом 1,2 мм вокруг корня шва. Радиус подобран так, чтобы площадь проплавления (≈ 8–9 мм²) соответствовала валику с катетом 3 мм и проваром корня.</li>
+      <li>Поверхности не отдают тепло в воздух: на интервале 800–500 °C теплоотдача пренебрежимо мала по сравнению с теплопроводностью. Кривизна стенки стакана и зазоры между деталями не учитываются: контакт принят идеальным, стенка — плоской.</li>
+      <li>Геометрия: шов №1 — стенка 6 мм и направляющая 14 × 8 мм. Шов №2 — стенка 6 мм на фланце 20 мм. Катет 3 мм по ГОСТ 14771-76-Т1.</li>
+    </ul>
+  </div>
+</section>
+</div>
+
+<script>
+// ============ физика ============
+const MAT = {lam:0.042, crho:0.0052};
+MAT.a = MAT.lam/MAT.crho;
+const TM = 1500;
+const inp = id => +document.getElementById(id).value;
+function params(){
+  const I=inp('iI'), U=inp('iU'), vmh=inp('iV'), eta=inp('iEta'), d=inp('iD'), T0=inp('iT0');
+  const v = vmh*1000/3600, q = eta*U*I, E = q/v;
+  return {I,U,vmh,eta,d,T0,v,q,E};
+}
+function rykalin(P){
+  const {E,d,T0} = P, {lam,crho} = MAT;
+  const dcr = Math.sqrt(E/(2*crho)*(1/(500-T0)+1/(800-T0)));
+  const thin = E*E/(4*Math.PI*lam*crho*d*d)*(1/(500-T0)**2 - 1/(800-T0)**2);
+  const thick = E/(2*Math.PI*lam)*(1/(500-T0) - 1/(800-T0));
+  const scheme = d < dcr ? 'thin' : 'thick';
+  const t85 = scheme==='thin' ? thin : thick;
+  const adams = Tp => E/(Math.sqrt(2*Math.PI*Math.E)*crho*d)*(1/(Tp-T0) - 1/(TM-T0));
+  const Q = E/1000;
+  const en2 = (4300-4.3*T0)*1e5*Q*Q/(d*d)*((1/(500-T0))**2-(1/(800-T0))**2);
+  const en3 = (6700-5*T0)*Q*(1/(500-T0)-1/(800-T0));
+  return {dcr, thin, thick, scheme, t85, hazAc1: adams(735), haz1100: adams(1100), en2, en3};
+}
+const fmt = (x,n=2) => (Math.round(x*10**n)/10**n).toLocaleString('ru-RU',{minimumFractionDigits:n, maximumFractionDigits:n});
+function renderCalc(){
+  const P = params(), R = rykalin(P);
+  const k = (l,v,s)=>`<div class="k"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}</div>`;
+  document.getElementById('res').innerHTML =
+    k('Эффективная мощность q', fmt(P.q,0)+' Вт', 'η·U·I') +
+    k('Скорость сварки v', fmt(P.v,1)+' мм/с', fmt(P.vmh,0)+' м/ч') +
+    k('Погонная энергия q/v', fmt(P.E,0)+' Дж/мм', fmt(P.E/1000,3)+' кДж/мм') +
+    k('Критическая толщина δкр', fmt(R.dcr,1)+' мм', `δ = ${fmt(P.d,1)} мм → ${R.scheme==='thin'?'тонкая пластина':'массивное тело'}`) +
+    k('Время охлаждения t₈/₅', fmt(R.t85,2)+' с', `средняя скорость ≈ ${fmt(300/R.t85,0)} °C/с`) +
+    k('Ширина ЗТВ до Ac₁', fmt(R.hazAc1,2)+' мм', `до 1100 °C: ${fmt(R.haz1100,2)} мм (Адамс)`) +
+    k('Сверка EN 1011-2', `${fmt(R.en2*0.45,2)}–${fmt(R.en2*0.67,2)} с`, `тавр, тонкая: F₂ = 0,45–0,67; массив: ${fmt(R.en3*0.67,2)} с`);
+  return {P,R};
+}
+
+// ============ шкалы цвета ============
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
+function hex2rgb(h){ h=h.replace('#',''); if(h.length===3) h=h.split('').map(c=>c+c).join(''); const n=parseInt(h,16); return [(n>>16)&255,(n>>8)&255,n&255]; }
+let HEAT=[], ZON=[], MELT=[0,0,0], CANVAS=[255,255,255], INK='#000', MUTED='#666', LINE='#ccc';
+function loadColors(){
+  HEAT = ['--h0','--h1','--h2','--h3','--h4','--h5','--h6','--h7'].map(v=>hex2rgb(css(v)));
+  ZON = ['--z0','--z1','--z2','--z3','--z4','--z5'].map(v=>hex2rgb(css(v)));
+  MELT = hex2rgb(css('--melt')); CANVAS = hex2rgb(css('--canvas'));
+  INK = css('--ink'); MUTED = css('--muted'); LINE = css('--line');
+}
+function heatRGB(T, T0){
+  if(!(T===T)) return CANVAS;
+  if(T >= TM) return MELT;
+  const u = Math.max(0, Math.min(1, (T - T0)/(TM - T0))) ** 0.75 * (HEAT.length-1);
+  const i = Math.min(HEAT.length-2, Math.floor(u)), f = u - i, a = HEAT[i], b = HEAT[i+1];
+  return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+}
+function zoneIdx(Tm){ return Tm>=1470?5 : Tm>=1100?4 : Tm>=850?3 : Tm>=735?2 : Tm>=500?1 : 0; }
+const ISO = [1500,1100,850,735,500];
+
+// marching squares: линии уровня по сетке f[i][j] (i — x, j — y), NaN — пропуск
+function contour(ctx, f, nx, ny, level, X, Y){
+  ctx.beginPath();
+  for(let i=0;i<nx-1;i++) for(let j=0;j<ny-1;j++){
+    const a=f(i,j), b=f(i+1,j), c=f(i+1,j+1), d=f(i,j+1);
+    if(!(a===a && b===b && c===c && d===d)) continue;
+    const idx = (a>level?8:0)|(b>level?4:0)|(c>level?2:0)|(d>level?1:0);
+    if(idx===0||idx===15) continue;
+    const e = (p,q,u,v)=>{ const t=(level-p)/(q-p); return u+(v-u)*t; };
+    const P = {
+      t:[X(e(a,b,i,i+1)), Y(j)], r:[X(i+1), Y(e(b,c,j,j+1))], b:[X(e(d,c,i,i+1)), Y(j+1)], l:[X(i), Y(e(a,d,j,j+1))]
+    };
+    const seg = {1:['l','b'],2:['b','r'],3:['l','r'],4:['t','r'],5:['t','l','b','r'],6:['t','b'],7:['t','l'],8:['t','l'],9:['t','b'],10:['t','r','l','b'],11:['t','r'],12:['l','r'],13:['b','r'],14:['l','b']}[idx];
+    for(let s=0;s<seg.length;s+=2){ ctx.moveTo(...P[seg[s]]); ctx.lineTo(...P[seg[s+1]]); }
+  }
+  ctx.stroke();
+}
+
+// ============ вид сверху: Рыкалин, тонкая пластина ============
+function K0(x){
+  if(x<=2){ const t=x/3.75, I0=1+3.5156229*t**2+3.0899424*t**4+1.2067492*t**6+0.2659732*t**8+0.0360768*t**10+0.0045813*t**12, u=(x/2)**2;
+    return -Math.log(x/2)*I0 + (-0.57721566+0.42278420*u+0.23069756*u**2+0.03488590*u**3+0.00262698*u**4+0.00010750*u**5+0.00000740*u**6); }
+  const y=2/x; return Math.exp(-x)/Math.sqrt(x)*(1.25331414-0.07832358*y+0.02189568*y**2-0.01062446*y**3+0.00587872*y**4-0.00251540*y**5+0.00053208*y**6);
+}
+const TOP = {X0:-45, X1:12, H:24, dx:0.1, run:true, shift:0, field:null, img:null};
+function buildTop(P){
+  // квазистационарное поле в системе, связанной с дугой: ξ > 0 — впереди, ξ < 0 — позади
+  const k = P.v/(2*MAT.a), A = P.q/(2*Math.PI*MAT.lam*P.d), dx=TOP.dx;
+  const nx = Math.round((TOP.X1-TOP.X0)/dx)+1, ny = Math.round(TOP.H/dx)+1, y0=-TOP.H/2;
+  const f = new Float32Array(nx*ny);
+  for(let i=0;i<nx;i++){ const xi=TOP.X0+i*dx; for(let j=0;j<ny;j++){ const y=y0+j*dx, r=Math.max(0.03,Math.hypot(xi,y));
+    f[i*ny+j] = P.T0 + A*Math.exp(-k*xi)*K0(k*r); } }       // Рыкалин: тонкая пластина, линейный источник
+  TOP.field = {f,nx,ny,y0,dx}; TOP.P = P; TOP.img = null;
+  let melt=0, t735=0, w735=0, jc=Math.round(-y0/dx);
+  for(let i=0;i<nx;i++){ const xi=TOP.X0+i*dx, v=f[i*ny+jc]; if(v>=TM && xi<0) melt=Math.max(melt,-xi); if(v>=735 && xi<0) t735=Math.max(t735,-xi); }
+  for(let i=0;i<nx;i++) for(let j=0;j<ny;j++) if(f[i*ny+j]>=735) w735=Math.max(w735,Math.abs(y0+j*dx));
+  document.getElementById('topInfo').textContent = `δ = ${fmt(P.d,1)} мм · ванна ≈ ${fmt(melt,1)} мм за дугой · изотерма 735 °C: ${fmt(t735,0)} мм за дугой, полуширина ${fmt(w735,1)} мм`;
+}
+// холсты: растр ×devicePixelRatio при прежней логической геометрии (чётко на ретина-экранах и в видео)
+const DPR = Math.min(window.__maxDPR || 2, Math.max(1, window.devicePixelRatio || 1));   // __maxDPR задаёт съёмка видео
+function hiDPI(id){ const cv=document.getElementById(id); cv._w=cv.width; cv._h=cv.height; cv.width=Math.round(cv._w*DPR); cv.height=Math.round(cv._h*DPR); }
+hiDPI('cvTop'); hiDPI('cvSec');
+function topImage(W,H,k=1){
+  // растр поля считается один раз; при движении смещается только пластина.
+  // Цветовой растр — в логическом размере (сетка поля всё равно мельче), изолинии и подписи — в разрешении экрана.
+  const F=TOP.field, r=document.createElement('canvas'); r.width=W; r.height=H;
+  const rc=r.getContext('2d'), img=rc.createImageData(W,H), D=img.data, L=TOP.X1-TOP.X0;
+  for(let px=0;px<W;px++){ const i=Math.min(F.nx-1,Math.round((px/W*L)/F.dx));
+    for(let py=0;py<H;py++){ const j=Math.min(F.ny-1,Math.round((py/H*TOP.H)/F.dx)); const c2=heatRGB(F.f[i*F.ny+j],TOP.P.T0), o=(py*W+px)*4; D[o]=c2[0];D[o+1]=c2[1];D[o+2]=c2[2];D[o+3]=255; } }
+  rc.putImageData(img,0,0);
+  const c = k===1 ? r : Object.assign(document.createElement('canvas'), {width:Math.round(W*k), height:Math.round(H*k)});
+  const ctx=c.getContext('2d');
+  ctx.setTransform(k,0,0,k,0,0);
+  if(c!==r){ ctx.imageSmoothingEnabled=true; ctx.drawImage(r,0,0,W,H); }
+  ctx.lineWidth=1.5; ctx.strokeStyle=INK; ctx.globalAlpha=0.6;
+  for(const Lv of ISO) contour(ctx,(i,j)=>F.f[i*F.ny+j],F.nx,F.ny,Lv,i=>i*F.dx/L*W,j=>j*F.dx/TOP.H*H);
+  ctx.globalAlpha=1;
+  // подписи изотерм: у хвоста каждой изотермы на оси шва, попеременно сверху и снизу
+  ctx.font='14px "PT Mono", monospace'; ctx.fillStyle=INK; ctx.textAlign='center';
+  const jc=Math.round((-F.y0)/F.dx);
+  ISO.filter(v=>v<TM).forEach((Lv,n)=>{ let ii=-1; for(let i=0;i<F.nx;i++){ if(F.f[i*F.ny+jc]>=Lv){ ii=i; break; } }
+    if(ii<0) return; const x=(ii*F.dx/L)*W, y=H/2 + (n%2 ? 1 : -1)*(0.5*H/TOP.H*6.2) ;
+    ctx.fillText(Lv+'°', x, y + (n%2?12:0)); });
+  ctx.textAlign='start';
+  return c;
+}
+function drawTop(){
+  const cv=document.getElementById('cvTop'), ctx=cv.getContext('2d'), W=cv._w, H=cv._h;
+  if(!TOP.field) return;
+  ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  if(!TOP.img) TOP.img = topImage(W,H,cv.width/W);
+  ctx.drawImage(TOP.img,0,0,W,H);
+  const L=TOP.X1-TOP.X0, sx=W/L, xa=(-TOP.X0)*sx, yc=H/2;
+  // застывший шов позади ванны и метки на пластине, движущиеся назад
+  ctx.fillStyle='rgba(90,70,60,0.16)'; ctx.fillRect(0, yc-1.6*sx, xa-2*sx, 3.2*sx);
+  ctx.strokeStyle='rgba(60,40,30,0.25)'; ctx.lineWidth=1;
+  const step=1.2*sx, off=(TOP.shift*sx)%step;
+  for(let x=xa-2*sx-off; x>0; x-=step){ ctx.beginPath(); ctx.arc(x+1.6*sx, yc, 1.6*sx, 2.3, 3.98); ctx.stroke(); }
+  ctx.fillStyle=MUTED; const tick=5*sx, toff=(TOP.shift*sx)%tick;
+  for(let x=W+tick-toff; x>-tick; x-=tick){ ctx.fillRect(x, 0, 1.5, 8); ctx.fillRect(x, H-8, 1.5, 8); }
+  // дуга
+  ctx.fillStyle='#fff6d8'; ctx.beginPath(); ctx.arc(xa, yc, 0.9*sx, 0, 7); ctx.fill(); ctx.strokeStyle='#8f3410'; ctx.lineWidth=2; ctx.stroke();
+  ctx.font='13px "PT Mono", monospace'; ctx.fillStyle=MUTED; ctx.fillText('дуга → направление сварки', xa+1.4*sx, yc-1.2*sx);
+  const bar=5*sx; ctx.fillStyle=INK; ctx.fillRect(W-bar-18,H-22,bar,4); ctx.fillText('5 мм',W-bar-18,H-28);
+  document.getElementById('topCap').textContent = `v = ${fmt(TOP.P.v,1)} мм/с · q = ${fmt(TOP.P.q,0)} Вт · метки пластины — через 5 мм`;
+}
+
+// ============ численный расчёт сечения ============
+const GEOMS = {
+  plate6:{title:'Пластина 6 мм (проверка)', rects:[[-60,60,-6,0]], root:[0,0], bead:null, box:[-60,60,-6,0], ray:[0,-1], near:[-8,8,-6.2,1.8]},
+  shov1:{title:'Шов №1: направляющая — стенка стакана', rects:[[-40,40,-6,0],[-7,7,0,8]], root:[7,0], bead:[7,0,1,1,3], box:[-40,40,-6,8], ray:[0.35,-1], near:[0,14,-6.5,8.5]},
+  shov2:{title:'Шов №2: стенка стакана — фланец', rects:[[-6,50,-20,0],[-6,0,0,30]], root:[0,0], bead:[0,0,1,1,3], box:[-6,50,-20,30], ray:[0.35,-1], near:[-8,10,-9,6]},
+};
+const SIM = {dx:0.25, rb:1.2, tPeak:0.8, tEnd:10};
+const results = {};
+function buildMask(g, dx){
+  const [y0,y1,z0,z1]=g.box, ny=Math.round((y1-y0)/dx), nz=Math.round((z1-z0)/dx);
+  const W=nz+2, m=new Uint8Array((ny+2)*W);
+  for(let i=0;i<ny;i++){ const y=y0+(i+.5)*dx; for(let j=0;j<nz;j++){ const z=z0+(j+.5)*dx; let on=false;
+    for(const r of g.rects) if(y>=r[0]&&y<=r[1]&&z>=r[2]&&z<=r[3]) on=true;
+    if(g.bead){ const [by,bz,sy,sz,K]=g.bead, u=(y-by)*sy, w=(z-bz)*sz; if(u>=0&&w>=0&&u+w<=K) on=true; }
+    if(on) m[(i+1)*W+j+1]=1; } }
+  return {m, ny, nz, W, y0, z0, dx};
+}
+function simulate(key, P, onProgress){
+  return new Promise(resolve=>{
+    const g = GEOMS[key], dx = SIM.dx, G = buildMask(g, dx), {m,ny,nz,W} = G, N=(ny+2)*W;
+    const a = MAT.a, crho = MAT.crho, dt = 0.2*dx*dx/a, nSteps = Math.ceil(SIM.tEnd/dt);
+    let T = new Float32Array(N).fill(P.T0), Tn = new Float32Array(N).fill(P.T0), Tmax = new Float32Array(N).fill(P.T0);
+    const w = new Float32Array(N); let ws=0; const [ry,rz]=g.root;
+    const cells=[]; for(let i=0;i<ny;i++) for(let j=0;j<nz;j++){ const k=(i+1)*W+j+1; if(!m[k]) continue; cells.push(k);
+      const y=G.y0+(i+.5)*dx, z=G.z0+(j+.5)*dx; w[k]=Math.exp(-((y-ry)**2+(z-rz)**2)/SIM.rb**2); ws+=w[k]; }
+    for(const k of cells) w[k] /= ws*dx*dx;
+    const C = Int32Array.from(cells), sig = SIM.rb/P.v/Math.SQRT2, coef = a*dt/(dx*dx);
+    // кадры: полное поле (Uint16, 0,1 °C) каждые 0,05 с до 3 с и 0,25 с до tEnd; циклы — окно у корня
+    const frames=[], ftimes=[];
+    const [ny0,ny1,nz0,nz1] = g.near, wi0=Math.max(0,Math.floor((ny0-G.y0)/dx)), wi1=Math.min(ny-1,Math.ceil((ny1-G.y0)/dx)), wj0=Math.max(0,Math.floor((nz0-G.z0)/dx)), wj1=Math.min(nz-1,Math.ceil((nz1-G.z0)/dx));
+    const win = []; for(let i=wi0;i<=wi1;i++) for(let j=wj0;j<=wj1;j++) win.push((i+1)*W+j+1);
+    const WIN = Int32Array.from(win), rec=[], rtimes=[];
+    let s=0, nextF=0;
+    const store=(t)=>{ const u=new Uint16Array(N); for(let q=0;q<N;q++){ const v=T[q]*10; u[q]= v>65000?65000:(v<0?0:v); } frames.push(u); ftimes.push(t); };
+    function chunk(){
+      const end = Math.min(nSteps, s + 700);
+      for(; s<end; s++){
+        const t = s*dt, Pw = P.E*Math.exp(-0.5*((t-SIM.tPeak)/sig)**2)/(sig*Math.sqrt(2*Math.PI));
+        const src = Pw*dt/crho;
+        for(let c=0;c<C.length;c++){ const k=C[c], Tk=T[k];
+          let lap = 0;
+          if(m[k-W]) lap += T[k-W]-Tk; if(m[k+W]) lap += T[k+W]-Tk; if(m[k-1]) lap += T[k-1]-Tk; if(m[k+1]) lap += T[k+1]-Tk;
+          const v = Tk + coef*lap + src*w[k]; Tn[k]=v; if(v>Tmax[k]) Tmax[k]=v; }
+        const tmp=T; T=Tn; Tn=tmp;
+        if(t >= nextF){ store(t); nextF += t < 3 ? 0.05 : 0.25; }
+        if(s%4===0 && t<=6){ const r=new Float32Array(WIN.length); for(let q=0;q<WIN.length;q++) r[q]=T[WIN[q]]; rec.push(r); rtimes.push(t); }
+      }
+      onProgress && onProgress(s/nSteps);
+      if(s<nSteps) setTimeout(chunk, 0);
+      else { store(nSteps*dt); resolve(finish()); }
+    }
+    function finish(){
+      for(let q=0;q<N;q++) if(!m[q]) Tmax[q]=NaN;
+      // точки ЗТВ на луче от корня
+      const d=g.ray, L=Math.hypot(d[0],d[1]), dy=d[0]/L, dz=d[1]/L;
+      const idxAt=(y,z)=>{ const i=Math.floor((y-G.y0)/dx), j=Math.floor((z-G.z0)/dx); if(i<0||j<0||i>=ny||j>=nz) return -1; return (i+1)*W+j+1; };
+      const probes=[];
+      for(const Tt of [1450,1100,850,735]){
+        let best=null;
+        for(let sd=0.1; sd<10; sd+=0.025){ const k=idxAt(ry+dy*sd, rz+dz*sd); if(k<0||!m[k]) continue; if(Tmax[k] <= Tt){ best={k, s:sd, y:ry+dy*sd, z:rz+dz*sd}; break; } }
+        if(best) probes.push(Object.assign(best,{target:Tt}));
+      }
+      const winPos = new Map(); WIN.forEach((k,q)=>winPos.set(k,q));
+      for(const p of probes){
+        const q = winPos.get(p.k); p.cycle = q===undefined ? [] : rec.map(r=>r[q]); p.Tmax = Tmax[p.k];
+        p.t85 = t85(rtimes, p.cycle);
+      }
+      let aF=0, aZ=[0,0,0,0,0,0]; for(const k of C){ const z=zoneIdx(Tmax[k]); aZ[z]+=dx*dx; if(Tmax[k]>=TM) aF+=dx*dx; }
+      return {key, g, G, frames, ftimes, Tmax, probes, rtimes, aF, aZ, P};
+    }
+    chunk();
+  });
+}
+function t85(ts, c){
+  if(!c.length) return null; let ip=0; for(let i=1;i<c.length;i++) if(c[i]>c[ip]) ip=i;
+  if(c[ip] < 800) return null;
+  const cross=T=>{ for(let i=ip+1;i<c.length;i++) if(c[i]<=T){ const f=(c[i-1]-T)/(c[i-1]-c[i]); return ts[i-1]+(ts[i]-ts[i-1])*f; } return null; };
+  const a=cross(800), b=cross(500); return (a!==null&&b!==null) ? b-a : null;
+}
+
+// ============ отрисовка сечения ============
+const VIEW = {key:'shov1', mode:'temp', zoom:'near', t:0, playing:false};
+function frameAt(R, t){
+  let i = 0; while(i < R.ftimes.length-1 && R.ftimes[i+1] <= t) i++;
+  const j = Math.min(R.ftimes.length-1, i+1), ta=R.ftimes[i], tb=R.ftimes[j], f = tb>ta ? (t-ta)/(tb-ta) : 0;
+  return {a:R.frames[i], b:R.frames[j], f};
+}
+function drawSec(){
+  const R = results[VIEW.key]; const cv=document.getElementById('cvSec'), ctx=cv.getContext('2d'), W=cv._w, H=cv._h;
+  ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);
+  if(!R){ ctx.fillStyle=`rgb(${CANVAS})`; ctx.fillRect(0,0,W,H); return; }
+  const {G,g} = R, win = VIEW.zoom==='near' ? g.near : [g.box[0]-1,g.box[1]+1,g.box[2]-1,g.box[3]+1];
+  // масштаб с сохранением пропорций
+  const sw=(win[1]-win[0]), sh=(win[3]-win[2]), sc=Math.min(W/sw, H/sh), ox=(W-sw*sc)/2, oy=(H-sh*sc)/2;
+  const X=y=>ox+(y-win[0])*sc, Y=z=>H-oy-(z-win[2])*sc;
+  ctx.fillStyle=`rgb(${CANVAS})`; ctx.fillRect(0,0,W,H);
+  // растр: рисуем ячейки сетки в окне
+  const {m,ny,nz} = G, Wd=G.W, dx=G.dx;
+  const i0=Math.max(0,Math.floor((win[0]-G.y0)/dx)), i1=Math.min(ny-1,Math.ceil((win[1]-G.y0)/dx));
+  const j0=Math.max(0,Math.floor((win[2]-G.z0)/dx)), j1=Math.min(nz-1,Math.ceil((win[3]-G.z0)/dx));
+  const off=document.createElement('canvas'); off.width=i1-i0+1; off.height=j1-j0+1;
+  const oc=off.getContext('2d'), img=oc.createImageData(off.width, off.height), D=img.data;
+  const fr = frameAt(R, VIEW.t);
+  const val = k => VIEW.mode==='zones' ? R.Tmax[k] : (fr.a[k]*(1-fr.f)+fr.b[k]*fr.f)/10;
+  for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){
+    const k=(i+1)*Wd+j+1, o=((j1-j)*off.width+(i-i0))*4;
+    if(!m[k]){ D[o]=CANVAS[0]; D[o+1]=CANVAS[1]; D[o+2]=CANVAS[2]; D[o+3]=0; continue; }
+    const c = VIEW.mode==='zones' ? ZON[zoneIdx(R.Tmax[k])] : heatRGB(val(k), R.P.T0);
+    D[o]=c[0]; D[o+1]=c[1]; D[o+2]=c[2]; D[o+3]=255;
+  }
+  oc.putImageData(img,0,0);
+  ctx.imageSmoothingEnabled = VIEW.mode!=='zones';
+  ctx.drawImage(off, X(G.y0+i0*dx), Y(G.z0+(j1+1)*dx), off.width*dx*sc, off.height*dx*sc);
+  // изотермы
+  const f=(i,j)=>{ const k=(i0+i+1)*Wd+(j0+j)+1; return m[k] ? val(k) : NaN; };
+  ctx.lineWidth=1.3; ctx.strokeStyle=INK; ctx.globalAlpha=0.6;
+  for(const L of ISO) contour(ctx, f, i1-i0+1, j1-j0+1, L, i=>X(G.y0+(i0+i+.5)*dx), j=>Y(G.z0+(j0+j+.5)*dx));
+  ctx.globalAlpha=1;
+  // контуры деталей
+  ctx.strokeStyle=INK; ctx.lineWidth=1.6;
+  for(const r of g.rects){ ctx.strokeRect(X(r[0]), Y(r[3]), (r[1]-r[0])*sc, (r[3]-r[2])*sc); }
+  if(g.bead){ const [by,bz,,,K]=g.bead; ctx.beginPath(); ctx.moveTo(X(by),Y(bz)); ctx.lineTo(X(by+K),Y(bz)); ctx.lineTo(X(by),Y(bz+K)); ctx.closePath(); ctx.stroke(); }
+  // точки ЗТВ
+  const cyc=['--c1','--c2','--c3','--c4'].map(css);
+  if(VIEW.zoom==='near') R.probes.forEach((p,i)=>{ ctx.beginPath(); ctx.arc(X(p.y),Y(p.z),5,0,7); ctx.fillStyle=cyc[i]; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle=`rgb(${CANVAS})`; ctx.stroke(); });
+  // масштабная линейка
+  const bl = VIEW.zoom==='near' ? 2 : 10; ctx.fillStyle=INK; ctx.fillRect(W-bl*sc-18, H-18, bl*sc, 4);
+  ctx.font='13px "PT Mono", monospace'; ctx.fillText(bl+' мм', W-bl*sc-18, H-24);
+  document.getElementById('secCap').textContent = `${g.title} · ${VIEW.mode==='zones'?'максимальная температура':'t = '+fmt(VIEW.t,2)+' с'}`;
+}
+
+// ============ график циклов ============
+function drawChart(){
+  const R = results[VIEW.key], el = document.getElementById('chart');
+  if(!R){ el.innerHTML=''; return; }
+  const W=560, H=400, m={l:52,r:16,t:14,b:40}, tMax=4, Tmx=1600;
+  const x=t=>m.l+(t/tMax)*(W-m.l-m.r), y=T=>m.t+(1-T/Tmx)*(H-m.t-m.b);
+  const cyc=['--c1','--c2','--c3','--c4'].map(v=>`var(${v})`);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Термические циклы в точках ЗТВ">`;
+  s+=`<rect x="${m.l}" y="${y(800)}" width="${W-m.l-m.r}" height="${y(500)-y(800)}" fill="var(--band)"/>`;
+  for(let T=0;T<=1600;T+=200){ s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(T)}" y2="${y(T)}" stroke="var(--grid)" stroke-width="1"/><text x="${m.l-6}" y="${y(T)+4}" text-anchor="end" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${T}</text>`; }
+  for(let t=0;t<=tMax;t+=0.5){ s+=`<text x="${x(t)}" y="${H-m.b+18}" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="PT Mono, monospace">${String(t).replace('.',',')}</text>`; }
+  s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>`;
+  s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" font-size="12.5" fill="var(--muted)">время, с</text>`;
+  s+=`<text x="14" y="${m.t+8}" font-size="12.5" fill="var(--muted)" transform="rotate(-90 14 ${m.t+8})" text-anchor="end">T, °C</text>`;
+  s+=`<text x="${W-m.r-4}" y="${y(800)+14}" text-anchor="end" font-size="12" fill="var(--muted)">800–500 °C: интервал t₈/₅</text>`;
+  R.probes.forEach((p,i)=>{
+    let d=''; R.rtimes.forEach((t,q)=>{ if(t>tMax) return; const v=Math.min(p.cycle[q],1600); d+=(q?'L':'M')+x(t).toFixed(1)+','+y(v).toFixed(1); });
+    s+=`<path d="${d}" fill="none" stroke="${cyc[i]}" stroke-width="2" stroke-linejoin="round"/>`;
+  });
+  s+=`<line id="cur" x1="${x(VIEW.t)}" x2="${x(VIEW.t)}" y1="${m.t}" y2="${H-m.b}" stroke="var(--accent)" stroke-width="1.5" ${VIEW.mode==='zones'||VIEW.t>tMax?'visibility="hidden"':''}/>`;
+  s+=`<line id="hov" y1="${m.t}" y2="${H-m.b}" stroke="var(--muted)" stroke-width="1" visibility="hidden"/>`;
+  s+=`<rect id="hit" x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}" fill="transparent"/>`;
+  s+='</svg><div class="tip" hidden></div>';
+  el.innerHTML=s;
+  document.getElementById('legCyc').innerHTML = R.probes.map((p,i)=>`<span><i class="ln" style="background:${cyc[i]}"></i>Tmax ${fmt(Math.min(p.Tmax,1600),0)} °C, ${fmt(p.s,2)} мм от корня · t₈/₅ ${p.t85==null?'—':fmt(p.t85,2)+' с'}</span>`).join('');
+  const svg=el.querySelector('svg'), tip=el.querySelector('.tip'), hov=svg.querySelector('#hov');
+  svg.querySelector('#hit').addEventListener('pointermove',ev=>{
+    const r=svg.getBoundingClientRect(), px=(ev.clientX-r.left)/r.width*W, t=(px-m.l)/(W-m.l-m.r)*tMax;
+    if(t<0||t>tMax){ tip.hidden=true; hov.setAttribute('visibility','hidden'); return; }
+    let q=0; while(q<R.rtimes.length-1 && R.rtimes[q]<t) q++;
+    hov.setAttribute('x1',x(R.rtimes[q])); hov.setAttribute('x2',x(R.rtimes[q])); hov.setAttribute('visibility','visible');
+    tip.innerHTML = `t = ${fmt(R.rtimes[q],2)} с<br>` + R.probes.map((p,i)=>`<span style="color:${cyc[i]}">●</span> ${fmt(p.cycle[q],0)} °C`).join('<br>');
+    tip.hidden=false; const cr=el.getBoundingClientRect();
+    let lx = ev.clientX-cr.left+14; if(lx > cr.width-140) lx -= 160; tip.style.left=lx+'px'; tip.style.top=(ev.clientY-cr.top-10)+'px';
+  });
+  svg.querySelector('#hit').addEventListener('pointerleave',()=>{ tip.hidden=true; hov.setAttribute('visibility','hidden'); });
+}
+function moveCursor(){ const c=document.querySelector('#chart #cur'); if(!c) return; const W=560,m={l:52,r:16}; const xx=m.l+(VIEW.t/4)*(W-m.l-m.r); c.setAttribute('x1',xx); c.setAttribute('x2',xx); c.setAttribute('visibility', VIEW.mode==='zones'||VIEW.t>4?'hidden':'visible'); }
+
+function renderTable(){
+  const R = results[VIEW.key], tb=document.getElementById('tabRes'); if(!R){ tb.innerHTML=''; return; }
+  const Ry = rykalin(Object.assign({}, R.P, {d: VIEW.key==='shov2'?20:6}));
+  const zones = ['Металл шва и сплавление (> 1470)','Перегрев (1100–1470)','Нормализация (850–1100)','Неполная перекристаллизация (735–850)'];
+  const aZ = [R.aZ[5],R.aZ[4],R.aZ[3],R.aZ[2]];
+  const t85s = R.probes.map(p=>p.t85).filter(v=>v!=null);
+  tb.innerHTML = `<thead><tr><th>Показатель</th><th>Значение</th></tr></thead><tbody>
+    <tr><td>t₈/₅ в ЗТВ (численно)</td><td class="m">${t85s.length? fmt(Math.min(...t85s),2)+'–'+fmt(Math.max(...t85s),2)+' с':'—'}</td></tr>
+    <tr><td>t₈/₅ по Рыкалину для ${VIEW.key==='shov2'?'фланца 20 мм':'стенки 6 мм'} (без учёта тавра)</td><td class="m">${fmt(Ry.t85,2)} с</td></tr>
+    ${zones.map((z,i)=>`<tr><td>Площадь: ${z}</td><td class="m">${fmt(aZ[i],1)} мм²</td></tr>`).join('')}
+    <tr><td>От корня шва до изотермы Ac₁ (по лучу в основной металл)</td><td class="m">${R.probes.length?fmt(R.probes[R.probes.length-1].s,2)+' мм':'—'}</td></tr>
+    <tr><td>Из них участок 1450 → 735 °C</td><td class="m">${R.probes.length>1?fmt(R.probes[R.probes.length-1].s-R.probes[0].s,2)+' мм':'—'}</td></tr>
+  </tbody>`;
+}
+function renderLegend(){
+  const T0=results[VIEW.key]?.P.T0 ?? 20;
+  document.getElementById('legSec').innerHTML = VIEW.mode==='zones'
+    ? [['--z5','металл шва и зона сплавления (> 1470 °C)'],['--z4','перегрев (1100–1470)'],['--z3','нормализация (850–1100)'],['--z2','неполная перекристаллизация (735–850)'],['--z1','рекристаллизация (500–735)'],['--z0','основной металл (< 500)']].map(([c,l])=>`<span><i style="background:var(${c})"></i>${l}</span>`).join('')
+    : `<span>${T0} °C <span class="ramp" style="background:linear-gradient(90deg,var(--h0),var(--h1),var(--h2),var(--h3),var(--h4),var(--h5),var(--h6),var(--h7))"></span> 1500 °C</span><span><i style="background:var(--melt)"></i>расплав (&gt; 1500 °C)</span><span>линии — изотермы 1500 / 1100 / 850 / 735 / 500 °C</span>`;
+  document.getElementById('legTop').innerHTML = `<span>${fmt(TOP.P?.T0??20,0)} °C <span class="ramp" style="background:linear-gradient(90deg,var(--h0),var(--h1),var(--h2),var(--h3),var(--h4),var(--h5),var(--h6),var(--h7))"></span> 1500 °C</span><span><i style="background:var(--melt)"></i>сварочная ванна</span><span>линии — изотермы 1500 / 1100 / 850 / 735 / 500 °C</span>`;
+}
+function renderConcl(){
+  const r1=results.shov1, r2=results.shov2, pl=results.plate6, P=params(), R=rykalin(P);
+  const rng=r=>{ const v=r?r.probes.map(p=>p.t85).filter(x=>x!=null):[]; return v.length? fmt(Math.min(...v),2)+'–'+fmt(Math.max(...v),2)+' с' : '…'; };
+  document.getElementById('concl').innerHTML = `
+    <li>Погонная энергия ${fmt(P.E,0)} Дж/мм. Критическая толщина ${fmt(R.dcr,1)} мм, поэтому стенка стакана 6 мм работает как тонкая пластина, фланец 20 мм — как массивное тело.</li>
+    <li>t₈/₅ по Рыкалину для стенки 6 мм: ${fmt(rykalin(Object.assign({},P,{d:6})).t85,2)} с; численно на пластине 6 мм: ${rng(pl)}. Совпадение подтверждает модель.</li>
+    <li>В тавровых швах тепло уходит в три стороны, поэтому охлаждение быстрее: шов №1 — ${rng(r1)}, шов №2 — ${rng(r2)}.</li>
+    <li>ЗТВ узкая: около ${r1&&r1.probes.length?fmt(r1.probes[r1.probes.length-1].s,1):'…'} мм от корня шва до изотермы Ac₁. Участок перегрева — доли миллиметра.</li>`;
+}
+
+// ============ управление ============
+async function runAll(){
+  const P = params(); const busy=document.getElementById('busy');
+  busy.hidden=false;
+  for(const key of ['shov1','shov2','plate6']){
+    results[key] = await simulate(key, P, f=>{ busy.textContent = `расчёт: ${GEOMS[key].title} — ${Math.round(f*100)}%`; });
+    if(key===VIEW.key){ drawSec(); drawChart(); renderTable(); }
+  }
+  busy.hidden=true; renderConcl(); renderLegend(); drawSec(); drawChart(); renderTable();
+}
+function setT(t){ VIEW.t=t; document.getElementById('secT').value = Math.round(t/SIM.tEnd*1000); document.getElementById('secTv').textContent = fmt(t,2)+' с'; drawSec(); moveCursor(); }
+document.getElementById('secT').addEventListener('input',e=>{ VIEW.playing=false; updPlay(); setT(e.target.value/1000*SIM.tEnd); });
+function updPlay(){ document.getElementById('secPlay').textContent = VIEW.playing ? '❚❚ Пауза' : '▶ Пуск'; }
+document.getElementById('secPlay').onclick=()=>{ if(!VIEW.playing && VIEW.t >= SIM.tEnd-0.01) setT(0); VIEW.playing=!VIEW.playing; if(VIEW.playing && VIEW.mode==='zones'){ VIEW.mode='temp'; pressAll('.view','temp'); renderLegend(); } updPlay(); };
+function pressAll(sel,val){ document.querySelectorAll(sel).forEach(b=>b.setAttribute('aria-pressed', String((b.dataset.case||b.dataset.view||b.dataset.zoom)===val))); }
+document.querySelectorAll('.case').forEach(b=>b.onclick=()=>{ VIEW.key=b.dataset.case; pressAll('.case',VIEW.key); drawSec(); drawChart(); renderTable(); });
+document.querySelectorAll('.view').forEach(b=>b.onclick=()=>{ VIEW.mode=b.dataset.view; pressAll('.view',VIEW.mode); renderLegend(); drawSec(); moveCursor(); });
+document.querySelectorAll('.zoom').forEach(b=>b.onclick=()=>{ VIEW.zoom=b.dataset.zoom; pressAll('.zoom',VIEW.zoom); drawSec(); });
+document.getElementById('rerun').onclick=()=>{ VIEW.playing=false; updPlay(); for(const k in results) delete results[k]; runAll(); };
+document.getElementById('topPlay').onclick=()=>{ TOP.run=!TOP.run; document.getElementById('topPlay').textContent = TOP.run?'❚❚ Пауза':'▶ Пуск'; };
+document.querySelectorAll('.inputs input').forEach(el=>el.addEventListener('input',()=>{ renderCalc(); buildTop(params()); drawTop(); renderConcl(); renderLegend(); }));
+function retheme(){ loadColors(); TOP.img=null; drawTop(); drawSec(); drawChart(); }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',retheme);
+new MutationObserver(retheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){ TOP.run=false; document.getElementById('topPlay').textContent='▶ Пуск'; }
+loadColors(); renderCalc(); buildTop(params()); drawTop(); renderLegend(); renderConcl();
+runAll();
+let lastT = performance.now();
+(function loop(now){
+  requestAnimationFrame(loop); const dt=Math.min(0.1,(now-lastT)/1000); lastT=now;
+  if(window.__frozen) return;
+  if(TOP.run){ TOP.shift += dt*TOP.P.v; drawTop(); }
+  if(VIEW.playing && results[VIEW.key]){ const sp = VIEW.t < 3 ? 0.35 : 1.6; let t = VIEW.t + dt*sp; if(t>=SIM.tEnd){ t=SIM.tEnd; VIEW.playing=false; updPlay(); } setT(t); }
+})(lastT);
+// служебный доступ для записи видео/PDF
+window.__teplo = { results, VIEW, TOP, setT, drawSec, drawChart, drawTop, renderLegend, renderTable, pressAll,
+  ready: () => ['shov1','shov2','plate6'].every(k=>results[k]) };
+</script>
