@@ -1,0 +1,831 @@
+<title>Статистика групп</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@600&display=swap">
+<style>
+:root {
+  /* Layout: one working column (max 1200px): toolbar → group tabs → summary tiles → detail blocks; gutter 16px → 28px */
+  --paper: #F2F4F7; --surface: #FFFFFF; --sunk: #F7F8FA; --ink: #15171C; --ink-2: #4A5060; --ink-3: #646B7B; --rule: #DDE1E7;
+  --pen: #2340C8; --pen-ink: #FFFFFF; --pen-wash: #E7EBFA;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #4a3aa7; --s8: #e34948;
+  --deemph: #B4BAC4; --track: #ECEEF2; --grid: #E6E8EC;
+  --good: #0ca30c; --warn: #fab219; --crit: #d03b3b;
+  --ok-bg: #DFF3DF; --ok-ink: #135C13; --wa-bg: #FDF1D3; --wa-ink: #6A4700; --cr-bg: #FBE2E0; --cr-ink: #8E1C1C;
+  --shadow: 0 1px 2px rgba(20, 24, 33, .05), 0 8px 24px rgba(20, 24, 33, .07);
+  --f-body: "Golos Text", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-display: "Unbounded", "Golos Text", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D0F13; --surface: #161920; --sunk: #12151A; --ink: #ECEEF2; --ink-2: #B3B9C5; --ink-3: #8C93A1; --rule: #272B33;
+    --pen: #8FA4FF; --pen-ink: #0D0F13; --pen-wash: #1B2240;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --deemph: #454B55; --track: #22262D; --grid: #23272E;
+    --ok-bg: #0E2E14; --ok-ink: #8FE09A; --wa-bg: #372A07; --wa-ink: #FFD584; --cr-bg: #3E1414; --cr-ink: #FFA7A1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .35);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D0F13; --surface: #161920; --sunk: #12151A; --ink: #ECEEF2; --ink-2: #B3B9C5; --ink-3: #8C93A1; --rule: #272B33;
+  --pen: #8FA4FF; --pen-ink: #0D0F13; --pen-wash: #1B2240;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --deemph: #454B55; --track: #22262D; --grid: #23272E;
+  --ok-bg: #0E2E14; --ok-ink: #8FE09A; --wa-bg: #372A07; --wa-ink: #FFD584; --cr-bg: #3E1414; --cr-ink: #FFA7A1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 10px 28px rgba(0, 0, 0, .35);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--f-body); }
+button, input, select { font: inherit; color: inherit; }
+a { color: var(--pen); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+.sr { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-inline: 16px; padding-block: 18px 72px; display: grid; gap: 18px; }
+@media (min-width: 760px) { .wrap { padding-inline: 28px; padding-block: 26px 96px; gap: 22px; } }
+h1 { font: 600 clamp(20px, 3vw, 26px)/1.2 var(--f-display); letter-spacing: -0.01em; margin: 0; }
+h2 { font: 650 18px/1.3 var(--f-body); margin: 0; text-wrap: balance; }
+h3 { font: 600 15px/1.35 var(--f-body); margin: 0; }
+p { margin: 0; }
+.muted { color: var(--ink-3); }
+.small { font-size: 13px; }
+.num { font-variant-numeric: tabular-nums; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.top .grow { flex: 1; min-width: 200px; display: grid; gap: 2px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--rule); background: var(--surface); border-radius: 10px; padding: 8px 14px; font-weight: 600; font-size: 14px; cursor: pointer; }
+.btn:hover { border-color: var(--pen); }
+.btn.primary { background: var(--pen); color: var(--pen-ink); border-color: var(--pen); }
+.btn.quiet { background: transparent; }
+.btn.danger { color: var(--cr-ink); }
+.btn svg { width: 16px; height: 16px; }
+.btn:disabled { opacity: .5; cursor: default; }
+
+.banner { border: 1px solid var(--rule); background: var(--surface); border-radius: 12px; padding: 10px 14px; font-size: 14px; color: var(--ink-2); }
+.banner.warn { background: var(--wa-bg); color: var(--wa-ink); border-color: transparent; }
+
+.drop { border: 2px dashed var(--rule); border-radius: 16px; background: var(--surface); padding: 22px; display: grid; gap: 10px; justify-items: start; }
+.drop.big { padding: 36px 24px; justify-items: center; text-align: center; }
+.drop.over { border-color: var(--pen); background: var(--pen-wash); }
+.drop ol { margin: 0; padding-left: 1.2em; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; text-align: left; }
+
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.tab { position: relative; flex: none; border: 1px solid var(--rule); background: var(--surface); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: 14px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.tab[aria-current="page"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.tab .count { font-weight: 700; font-size: 12px; padding: 0 7px; border-radius: 999px; background: var(--cr-bg); color: var(--cr-ink); }
+
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; min-width: 0; }
+.card > .hd { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 14px 16px 0; }
+.card > .hd .sp { flex: 1; }
+.card > .bd { padding: 12px 16px 16px; min-width: 0; }
+.grid2 { display: grid; gap: 18px; min-width: 0; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 960px) { .grid2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.grid3 { display: grid; gap: 18px; min-width: 0; }
+@media (min-width: 960px) { .grid3 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, .9fr); } }
+
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+@media (min-width: 700px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1080px) { .tiles { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.tile { padding: 14px 16px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); display: grid; gap: 2px; align-content: start; min-width: 0; margin: 0 -1px -1px 0; }
+.tile .lbl { font-size: 13px; color: var(--ink-3); }
+.tile .val { font-size: 28px; font-weight: 650; line-height: 1.15; display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.tile .sub { font-size: 12.5px; color: var(--ink-3); }
+.delta { font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.delta.up { color: var(--ok-ink); } .delta.down { color: var(--cr-ink); } .delta.flat { color: var(--ink-3); }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 8px; border-radius: 999px; font-weight: 650; font-size: 12px; white-space: nowrap; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.risk { background: var(--cr-bg); color: var(--cr-ink); } .pill.attention { background: var(--wa-bg); color: var(--wa-ink); } .pill.ok { background: var(--ok-bg); color: var(--ok-ink); }
+
+.groups { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr)); }
+.gcard { text-align: left; cursor: pointer; padding: 16px; display: grid; gap: 12px; border: 1px solid var(--rule); background: var(--surface); border-radius: 14px; }
+.gcard:hover { border-color: var(--pen); }
+.gcard .row { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.gcard .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.gcard .kpis div { display: grid; gap: 0; }
+.gcard .kpis b { font-size: 20px; font-weight: 650; }
+.gcard .kpis span { font-size: 12px; color: var(--ink-3); }
+.gcard .sparks { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.gcard .sparks span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--rule); }
+.list li:first-child { border-top: 0; }
+.list .who { display: grid; gap: 1px; min-width: 0; }
+.list .who b { font-weight: 600; }
+.list .why { font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere; }
+@media (max-width: 520px) { .list li { grid-template-columns: auto minmax(0, 1fr); } .list li > :nth-child(3) { grid-column: 2; } }
+.linkbtn { border: 0; background: none; padding: 0; color: var(--ink); font-weight: 600; cursor: pointer; text-align: left; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
+.linkbtn:hover { color: var(--pen); text-decoration-color: currentColor; }
+
+.scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.tbl { border-collapse: separate; border-spacing: 0; width: 100%; font-size: 14px; }
+.tbl th, .tbl td { padding: 8px 10px; border-bottom: 1px solid var(--rule); text-align: left; white-space: nowrap; background: var(--surface); }
+.tbl th { font-size: 12px; font-weight: 600; color: var(--ink-3); position: sticky; top: 0; }
+.tbl td.r, .tbl th.r { text-align: right; }
+.tbl tr > :first-child { position: sticky; left: 0; z-index: 1; }
+.tbl.students { min-width: 980px; }
+.tbl.students { --c1: 112px; }
+.tbl.students tr > :nth-child(2) { position: sticky; left: var(--c1); z-index: 1; box-shadow: 1px 0 0 var(--rule); }
+.tbl.students tr > :first-child { width: var(--c1); min-width: var(--c1); max-width: var(--c1); }
+.tbl td.bad { background: var(--cr-bg); color: var(--cr-ink); } .tbl td.meh { background: var(--wa-bg); color: var(--wa-ink); }
+.strip { display: flex; gap: 2px; align-items: center; }
+.strip i { width: 9px; height: 14px; border-radius: 2px; background: var(--track); display: block; }
+.strip i.p { background: var(--good); } .strip i.a { background: var(--crit); } .strip i.y { background: var(--warn); }
+.dots { letter-spacing: 1px; font-size: 12px; color: var(--ink-2); }
+.cmp td { min-width: 120px; }
+.cmp .cell { display: grid; gap: 4px; }
+.mini { height: 6px; border-radius: 0 3px 3px 0; background: var(--track); overflow: hidden; }
+.mini i { display: block; height: 100%; background: var(--s1); border-radius: 0 3px 3px 0; }
+
+.bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 9px; }
+.bars li { display: grid; grid-template-columns: minmax(0, 1fr) 4.6em; gap: 3px 10px; align-items: center; }
+.bars .t { grid-column: 1 / -1; font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 0 8px; min-width: 0; }
+.bars .t span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1 1 60%; }
+.bars .track { height: 10px; background: var(--track); border-radius: 0 4px 4px 0; overflow: hidden; }
+.bars .fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--s1); }
+.bars .fill.de { background: var(--deemph); } .bars .fill.bad { background: var(--crit); } .bars .fill.mid { background: var(--warn); } .bars .fill.good { background: var(--good); }
+.bars .v { font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); margin-bottom: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 3px; border-radius: 2px; display: inline-block; }
+.tip { position: absolute; z-index: 5; pointer-events: none; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; box-shadow: var(--shadow); padding: 8px 10px; font-size: 13px; min-width: 140px; }
+.tip .tt { color: var(--ink-3); font-size: 12px; margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.tip .r i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; margin-right: 6px; }
+.tip b { font-variant-numeric: tabular-nums; }
+.empty { color: var(--ink-3); font-size: 14px; padding: 6px 0; }
+.changes { display: grid; gap: 6px; font-size: 14px; }
+.changes li { color: var(--ink-2); }
+.warnlist { margin: 0; padding-left: 1.1em; color: var(--ink-2); font-size: 14px; display: grid; gap: 4px; }
+
+dialog { border: 1px solid var(--rule); border-radius: 16px; padding: 0; background: var(--surface); color: var(--ink); width: min(820px, calc(100vw - 24px)); max-height: calc(100vh - 32px); box-shadow: var(--shadow); }
+dialog::backdrop { background: rgba(10, 12, 16, .45); }
+.dlg { display: grid; gap: 14px; padding: 18px; }
+.dlg-hd { display: flex; align-items: flex-start; gap: 12px; }
+.dlg-hd .sp { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.x { border: 0; background: none; font-size: 22px; line-height: 1; padding: 4px 8px; cursor: pointer; color: var(--ink-3); }
+.kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.kv div { background: var(--sunk); border-radius: 10px; padding: 8px 10px; display: grid; gap: 1px; }
+.kv span { font-size: 12px; color: var(--ink-3); }
+.kv b { font-size: 16px; }
+.timeline { display: flex; flex-wrap: wrap; gap: 5px; }
+.timeline div { border-radius: 8px; padding: 4px 7px; font-size: 12px; background: var(--sunk); display: grid; min-width: 52px; }
+.timeline .p { background: var(--ok-bg); color: var(--ok-ink); } .timeline .a { background: var(--cr-bg); color: var(--cr-ink); } .timeline .y { background: var(--wa-bg); color: var(--wa-ink); }
+.timeline small { opacity: .75; }
+.msg { white-space: pre-wrap; background: var(--sunk); border-radius: 10px; padding: 12px; font-size: 14px; line-height: 1.55; margin: 0; }
+.tasks td { white-space: normal; }
+.tasks td.st { white-space: nowrap; }
+.field { display: grid; gap: 4px; font-size: 14px; }
+.field input, .field select { border: 1px solid var(--rule); background: var(--surface); border-radius: 8px; padding: 7px 10px; min-width: 0; width: 100%; max-width: 100%; }
+.uprow { border: 1px solid var(--rule); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.uprow .meta { font-size: 13px; color: var(--ink-3); }
+.uprow .err { color: var(--cr-ink); font-size: 14px; }
+#upNote.err { color: var(--cr-ink); }
+.flex { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 9px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+[hidden] { display: none !important; }
+.toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 50; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
+@media (prefers-reduced-motion: no-preference) { .card, .gcard { transition: border-color .15s; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="grow">
+      <h1>Статистика групп</h1>
+      <p class="muted small" id="lastUpdate">Загрузи таблицы групп, и здесь появится сводка.</p>
+    </div>
+    <button type="button" class="btn primary" id="btnUpload"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 11V2.5M4.5 6 8 2.5 11.5 6M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Загрузить таблицы</button>
+    <button type="button" class="btn quiet" id="btnSettings">Настройки</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.ods" multiple hidden>
+  </header>
+  <div id="banner" hidden></div>
+  <div id="dropzone"></div>
+  <nav class="tabs" id="tabs" aria-label="Группы" hidden></nav>
+  <main id="view"></main>
+</div>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+
+<dialog id="dlgUpload" aria-labelledby="upTitle"><form method="dialog" class="dlg" id="upForm" novalidate>
+  <div class="dlg-hd"><div class="sp"><h2 id="upTitle">Новые таблицы</h2><p class="muted small">Проверь, к какой группе относится каждый файл, и сохрани.</p></div><button type="button" class="x" data-close aria-label="Закрыть">×</button></div>
+  <div id="upList" class="grid2" style="grid-template-columns:minmax(0,1fr)"></div>
+  <div class="flex"><button type="submit" class="btn primary" id="upSave">Сохранить</button><button type="button" class="btn quiet" data-close>Отмена</button><span class="muted small" id="upNote"></span></div>
+</form></dialog>
+
+<dialog id="dlgStudent" aria-labelledby="stTitle"><div class="dlg" id="stBody"></div></dialog>
+
+<dialog id="dlgSettings" aria-labelledby="setTitle"><form method="dialog" class="dlg" id="setForm" novalidate>
+  <div class="dlg-hd"><div class="sp"><h2 id="setTitle">Настройки</h2><p class="muted small">Пороги статусов и шкала пробника. Меняются сразу для всех групп.</p></div><button type="button" class="x" data-close aria-label="Закрыть">×</button></div>
+  <div class="grid2">
+    <label class="field">Шкала входного пробника<select id="setScale"><option value="oge">ОГЭ (3/4/5 от 8/15/22 из 31)</option><option value="base">База ЕГЭ (3/4/5 от 7/12/17 из 21)</option></select></label>
+    <label class="field">«Риск», если посещаемость ниже, %<input id="setRisk" type="number" min="0" max="100" step="1"></label>
+    <label class="field">«Внимание», если посещаемость ниже, %<input id="setWarn" type="number" min="0" max="100" step="1"></label>
+    <label class="field">«Внимание», если сдано ДЗ меньше, %<input id="setHw" type="number" min="0" max="100" step="1"></label>
+  </div>
+  <div class="card"><div class="hd"><h3>Группы</h3></div><div class="bd" id="setGroups"></div></div>
+  <div class="flex"><button type="submit" class="btn primary" id="setSave">Сохранить</button><button type="button" class="btn quiet" data-close>Отмена</button></div>
+</form></dialog>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/*__PARSER__*/
+</script>
+<script>
+'use strict';
+const P = window.TutorParser;
+const $ = id => document.getElementById(id);
+const pct = v => v == null ? '—' : Math.round(v * 100) + '%';
+const pad = n => String(n).padStart(2, '0');
+const todayISO = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const ruDate = iso => iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4) : '';
+const localISO = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const loadedOn = g => g.snapDate || (g.updatedAt ? localISO(g.updatedAt) : '');
+const plural = P.plural;
+const STATUS = { risk: 'риск', attention: 'внимание', ok: 'норм' };
+const SEV = { risk: 0, attention: 1, ok: 2 };
+const SERIES = ['--s1', '--s2', '--s3', '--s4', '--s5', '--s6', '--s7', '--s8'];
+
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v; else if (k === 'text') e.textContent = v; else if (k === 'style') e.setAttribute('style', v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v); else e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) e.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+  return e;
+}
+const NS = 'http://www.w3.org/2000/svg';
+function s(tag, attrs, text) { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs || {})) e.setAttribute(k, v); if (text != null) e.textContent = text; return e; }
+function toast(text) { document.querySelectorAll('.toast').forEach(n => n.remove()); const t = h('div', { class: 'toast', 'aria-hidden': 'true', text }); document.body.append(t); $('live').textContent = text; setTimeout(() => t.remove(), 3200); }
+async function copyText(text, btn, fallback) {
+  const done = l => { btn.dataset.label = btn.dataset.label || btn.textContent; clearTimeout(btn._t); btn.textContent = l; btn._t = setTimeout(() => { btn.textContent = btn.dataset.label; }, 1600); };
+  try { await navigator.clipboard.writeText(text); done('Скопировано'); return; } catch (e) { /* fallback below */ }
+  try { const ta = h('textarea', { style: 'position:fixed;left:-9999px' }); ta.value = text; document.body.append(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); if (ok) { done('Скопировано'); return; } } catch (e) { /* select instead */ }
+  if (fallback) { const r = document.createRange(); r.selectNodeContents(fallback); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+  done('Выделено — скопируй вручную');
+}
+function hash(str) { let h1 = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h1 ^= str.charCodeAt(i); h1 = Math.imul(h1, 0x01000193); } return (h1 >>> 0).toString(36); }
+
+/* ---------- state & storage ---------- */
+const state = { groups: [], snaps: [], settings: Object.assign({}, P.DEFAULTS), view: 'all', db: null, dbReady: false, loadFailed: false, sort: 'status' };
+let queuedFiles = null;
+let db = null;
+const sortedGroups = () => state.groups.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'ru'));
+const groupColor = g => SERIES[Math.max(0, sortedGroups().findIndex(x => x.id === g.id)) % SERIES.length];
+const metricsCache = new Map();
+function metricsOf(g) {
+  const key = g.id + '|' + g.updatedAt + '|' + JSON.stringify(state.settings);
+  if (!metricsCache.has(key)) metricsCache.set(key, P.groupMetrics(g.model, state.settings));
+  return metricsCache.get(key);
+}
+function snapsOf(gid) { return state.snaps.filter(x => x.group === gid).sort((a, b) => a.date < b.date ? -1 : 1); }
+function prevSnap(g) { const list = snapsOf(g.id); const cur = list.filter(x => x.date <= (g.snapDate || todayISO())).pop(); return list.filter(x => cur ? x.date < cur.date : true).pop() || null; }
+
+async function initDb() {
+  try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  state.db = db;
+  if (!db) { showBanner('Сейчас данные хранятся только до закрытия страницы. Чтобы история сохранялась, открой страницу в Claude, войдя в свой аккаунт.', true); markReady(); return; }
+  const got = { groups: false, settings: false };
+  const arrived = k => { got[k] = true; if (got.groups && got.settings && !state.dbReady) markReady(); else render(); };
+  const fail = e => {
+    if (e && e.code === 'revoked') { db = null; state.db = null; showBanner('Доступ к сохранённым данным закрыт для этого просмотра.', true); }
+    else { state.loadFailed = true; showBanner('Не удалось загрузить сохранённые данные. Обнови страницу.', true); }
+    markReady();
+  };
+  db.collection('groups').onSnapshot(snap => { state.groups = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.model && g.model.students); metricsCache.clear(); arrived('groups'); }, fail);
+  db.collection('snaps').onSnapshot(snap => { state.snaps = snap.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, fail);
+  db.doc('meta/settings').onSnapshot(d => { if (d.exists) { state.settings = Object.assign({}, P.DEFAULTS, d.data()); metricsCache.clear(); } arrived('settings'); }, fail);
+}
+function markReady() {
+  state.dbReady = true; render();
+  if (queuedFiles) { const f = queuedFiles; queuedFiles = null; handleFiles(f); }
+}
+function showBanner(text, warn) { const b = $('banner'); b.textContent = text; b.className = 'banner' + (warn ? ' warn' : ''); b.hidden = false; }
+async function dbWrite(fn) {
+  if (!db) return false;
+  try { await fn(); return true; } catch (e) {
+    if (e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); try { await fn(); return true; } catch (e2) { e = e2; } }
+    const code = e && e.code;
+    toast(code === 'quota_exceeded' ? 'Хранилище заполнено: удали старые группы в настройках.'
+      : code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied' ? 'Не получилось сохранить: нет прав на запись в этой странице.'
+      : 'Не получилось сохранить: ' + ((e && e.message) || 'ошибка') + '. Попробуй ещё раз.');
+    return false;
+  }
+}
+
+/* ---------- snapshots ---------- */
+function makeSnap(g, date) {
+  const m = P.groupMetrics(g.model, state.settings);
+  const students = {};
+  g.model.students.forEach((st, i) => { const x = m.students[i]; students[hash(P.normName(st.name))] = { n: st.name, st: x.status, a: x.rate, hw: x.hwRate, hd: x.hwDone, ha: x.hwAll, nt: x.notesRate, ab: x.absent }; });
+  const k = m.kpi;
+  const S = state.settings;
+  return { group: g.id, date, rules: { riskAtt: S.riskAtt, warnAtt: S.warnAtt, warnHw: S.warnHw, streak: S.streak || 2 }, kpi: { students: k.students, attendance: k.attendance, hw: k.hw, notes: k.notes, classwork: k.classwork, mockMean: k.mockMean, kes: k.kes, risk: k.risk, attention: k.attention, ok: k.ok, absences: k.absences, hwDone: k.hwDone }, students };
+}
+
+/* ---------- upload ---------- */
+let pending = [];
+function readFile(file) {
+  return new Promise(res => {
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        if (!window.XLSX) throw new Error('Не загрузилась библиотека для чтения таблиц. Проверь интернет и обнови страницу.');
+        const wb = XLSX.read(new Uint8Array(fr.result), { type: 'array', cellStyles: true, cellDates: true });
+        const model = P.parseWorkbook(wb, { today: todayISO() });
+        res({ file, model });
+      } catch (e) { res({ file, model: { ok: false, error: e.message || 'Файл не читается. Скачай таблицу заново: Файл → Скачать → Microsoft Excel (.xlsx).' } }); }
+    };
+    fr.onerror = () => res({ file, model: { ok: false, error: 'Файл не открылся.' } });
+    fr.readAsArrayBuffer(file);
+  });
+}
+function overlap(a, b) {
+  const A = new Set(a.students.map(s => P.normName(s.name))), B = b.students.map(s => P.normName(s.name));
+  const n = B.filter(x => A.has(x)).length; return n / Math.max(1, Math.min(A.size, B.length));
+}
+function nameFromFile(name) {
+  const base = name.replace(/\.[^.]+$/, '').replace(/[_]+/g, ' ').replace(/\s*-\s*\d+$/, '').replace(/\s+/g, ' ').trim();
+  return /[a-zа-яё]{2,}/i.test(base) ? base : 'Группа ' + (base.replace(/\D+/g, ' ').trim() || (state.groups.length + 1));
+}
+async function handleFiles(files) {
+  const list = [...files].filter(f => /\.(xlsx|xls|ods)$/i.test(f.name));
+  if (!list.length) { toast('Нужны файлы .xlsx — в Google Таблицах: Файл → Скачать → Microsoft Excel.'); return; }
+  if (!state.dbReady) { queuedFiles = list; toast('Секунду — загружаю сохранённые группы, потом открою файлы.'); return; }
+  if (state.loadFailed) { toast('Сохранённые данные не загрузились — обнови страницу и загрузи файлы снова.'); return; }
+  pending = await Promise.all(list.map(readFile));
+  const box = $('upList'); box.textContent = '';
+  pending.forEach((p, i) => {
+    const row = h('div', { class: 'uprow' });
+    row.append(h('div', { class: 'flex' }, h('b', { text: p.file.name })));
+    if (!p.model.ok) { row.append(h('p', { class: 'err', text: p.model.error })); p.skip = true; box.append(row); return; }
+    let best = null, bestO = 0; for (const g of state.groups) { const o = overlap(g.model, p.model); if (o > bestO) { bestO = o; best = g; } }
+    p.target = bestO >= 0.5 ? best.id : 'new';
+    p.name = p.target === 'new' ? nameFromFile(p.file.name) : best.name;
+    const sel = h('select', { id: 'upTarget' + i, onchange: e => { p.target = e.target.value; nameIn.disabled = p.target !== 'new'; if (p.target !== 'new') nameIn.value = state.groups.find(g => g.id === p.target).name; } },
+      h('option', { value: 'new', text: 'Новая группа' }), sortedGroups().map(g => h('option', { value: g.id, text: 'Обновить: ' + g.name })));
+    sel.value = p.target;
+    const nameIn = h('input', { id: 'upName' + i, value: p.name, oninput: e => { p.name = e.target.value; } });
+    nameIn.disabled = p.target !== 'new';
+    const m = p.model;
+    row.append(h('div', { class: 'grid2' }, h('label', { class: 'field' }, 'Куда загрузить', sel), h('label', { class: 'field' }, 'Название группы', nameIn)));
+    row.append(h('p', { class: 'meta', text: `Учеников: ${m.students.length} · занятий: ${m.sessions.length} · ДЗ: ${m.tasks.filter(t => t.type === 'hw').length} · последнее занятие: ${ruDate(m.referenceDate)}` + (bestO >= 0.5 ? ` · совпадает с «${best.name}» на ${Math.round(bestO * 100)}%` : '') }));
+    const warn = m.warnings.concat(m.students.filter(s => s.flags.length).map(s => s.name + ': ' + s.flags.join(', ')));
+    if (warn.length) row.append(h('ul', { class: 'warnlist' }, warn.slice(0, 6).map(w => h('li', { text: w }))));
+    box.append(row);
+  });
+  $('upNote').textContent = db ? '' : 'Без входа в Claude данные пропадут после закрытия страницы.';
+  $('upNote').classList.remove('err');
+  $('upSave').disabled = !pending.some(p => !p.skip);
+  $('dlgUpload').showModal();
+}
+let saving = false;
+async function savePending() {
+  if (saving) return;
+  const date = todayISO(), now = new Date().toISOString();
+  const ready = pending.filter(p => !p.skip && p.model.ok && !p.saved);
+  if (!ready.length) return;
+  saving = true; $('upSave').disabled = true;
+  let okCount = 0, lastId = null;
+  for (const p of ready) {
+    const existing = p.target !== 'new' ? state.groups.find(g => g.id === p.target) : null;
+    const g = existing ? Object.assign({}, existing, { model: p.model, fileName: p.file.name, updatedAt: now, snapDate: date })
+      : { id: 'g-' + hash(p.name + now + Math.random()), name: (p.name || '').trim() || nameFromFile(p.file.name), order: state.groups.length, model: p.model, fileName: p.file.name, updatedAt: now, snapDate: date };
+    const snap = makeSnap(g, date);
+    const sid = 's-' + g.id.slice(2) + '-' + date.replace(/-/g, '');
+    if (db) {
+      const body = { name: g.name, order: g.order ?? 0, model: g.model, fileName: g.fileName, updatedAt: g.updatedAt, snapDate: g.snapDate };
+      const ok = await dbWrite(() => db.collection('groups').doc(g.id).set(body)) && await dbWrite(() => db.collection('snaps').doc(sid).set(snap));
+      if (!ok) break;
+    } else {
+      state.groups = state.groups.filter(x => x.id !== g.id).concat([g]);
+      state.snaps = state.snaps.filter(x => x.id !== sid).concat([{ id: sid, ...snap }]);
+    }
+    p.saved = true; okCount++; lastId = g.id;
+  }
+  saving = false;
+  metricsCache.clear();
+  if (okCount < ready.length) {
+    // keep the dialog open so nothing is lost; the toast from dbWrite says why
+    $('upSave').disabled = false;
+    $('upNote').textContent = okCount ? `Сохранено ${okCount} из ${ready.length}. Остальные можно сохранить ещё раз.` : 'Ничего не сохранилось. Можно попробовать ещё раз.';
+    $('upNote').classList.add('err');
+    render(); return;
+  }
+  if (ready.length === 1) state.view = lastId;
+  $('dlgUpload').close();
+  toast(ready.length === 1 ? 'Таблица загружена' : 'Загружено таблиц: ' + ready.length);
+  render();
+}
+
+/* ---------- charts ---------- */
+function lineChart(series, labels, opts) {
+  opts = opts || {};
+  const box = h('div', { class: 'chart' });
+  const legend = series.length > 1 ? h('div', { class: 'legend' }, series.map(se => h('span', null, h('i', { style: `background:var(${se.color})` }), se.name))) : null;
+  const draw = () => {
+    box.querySelectorAll('svg,.tip').forEach(n => n.remove());
+    const W = Math.max(280, box.clientWidth || 600), H = opts.height || 220, ml = 40, mr = 46, mt = 14, mb = 34;
+    const pw = W - ml - mr, ph = H - mt - mb, n = labels.length;
+    const x = i => ml + (n === 1 ? pw / 2 : i * pw / (n - 1)), y = v => mt + (1 - v) * ph;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': opts.label || 'График' });
+    for (const g of [0, 0.5, 1]) { svg.append(s('line', { x1: ml, x2: W - mr, y1: y(g), y2: y(g), stroke: g === 0 ? 'var(--deemph)' : 'var(--grid)', 'stroke-width': 1 })); svg.append(s('text', { x: ml - 8, y: y(g) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink-3)' }, g === 0 ? '0' : Math.round(g * 100) + '%')); }
+    const longest = Math.max(1, ...labels.map(l => String(l).length));
+    const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / Math.max(48, longest * 7.5 + 28)))));
+    labels.forEach((l, i) => { if ((n - 1 - i) % step) return; svg.append(s('text', { x: x(i), y: H - 12, 'text-anchor': n === 1 ? 'middle' : i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle', 'font-size': 11, fill: 'var(--ink-3)' }, l)); });
+    const ends = [];
+    series.forEach(se => {
+      const pts = se.values.map((v, i) => v == null ? null : [x(i), y(Math.max(0, Math.min(1, v)))]);
+      let d = ''; pts.forEach((p, i) => { if (!p) return; d += (i && pts[i - 1] ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1); });
+      if (series.length === 1) { const first = pts.findIndex(Boolean), last = pts.length - 1 - [...pts].reverse().findIndex(Boolean); if (first >= 0 && pts.every((p, i) => i < first || i > last || p)) svg.append(s('path', { d: d + `L${pts[last][0]},${y(0)}L${pts[first][0]},${y(0)}Z`, fill: `var(${se.color})`, 'fill-opacity': .1 })); }
+      svg.append(s('path', { d, fill: 'none', stroke: `var(${se.color})`, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+      pts.forEach(p => { if (p) svg.append(s('circle', { cx: p[0], cy: p[1], r: n > 14 ? 2.5 : 3.5, fill: `var(${se.color})`, stroke: 'var(--surface)', 'stroke-width': 2 })); });
+      const li = pts.map(Boolean).lastIndexOf(true); if (li >= 0) ends.push({ y: pts[li][1], x: pts[li][0], v: se.values[li], color: se.color });
+    });
+    ends.sort((a, b) => a.y - b.y); for (let i = 1; i < ends.length; i++) if (Math.abs(ends[i].x - ends[i - 1].x) < 40 && ends[i].y - ends[i - 1].y < 16) ends[i].y = ends[i - 1].y + 16;
+    ends.forEach(e => svg.append(s('text', { x: e.x + 8, y: e.y + 4, 'font-size': 12, 'font-weight': 650, fill: 'var(--ink)' }, pct(e.v))));
+    const cross = s('line', { y1: mt, y2: mt + ph, stroke: 'var(--deemph)', 'stroke-width': 1, visibility: 'hidden' });
+    svg.append(cross);
+    const tip = h('div', { class: 'tip', hidden: true });
+    const hit = s('rect', { x: ml - 10, y: mt, width: pw + 20, height: ph, fill: 'transparent', tabindex: 0, 'aria-label': 'Значения по точкам: стрелки влево и вправо' });
+    let focusI = n - 1;
+    const show = i => {
+      i = Math.max(0, Math.min(n - 1, i)); focusI = i;
+      cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.setAttribute('visibility', 'visible');
+      tip.textContent = ''; tip.append(h('div', { class: 'tt', text: opts.full ? opts.full[i] : labels[i] }));
+      series.forEach(se => tip.append(h('div', { class: 'r' }, h('span', null, h('i', { style: `background:var(${se.color})` }), se.name), h('b', { text: pct(se.values[i]) }))));
+      tip.hidden = false;
+      hit.setAttribute('aria-label', (opts.full ? opts.full[i] : labels[i]) + ': ' + series.map(se => se.name + ' ' + pct(se.values[i])).join(', '));
+      const left = Math.min(Math.max(0, x(i) + 12), W - 170); tip.style.left = left + 'px'; tip.style.top = '4px';
+    };
+    hit.addEventListener('pointermove', e => { const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width; show(n === 1 ? 0 : Math.round((px - ml) / (pw / (n - 1)))); });
+    hit.addEventListener('pointerleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+    hit.addEventListener('focus', () => show(focusI)); hit.addEventListener('blur', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+    hit.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { show(focusI - 1); e.preventDefault(); } if (e.key === 'ArrowRight') { show(focusI + 1); e.preventDefault(); } });
+    svg.append(hit);
+    box.append(svg, tip);
+  };
+  if (legend) box.append(legend);
+  requestAnimationFrame(draw); charts.push(draw);
+  return box;
+}
+function columnChart(items, opts) {
+  const box = h('div', { class: 'chart' });
+  const draw = () => {
+    box.querySelectorAll('svg,.tip').forEach(n => n.remove());
+    const W = Math.max(280, box.clientWidth || 600), H = 200, ml = 36, mr = 6, mt = 20, mb = 40;
+    const pw = W - ml - mr, ph = H - mt - mb, n = items.length, band = pw / Math.max(1, n), bw = Math.min(24, band * 0.6);
+    const y = v => mt + (1 - v) * ph;
+    const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, height: H, role: 'img', 'aria-label': opts.label });
+    for (const g of [0, 0.5, 1]) { svg.append(s('line', { x1: ml, x2: W - mr, y1: y(g), y2: y(g), stroke: g === 0 ? 'var(--deemph)' : 'var(--grid)', 'stroke-width': 1 })); svg.append(s('text', { x: ml - 6, y: y(g) + 4, 'text-anchor': 'end', 'font-size': 11, fill: 'var(--ink-3)' }, g === 0 ? '0' : Math.round(g * 100) + '%')); }
+    const tip = h('div', { class: 'tip', hidden: true });
+    const step = Math.max(1, Math.ceil(n / Math.max(2, Math.floor(pw / 46))));
+    const showVals = n <= 14 && band >= 32;
+    items.forEach((it, i) => {
+      const cx = ml + band * i + band / 2;
+      if (it.v != null) {
+        const top = y(it.v), base = y(0), r = Math.min(4, (base - top) / 2), x0 = cx - bw / 2;
+        svg.append(s('path', { d: `M${x0},${base}V${top + r}Q${x0},${top} ${x0 + r},${top}H${x0 + bw - r}Q${x0 + bw},${top} ${x0 + bw},${top + r}V${base}Z`, fill: it.v < 0.75 ? 'var(--s2)' : 'var(--s1)' }));
+        if (showVals) svg.append(s('text', { x: cx, y: top - 6, 'text-anchor': 'middle', 'font-size': 11, 'font-weight': 650, fill: 'var(--ink)' }, pct(it.v)));
+      }
+      if ((n - 1 - i) % step === 0) { svg.append(s('text', { x: cx, y: H - 22, 'text-anchor': 'middle', 'font-size': 11, fill: 'var(--ink-2)' }, it.label)); if (it.sub) svg.append(s('text', { x: cx, y: H - 8, 'text-anchor': 'middle', 'font-size': 10, fill: 'var(--ink-3)' }, it.sub)); }
+      const hit = s('rect', { x: ml + band * i, y: mt - 16, width: band, height: ph + 16, fill: 'transparent', tabindex: 0, 'aria-label': it.tip });
+      const show = () => { tip.textContent = ''; tip.append(h('div', { class: 'tt', text: it.full || it.label }), h('div', { class: 'r' }, h('span', { text: it.tipText || '' }), h('b', { text: pct(it.v) }))); tip.hidden = false; tip.style.left = Math.min(Math.max(0, cx - 80), W - 170) + 'px'; tip.style.top = '0px'; };
+      hit.addEventListener('pointerenter', show); hit.addEventListener('focus', show);
+      hit.addEventListener('pointerleave', () => { tip.hidden = true; }); hit.addEventListener('blur', () => { tip.hidden = true; });
+      svg.append(hit);
+    });
+    box.append(svg, tip);
+  };
+  requestAnimationFrame(draw); charts.push(draw);
+  return box;
+}
+function barList(rows) {
+  return h('ul', { class: 'bars' }, rows.map(r => h('li', null,
+    h('div', { class: 't' }, h('span', { text: r.label, title: r.label }), r.note ? h('span', { class: 'muted', text: r.note }) : null),
+    h('div', { class: 'track' }, h('span', { class: 'fill ' + (r.cls || ''), style: `width:${Math.max(0, Math.min(1, r.v || 0)) * 100}%` })),
+    h('span', { class: 'v', text: r.vText != null ? r.vText : pct(r.v) }))));
+}
+function spark(values, color) {
+  const W = 120, H = 30, pts = values.map((v, i) => v == null ? null : [3 + i * (W - 6) / Math.max(1, values.length - 1), 3 + (1 - v) * (H - 6)]);
+  const svg = s('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H, 'aria-hidden': 'true' });
+  let d = ''; pts.forEach((p, i) => { if (p) d += (i && pts[i - 1] ? 'L' : 'M') + p[0].toFixed(1) + ',' + p[1].toFixed(1); });
+  svg.append(s('path', { d, fill: 'none', stroke: `var(${color})`, 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+  const li = pts.map(Boolean).lastIndexOf(true); if (li >= 0) svg.append(s('circle', { cx: pts[li][0], cy: pts[li][1], r: 3.5, fill: `var(${color})`, stroke: 'var(--surface)', 'stroke-width': 2 }));
+  return svg;
+}
+let charts = [];
+let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => charts.forEach(f => f()), 150); });
+
+/* ---------- pieces ---------- */
+const pill = st => h('span', { class: 'pill ' + st, text: STATUS[st] });
+function delta(cur, prev, kind) {
+  if (cur == null || prev == null) return null;
+  const d = kind === 'count' ? cur - prev : Math.round((cur - prev) * 100);
+  if (kind === 'num') { const dd = Math.round((cur - prev) * 10) / 10; if (!dd) return h('span', { class: 'delta flat', text: '±0' }); return h('span', { class: 'delta ' + (dd > 0 ? 'up' : 'down'), text: (dd > 0 ? '+' : '−') + Math.abs(dd).toString().replace('.', ',') }); }
+  if (!d) return h('span', { class: 'delta flat', text: '±0' + (kind === 'count' ? '' : ' п.') });
+  const good = kind === 'count' ? d < 0 : d > 0;
+  return h('span', { class: 'delta ' + (good ? 'up' : 'down'), text: (d > 0 ? '+' : '−') + Math.abs(d) + (kind === 'count' ? '' : ' п.') });
+}
+function lastHeld(model) { let k = -1; model.sessions.forEach((_, j) => { if (model.students.some(x => x.att[j] && x.att[j] !== '.')) k = j; }); return k + 1; }
+function strip(model, st, last) {
+  const n = lastHeld(model), from = Math.max(0, n - last);
+  return h('span', { class: 'strip', role: 'img', 'aria-label': 'Последние занятия: ' + [...st.att.slice(from, n)].map((m, j) => model.sessions[from + j].label + ' ' + ({ p: 'был', a: 'не был', y: 'не был, прислал конспект' }[m] || '—')).join(', ') },
+    [...st.att.slice(from, n)].map((m, j) => h('i', { class: m === '.' ? '' : m, title: model.sessions[from + j].label + ' · ' + ({ p: 'был', a: 'не был', y: 'не был, но прислал конспект' }[m] || 'не отмечен') })));
+}
+function tgLink(nick) { if (!nick) return h('span', { class: 'muted', text: 'нет ника' }); return h('a', { href: 'https://t.me/' + encodeURIComponent(nick.replace(/^@/, '')), target: '_blank', rel: 'noopener', text: nick }); }
+function upcomingBirthdays(groups, days) {
+  const now = new Date(); const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()); const out = [];
+  groups.forEach(g => g.model.students.forEach(st => {
+    if (!st.birthday) return; const [mm, dd] = st.birthday.split('-').map(Number);
+    let d = new Date(today.getFullYear(), mm - 1, dd); if (d < today) d = new Date(today.getFullYear() + 1, mm - 1, dd);
+    const left = Math.round((d - today) / 864e5); if (left <= days) out.push({ g, st, left, date: pad(dd) + '.' + pad(mm) });
+  }));
+  return out.sort((a, b) => a.left - b.left);
+}
+function card(title, extra, ...body) { return h('section', { class: 'card' }, h('div', { class: 'hd' }, h('h2', { text: title }), h('span', { class: 'sp' }), extra || null), h('div', { class: 'bd' }, body)); }
+
+/* ---------- views ---------- */
+function render() {
+  charts = [];
+  const groups = sortedGroups();
+  if (state.view !== 'all' && !groups.some(g => g.id === state.view)) state.view = 'all';
+  const last = groups.map(loadedOn).sort().pop();
+  $('lastUpdate').textContent = groups.length ? `${groups.length} ${plural(groups.length, 'группа', 'группы', 'групп')} · последняя загрузка ${ruDate(last || '')}` : (state.dbReady ? 'Загрузи таблицы групп, и здесь появится сводка.' : 'Загружаю сохранённые группы…');
+  $('btnUpload').disabled = !state.dbReady;
+  renderDrop(groups.length);
+  const tabs = $('tabs'); tabs.textContent = ''; tabs.hidden = !groups.length;
+  if (groups.length) {
+    const mk = (id, label, count) => h('button', { type: 'button', class: 'tab', 'aria-current': state.view === id ? 'page' : null, onclick: () => { state.view = id; render(); scrollTo({ top: 0 }); } }, label, count ? h('span', { class: 'count', title: 'в зоне риска' }, String(count), h('span', { class: 'sr', text: ' в зоне риска' })) : null);
+    tabs.append(mk('all', 'Все группы'));
+    groups.forEach(g => tabs.append(mk(g.id, g.name, metricsOf(g).kpi.risk || null)));
+  }
+  const v = $('view'); v.textContent = '';
+  if (!groups.length) return;
+  if (state.view === 'all') v.append(renderOverview(groups)); else v.append(renderGroup(groups.find(g => g.id === state.view)));
+}
+function renderDrop(has) {
+  const z = $('dropzone'); z.textContent = '';
+  if (has) { z.hidden = true; return; }
+  z.hidden = false;
+  if (!state.dbReady) { z.append(h('div', { class: 'drop big' }, h('p', { class: 'muted', text: 'Загружаю сохранённые группы…' }))); return; }
+  const box = h('div', { class: 'drop big', id: 'dropBox' },
+    h('h2', { text: 'Перетащи сюда таблицы групп' }),
+    h('p', { class: 'muted', text: 'Можно сразу несколько файлов: каждый — одна группа. Раз в неделю загружай свежие версии, и здесь соберётся история.' }),
+    h('ol', null, h('li', { text: 'В Google Таблице группы: Файл → Скачать → Microsoft Excel (.xlsx).' }), h('li', { text: 'Повтори для каждой группы.' }), h('li', { text: 'Нажми «Загрузить таблицы» или перетащи файлы сюда.' })),
+    h('button', { type: 'button', class: 'btn primary', onclick: () => $('fileInput').click() }, 'Выбрать файлы'));
+  z.append(box);
+}
+function renderOverview(groups) {
+  const root = h('div', { style: 'display:grid;gap:18px' });
+  const ms = groups.map(g => ({ g, m: metricsOf(g), prev: prevSnap(g) }));
+  // group cards
+  root.append(h('div', { class: 'groups' }, ms.map(({ g, m, prev }) => h('button', { type: 'button', class: 'gcard', onclick: () => { state.view = g.id; render(); scrollTo({ top: 0 }); } },
+    h('div', { class: 'row' }, h('h3', { text: g.name }), h('span', { class: 'muted small', text: m.kpi.students + ' ' + plural(m.kpi.students, 'ученик', 'ученика', 'учеников') })),
+    h('div', { class: 'kpis' },
+      h('div', null, h('b', { text: pct(m.kpi.attendance) }), h('span', null, 'посещаемость ', delta(m.kpi.attendance, prev && prev.kpi.attendance))),
+      h('div', null, h('b', { text: pct(m.kpi.hw) }), h('span', null, 'ДЗ ', delta(m.kpi.hw, prev && prev.kpi.hw))),
+      h('div', null, h('b', { text: String(m.kpi.risk) }), h('span', null, 'в зоне риска ', sameRules(prev) ? delta(m.kpi.risk, prev && prev.kpi.risk, 'count') : null))),
+    m.weeks.length > 1 ? h('div', { class: 'sparks small muted' }, h('span', null, spark(m.weeks.map(w => w.attendance), '--s1'), 'посещаемость'), h('span', null, spark(m.weeks.map(w => w.hw), '--s2'), 'ДЗ')) : null,
+    h('span', { class: 'muted small', text: (m.weeks.length > 1 ? 'по неделям · ' : '') + 'обновлено ' + ruDate(loadedOn(g)) })))));
+  // who needs attention
+  const people = [];
+  ms.forEach(({ g, m }) => g.model.students.forEach((st, i) => { const x = m.students[i]; if (x.status !== 'ok') people.push({ g, st, x }); }));
+  people.sort((a, b) => SEV[a.x.status] - SEV[b.x.status] || (a.x.rate ?? 1) - (b.x.rate ?? 1));
+  root.append(card('Кому написать на этой неделе', h('span', { class: 'muted small', text: `риск ${people.filter(p => p.x.status === 'risk').length} · внимание ${people.filter(p => p.x.status === 'attention').length}` }),
+    people.length ? h('ul', { class: 'list' }, people.slice(0, 40).map(p => h('li', null, pill(p.x.status),
+      h('div', { class: 'who' }, h('button', { type: 'button', class: 'linkbtn', text: p.st.name, onclick: () => openStudent(p.g, p.g.model.students.indexOf(p.st)) }), h('span', { class: 'why', text: p.g.name + ' · ' + p.x.reasons.join(', ') })),
+      tgLink(p.st.nick)))) : h('p', { class: 'empty', text: 'Все ученики в норме.' }),
+    people.length > 40 ? h('p', { class: 'muted small', text: `Показаны первые 40 из ${people.length}. Остальные — во вкладках групп.` }) : null));
+  // comparison table
+  const rows = [['Посещаемость', m => m.kpi.attendance], ['ДЗ сдано', m => m.kpi.hw], ['Работа на уроке', m => m.kpi.classwork], ['Конспекты', m => m.kpi.notes], ['КЭС пройден', m => m.kpi.kes]];
+  const tbl = h('table', { class: 'tbl cmp' }, h('thead', null, h('tr', null, h('th', { text: 'Показатель' }), ms.map(({ g }) => h('th', { text: g.name })))),
+    h('tbody', null,
+      rows.map(([label, f]) => h('tr', null, h('td', { text: label }), ms.map(({ m }) => h('td', null, h('div', { class: 'cell' }, h('span', { class: 'num', text: pct(f(m)) }), h('div', { class: 'mini' }, h('i', { style: `width:${(f(m) || 0) * 100}%` }))))))),
+      h('tr', null, h('td', { text: 'Входной пробник, ср.' }), ms.map(({ m }) => h('td', { class: 'num', text: m.kpi.mockMean == null ? '—' : m.kpi.mockMean.toFixed(1).replace('.', ',') + ` (${m.kpi.mockCount})` }))),
+      h('tr', null, h('td', { text: 'Риск / внимание / норм' }), ms.map(({ m }) => h('td', { class: 'num', text: `${m.kpi.risk} / ${m.kpi.attention} / ${m.kpi.ok}` })))));
+  root.append(card('Группы рядом', null, h('div', { class: 'scroll' }, tbl)));
+  // history over uploads
+  root.append(historyCard(groups));
+  const bd = upcomingBirthdays(groups, 14);
+  root.append(card('Дни рождения: 2 недели', null, bd.length ? h('ul', { class: 'list' }, bd.map(b => h('li', null, h('span', { class: 'num', text: b.date }), h('div', { class: 'who' }, h('b', { text: b.st.name }), h('span', { class: 'why', text: b.g.name })), h('span', { class: 'muted small', text: b.left === 0 ? 'сегодня' : 'через ' + b.left + ' дн.' })))) : h('p', { class: 'empty', text: 'В ближайшие две недели дней рождения нет.' })));
+  return root;
+}
+let historyMetric = 'attendance';
+const mondayOf = iso => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+function historyCard(groups) {
+  const metrics = { attendance: 'Посещаемость', hw: 'ДЗ', notes: 'Конспекты' };
+  // one point per week: the latest upload of each group in that week, so groups uploaded on different days still form lines
+  const snaps = state.snaps.filter(x => groups.some(g => g.id === x.group));
+  const weeks = [...new Set(snaps.map(x => mondayOf(x.date)))].sort();
+  const seg = h('span', { class: 'seg', role: 'group', 'aria-label': 'Показатель' }, Object.entries(metrics).map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(historyMetric === k), text: l, onclick: () => { historyMetric = k; render(); } })));
+  if (weeks.length < 2) return card('Как меняется от недели к неделе', null, h('p', { class: 'empty', text: weeks.length ? `Пока есть загрузки только за одну неделю (с ${ruDate(weeks[0])}). После загрузки на следующей неделе здесь появится линия по каждой группе.` : 'Пока нет сохранённых загрузок.' }));
+  const pick = (g, wk) => snaps.filter(sn => sn.group === g.id && mondayOf(sn.date) === wk).sort((a, b) => a.date < b.date ? -1 : 1).pop();
+  const series = groups.map(g => ({ name: g.name, color: groupColor(g), values: weeks.map(wk => { const x = pick(g, wk); return x ? x.kpi[historyMetric] : null; }) }));
+  return card('Как меняется от недели к неделе', seg, lineChart(series, weeks.map(d => d.slice(8, 10) + '.' + d.slice(5, 7)), { label: metrics[historyMetric] + ' по неделям загрузок', full: weeks.map(d => 'неделя с ' + ruDate(d)) }));
+}
+function sameRules(prev) {
+  if (!prev || !prev.rules) return true;
+  const S = state.settings, r = prev.rules;
+  return r.riskAtt === S.riskAtt && r.warnAtt === S.warnAtt && r.warnHw === S.warnHw && (r.streak || 2) === (S.streak || 2);
+}
+function renderGroup(g) {
+  const m = metricsOf(g), model = g.model, prev = prevSnap(g), k = m.kpi, root = h('div', { style: 'display:grid;gap:18px' });
+  const pk = prev && prev.kpi;
+  const tile = (lbl, val, sub, d) => h('div', { class: 'tile' }, h('span', { class: 'lbl', text: lbl }), h('span', { class: 'val' }, val, d || null), sub ? h('span', { class: 'sub', text: sub }) : null);
+  root.append(h('div', { class: 'tiles' },
+    tile('Посещаемость', pct(k.attendance), `пропусков: ${k.absences}`, delta(k.attendance, pk && pk.attendance)),
+    tile('ДЗ сдано', pct(k.hw), `${k.hwDone} из ${k.hwAll}`, delta(k.hw, pk && pk.hw)),
+    tile('Работа на уроке', pct(k.classwork), 'средний % верных', delta(k.classwork, pk && pk.classwork)),
+    tile('Конспекты', pct(k.notes), 'прислали из отмеченных', delta(k.notes, pk && pk.notes)),
+    tile('Входной пробник', k.mockMean == null ? '—' : k.mockMean.toFixed(1).replace('.', ','), `писали ${k.mockCount} из ${k.students}`),
+    tile('В зоне риска', String(k.risk), `внимание ${k.attention} · норм ${k.ok}`, sameRules(prev) ? delta(k.risk, pk && pk.risk, 'count') : null)));
+  // changes since last upload
+  if (prev) {
+    const cur = {}; model.students.forEach((st, i) => { cur[hash(P.normName(st.name))] = { st, x: m.students[i] }; });
+    const items = [], same = sameRules(prev);
+    for (const [key, c] of Object.entries(cur)) {
+      const p = prev.students[key]; if (!p) { items.push(['Новый ученик', c.st.name]); continue; }
+      if (same && p.st !== c.x.status) items.push([c.x.status === 'risk' ? 'Попал в зону риска' : p.st === 'risk' ? 'Вышел из зоны риска' : 'Статус изменился', `${c.st.name}: ${STATUS[p.st]} → ${STATUS[c.x.status]}`]);
+      if (c.x.absent > (p.ab || 0)) items.push(['Новые пропуски', `${c.st.name}: +${c.x.absent - (p.ab || 0)}`]);
+      if (c.x.hwDone > (p.hd || 0)) items.push(['Сдал ДЗ', `${c.st.name}: +${c.x.hwDone - (p.hd || 0)}`]);
+    }
+    Object.keys(prev.students).filter(key => !cur[key]).forEach(key => items.push(['Пропал из таблицы', prev.students[key].n]));
+    const byKind = {}; items.forEach(([kind, text]) => { (byKind[kind] = byKind[kind] || []).push(text); });
+    root.append(card('Что изменилось с ' + ruDate(prev.date), null, items.length ? h('ul', { class: 'changes' }, Object.entries(byKind).map(([kind, list]) => h('li', null, h('b', { text: kind + ': ' }), list.join(', ')))) : h('p', { class: 'empty', text: 'С прошлой загрузки ничего не поменялось.' }),
+      same ? null : h('p', { class: 'muted small', style: 'margin-top:8px', text: 'Пороги в настройках изменились после прошлой загрузки, поэтому смену статусов не сравниваю.' })));
+  }
+  // weekly trend
+  if (m.weeks.length) root.append(card('По неделям', h('span', { class: 'muted small', text: 'посещаемость, сданные ДЗ и конспекты' }),
+    lineChart([{ name: 'Посещаемость', color: '--s1', values: m.weeks.map(w => w.attendance) }, { name: 'ДЗ', color: '--s2', values: m.weeks.map(w => w.hw) }, { name: 'Конспекты', color: '--s3', values: m.weeks.map(w => w.notes) }],
+      m.weeks.map(w => w.short.replace(/\s/g, '')), { label: 'Показатели по неделям', full: m.weeks.map(w => w.label) })));
+  // students table
+  const order = model.students.map((st, i) => i);
+  const by = { status: (a, b) => SEV[m.students[a].status] - SEV[m.students[b].status] || (m.students[a].rate ?? 1) - (m.students[b].rate ?? 1), sheet: (a, b) => a - b, att: (a, b) => (m.students[a].rate ?? 2) - (m.students[b].rate ?? 2), hw: (a, b) => (m.students[a].hwRate ?? 2) - (m.students[b].hwRate ?? 2) };
+  order.sort(by[state.sort] || by.status);
+  const sortSel = h('select', { id: 'sortSel', 'aria-label': 'Сортировка', onchange: e => { state.sort = e.target.value; try { localStorage.setItem('sort', state.sort); } catch (er) { /* ignore */ } render(); } },
+    [['status', 'по статусу'], ['sheet', 'как в таблице'], ['att', 'по посещаемости'], ['hw', 'по ДЗ']].map(([v, l]) => h('option', { value: v, text: l })));
+  sortSel.value = state.sort;
+  const sc = P.SCALES[state.settings.scale] || P.SCALES.oge;
+  const tbody = h('tbody', null, order.map(i => {
+    const st = model.students[i], x = m.students[i];
+    return h('tr', null,
+      h('td', null, pill(x.status)),
+      h('td', null, h('button', { type: 'button', class: 'linkbtn', text: st.name, onclick: () => openStudent(g, i) })),
+      h('td', { class: 'r', text: st.goal || '—' }),
+      h('td', null, strip(model, st, 14)),
+      h('td', { class: 'r num ' + (x.rate != null && x.rate < state.settings.riskAtt ? 'bad' : x.rate != null && x.rate < state.settings.warnAtt ? 'meh' : ''), text: pct(x.rate) }),
+      h('td', { class: 'r num ' + (x.hwAll >= 2 && x.hwDone === 0 ? 'bad' : x.hwRate != null && x.hwRate < state.settings.warnHw ? 'meh' : ''), text: x.hwAll ? `${x.hwDone} из ${x.hwAll}` : 'не было' }),
+      h('td', { class: 'r num', text: pct(x.cwPct) }),
+      h('td', { class: 'r num', text: pct(x.notesRate) }),
+      h('td', { class: 'r num ' + (st.entrance == null ? 'meh' : ''), text: st.entrance == null ? 'нет' : `${st.entrance} · «${x.grade}»` }),
+      h('td', { class: 'dots', text: x.kesTotal ? '●'.repeat(x.kesDone) + '○'.repeat(x.kesTotal - x.kesDone) : '—', title: x.kesTotal ? `${x.kesDone} из ${x.kesTotal}` : '' }),
+      h('td', null, tgLink(st.nick)));
+  }));
+  root.append(card('Ученики', h('label', { class: 'flex small muted' }, 'Сортировать', sortSel),
+    h('div', { class: 'scroll' }, h('table', { class: 'tbl students' }, h('thead', null, h('tr', null, ['Статус', 'Ученик', 'Цель', 'Последние 14 занятий', 'Посещ.', 'ДЗ', 'На уроке', 'Конспекты', 'Входной', 'КЭС', 'Telegram'].map((t, j) => h('th', { class: [2, 4, 5, 6, 7, 8].includes(j) ? 'r' : '', text: t })))), tbody)),
+    h('p', { class: 'muted small', style: 'margin-top:10px', text: `Риск: посещаемость ниже ${Math.round(state.settings.riskAtt * 100)}%, ${state.settings.streak} ${plural(state.settings.streak, 'пропуск', 'пропуска', 'пропусков')} подряд и больше или ни одного ДЗ из двух и больше. Внимание: посещаемость ниже ${Math.round(state.settings.warnAtt * 100)}%, сдано меньше ${Math.round(state.settings.warnHw * 100)}% ДЗ или нет входного пробника. Оценка по шкале ${sc.name}.` })));
+  // homework & topics
+  const hw = m.tasks.filter(t => t.type === 'hw' && (t.assigned || t.pending)).slice().reverse();
+  const topics = m.topics;
+  root.append(h('div', { class: 'grid2' },
+    card('ДЗ по заданиям', h('span', { class: 'muted small', text: 'сдали из тех, кому задано' }), hw.length ? barList(hw.map(t => t.pending ? ({ label: t.label, note: 'ни одной оценки — не проверено?', v: 0, vText: '0', cls: 'de' }) : ({ label: t.label, note: (t.week || '').replace(/^.*\(([^)]*)\).*$/, '$1'), v: t.rate, vText: `${t.done}/${t.due}`, cls: t.rate == null ? 'de' : t.rate < 0.34 ? 'bad' : t.rate < 0.67 ? 'mid' : 'good' }))) : h('p', { class: 'empty', text: 'Заданных ДЗ пока нет.' })),
+    card('Темы', h('span', { class: 'muted small', text: 'средний % у тех, кто сдал' }), topics.length ? barList(topics.map(t => ({ label: t.title, note: t.done ? `сдали ${t.done}` : 'никто не сдал', v: t.avgPct, vText: t.avgPct == null ? '—' : pct(t.avgPct), cls: t.avgPct == null ? 'de' : t.avgPct < 0.5 ? 'bad' : t.avgPct < 0.75 ? 'mid' : 'good' }))) : h('p', { class: 'empty', text: 'На листе «Пробники» нет тематических блоков.' }))));
+  // attendance by session, kes, birthdays
+  const ses = m.sessions.filter(x => x.marked).slice(-14);
+  let keyStep = -1, drop = 0; m.kesSteps.forEach((st, i) => { if (i && m.kesSteps[i - 1].done - st.done > drop) { drop = m.kesSteps[i - 1].done - st.done; keyStep = i; } });
+  const bd = upcomingBirthdays([g], 14);
+  root.append(h('div', { class: 'grid2' },
+    card('Посещаемость по занятиям', h('span', { class: 'muted small', text: 'последние ' + ses.length }), ses.length ? columnChart(ses.map(x => ({ label: x.label, sub: x.kind, v: x.rate, full: x.label + ', ' + x.kind, tipText: `пришли ${x.present} из ${x.marked}`, tip: `${x.label}: пришли ${x.present} из ${x.marked}` })), { label: 'Посещаемость по занятиям' }) : h('p', { class: 'empty', text: 'Нет отмеченных занятий.' })),
+    card('КЭС: довели до…', null, m.kesSteps.length ? barList(m.kesSteps.map((st, i) => ({ label: st.label, note: i === keyStep ? `−${drop} к прошлому шагу` : null, v: st.total ? st.done / st.total : 0, vText: `${st.done}/${st.total}`, cls: i === keyStep ? '' : 'de' }))) : h('p', { class: 'empty', text: 'Нет листа «КЭС».' }))));
+  const bdCard = card('Дни рождения', h('span', { class: 'muted small', text: '2 недели' }), bd.length ? h('ul', { class: 'list' }, bd.map(b => h('li', null, h('span', { class: 'num', text: b.date }), h('b', { text: b.st.name }), h('span', { class: 'muted small', text: b.left === 0 ? 'сегодня' : 'через ' + b.left + ' дн.' })))) : h('p', { class: 'empty', text: 'В ближайшие две недели нет.' }));
+  // data notes
+  const notes = model.warnings.concat(model.students.filter(s2 => s2.flags.length).map(s2 => s2.name + ': ' + s2.flags.join(', ')));
+  root.append(h('div', { class: 'grid2' }, bdCard, card('Что поправить в таблице', null, notes.length ? h('ul', { class: 'warnlist' }, notes.map(n => h('li', { text: n }))) : h('p', { class: 'empty', text: 'Замечаний к таблице нет.' }))));
+  root.append(h('p', { class: 'muted small', text: `Файл: ${g.fileName || '—'} · последнее отмеченное занятие ${ruDate(model.referenceDate)} · ДЗ идёт в подсчёт, когда за него есть хотя бы одна оценка. Задание, которое не сдал никто, показано отдельно и на статусы не влияет.` }));
+  return root;
+}
+
+/* ---------- student card ---------- */
+function parentMessage(g, st, x) {
+  const missed = [...st.att].map((mk, j) => mk === 'a' || mk === 'y' ? g.model.sessions[j].label : null).filter(Boolean);
+  const d = new Date();
+  const lines = [`Добрый день! Итоги на ${pad(d.getDate())}.${pad(d.getMonth() + 1)} — ${st.name}:`];
+  lines.push(`• посещаемость: ${x.present} из ${x.present + x.absent} ${plural(x.present + x.absent, 'занятия', 'занятий', 'занятий')}` + (missed.length ? ` (пропуски: ${missed.join(', ')})` : ''));
+  lines.push(x.hwAll ? `• домашние задания: сдано ${x.hwDone} из ${x.hwAll}` : '• домашних заданий пока не было');
+  if (x.cwPct != null) lines.push(`• задачи на уроках: в среднем ${pct(x.cwPct)} верно`);
+  if (x.nMarked) lines.push(`• конспекты: ${x.nSent} из ${x.nMarked}`);
+  lines.push(`• входной пробник: ${st.entrance == null ? 'ещё не написан' : st.entrance + ' б.'}`);
+  lines.push('');
+  lines.push(x.streak >= 2 || (x.rate != null && x.rate < 0.8) ? 'Обратите, пожалуйста, внимание на пропуски — без занятий сложно держать темп.'
+    : x.hwAll && x.hwDone < x.hwAll / 2 ? 'Сейчас главное — сдать долги по ДЗ, я помогу составить план.'
+    : st.entrance == null ? 'Ближайшая задача — написать входной пробник.' : 'Всё идёт хорошо, продолжаем в том же темпе!');
+  return lines.join('\n');
+}
+function openStudent(g, i) {
+  const st = g.model.students[i], x = metricsOf(g).students[i], model = g.model, body = $('stBody');
+  body.textContent = '';
+  const msg = parentMessage(g, st, x), pre = h('pre', { class: 'msg', text: msg });
+  const copyBtn = h('button', { type: 'button', class: 'btn', text: 'Копировать текст', onclick: e => copyText(msg, e.currentTarget, pre) });
+  const sc = P.SCALES[state.settings.scale] || P.SCALES.oge;
+  body.append(...[
+    h('div', { class: 'dlg-hd' }, h('div', { class: 'sp' }, h('h2', { id: 'stTitle', text: st.name }), h('div', { class: 'flex small muted' }, pill(x.status), h('span', { text: g.name }), st.goal ? h('span', { text: 'цель «' + st.goal + '»' }) : null, st.nick ? tgLink(st.nick) : null)), h('button', { type: 'button', class: 'x', 'aria-label': 'Закрыть', text: '×', onclick: () => $('dlgStudent').close() })),
+    x.reasons.length ? h('p', { class: 'small', text: 'Почему: ' + x.reasons.join(', ') }) : null,
+    h('div', { class: 'kv' },
+      h('div', null, h('span', { text: 'Посещаемость' }), h('b', { text: `${pct(x.rate)} · ${x.present} из ${x.present + x.absent}` })),
+      h('div', null, h('span', { text: 'ДЗ' }), h('b', { text: x.hwAll ? `${x.hwDone} из ${x.hwAll}` : 'не было' })),
+      h('div', null, h('span', { text: 'На уроке' }), h('b', { text: pct(x.cwPct) })),
+      h('div', null, h('span', { text: 'Конспекты' }), h('b', { text: x.nMarked ? `${x.nSent} из ${x.nMarked}` : '—' })),
+      h('div', null, h('span', { text: 'Входной пробник' }), h('b', { text: st.entrance == null ? 'нет' : `${st.entrance} · «${x.grade}» (${sc.name})` + (x.gap != null ? (x.gap > 0 ? `, до цели не хватает ${x.gap} б.` : ', на цель уже хватает') : '') })),
+      h('div', null, h('span', { text: 'КЭС' }), h('b', { text: x.kesTotal ? `${x.kesDone} из ${x.kesTotal}` : '—' })),
+      st.birthday ? h('div', null, h('span', { text: 'День рождения' }), h('b', { text: st.birthday.slice(3) + '.' + st.birthday.slice(0, 2) })) : null),
+    h('h3', { text: 'Посещения' }),
+    h('div', { class: 'timeline' }, model.sessions.map((ses, j) => { const mk = st.att[j]; return h('div', { class: mk === '.' ? '' : mk }, h('span', { text: { p: 'был', a: 'не был', y: 'конспект' }[mk] || '—' }), h('small', { text: ses.label + (ses.kind === 'общее' ? ' общ.' : '') })); })),
+    h('div', { class: 'flex' }, h('h3', { text: 'Сообщение родителям' }), copyBtn), pre,
+    h('h3', { text: 'Задания' }),
+    h('div', { class: 'scroll' }, h('table', { class: 'tbl tasks' }, h('thead', null, h('tr', null, h('th', { text: 'Неделя' }), h('th', { text: 'Задание' }), h('th', { text: 'Результат' }))),
+      h('tbody', null, model.tasks.map((t, k) => {
+        const v = st.task[k]; if (t.type === 'mock') return null;
+        if (t.type === 'hw' && !t.assigned) return null;
+        let txt, cls = '';
+        if (v === '-') txt = '—'; else if (t.type === 'notes') { txt = v === 's' ? 'прислал' : v === 'n' ? 'не прислал' : '—'; cls = v === 'n' ? 'bad' : ''; }
+        else if (typeof v === 'number') txt = t.max ? `${String(v).replace('.', ',')} из ${t.max}` : String(v).replace('.', ',');
+        else if (t.type === 'hw' && t.weekEnd && x.enrolledFrom && t.weekEnd < x.enrolledFrom) txt = 'ещё не учился';
+        else { txt = 'не сдано'; cls = t.type === 'hw' ? 'bad' : ''; }
+        return h('tr', null, h('td', { class: 'small muted', text: (t.week || '').replace(/^.*\(([^)]*)\).*$/, '$1') }), h('td', { text: t.label }), h('td', { class: 'st ' + cls, text: txt }));
+      })))),
+    model.topics.length ? h('h3', { text: 'Темы (лист «Пробники»)' }) : null,
+    model.topics.length ? barList(model.topics.map((t, k) => { const v = st.topics[k]; const done = v && v[0] != null; return { label: t, v: done && v[1] ? v[0] / v[1] : 0, vText: done ? `${v[0]}${v[1] ? '/' + v[1] : ''}` : '—', cls: done ? (v[1] && v[0] / v[1] < 0.5 ? 'bad' : '') : 'de' }; })) : null,
+    model.kesSteps.length && st.kes ? h('h3', { text: 'КЭС' }) : null,
+    model.kesSteps.length && st.kes ? h('div', { class: 'timeline' }, model.kesSteps.map((k, j) => h('div', { class: st.kes[j] ? 'p' : '' }, h('span', { text: st.kes[j] ? '✓' : '—' }), h('small', { text: k })))) : null,
+    st.flags.length ? h('p', { class: 'small muted', text: 'В таблице: ' + st.flags.join(', ') }) : null].filter(x => x != null && x !== false));
+  $('dlgStudent').showModal();
+}
+
+/* ---------- settings ---------- */
+function openSettings() {
+  const S = state.settings;
+  $('setScale').value = S.scale; $('setRisk').value = Math.round(S.riskAtt * 100); $('setWarn').value = Math.round(S.warnAtt * 100); $('setHw').value = Math.round(S.warnHw * 100);
+  const box = $('setGroups'); box.textContent = '';
+  if (!state.groups.length) box.append(h('p', { class: 'empty', text: 'Групп пока нет.' }));
+  sortedGroups().forEach(g => {
+    const nameIn = h('input', { id: 'gname-' + g.id, value: g.name, 'aria-label': 'Название группы' });
+    const confirmRow = h('span', { class: 'flex', hidden: true }, h('span', { class: 'small', text: 'Удалить группу и всю её историю?' }),
+      h('button', { type: 'button', class: 'btn danger', text: 'Удалить', onclick: () => deleteGroup(g) }), h('button', { type: 'button', class: 'btn quiet', text: 'Нет', onclick: () => { confirmRow.hidden = true; } }));
+    box.append(h('div', { class: 'flex', style: 'padding:6px 0;border-top:1px solid var(--rule)' }, h('label', { class: 'field', style: 'flex:1;min-width:180px' }, nameIn),
+      h('span', { class: 'muted small', text: `${g.model.students.length} ${plural(g.model.students.length, 'ученик', 'ученика', 'учеников')} · загрузок: ${snapsOf(g.id).length}` }),
+      h('button', { type: 'button', class: 'btn quiet danger', text: 'Удалить', onclick: () => { confirmRow.hidden = false; } }), confirmRow));
+  });
+  $('dlgSettings').showModal();
+}
+let savingSettings = false;
+async function saveSettings() {
+  if (savingSettings) return;
+  const S = state.settings;
+  const clamp = (v, d) => { if (String(v).trim() === '') return d; const n = Number(v); return isFinite(n) ? Math.round(Math.max(0, Math.min(100, n))) / 100 : d; };
+  const next = { scale: $('setScale').value, riskAtt: clamp($('setRisk').value, S.riskAtt), warnAtt: clamp($('setWarn').value, S.warnAtt), warnHw: clamp($('setHw').value, S.warnHw), streak: S.streak || 2 };
+  if (next.warnAtt < next.riskAtt) next.warnAtt = next.riskAtt;
+  const changedS = JSON.stringify(next) !== JSON.stringify({ scale: S.scale, riskAtt: S.riskAtt, warnAtt: S.warnAtt, warnHw: S.warnHw, streak: S.streak || 2 });
+  savingSettings = true; $('setSave').disabled = true;
+  let ok = true;
+  if (changedS) { if (db) ok = await dbWrite(() => db.doc('meta/settings').set(next)); if (ok) state.settings = Object.assign({}, P.DEFAULTS, next); }
+  for (const g of state.groups) {
+    const el = $('gname-' + g.id); if (!el || !ok) continue; const nm = el.value.trim();
+    if (nm && nm !== g.name) { if (db) ok = await dbWrite(() => db.collection('groups').doc(g.id).update({ name: nm })); if (ok) g.name = nm; }
+  }
+  savingSettings = false; $('setSave').disabled = false;
+  metricsCache.clear(); render();
+  if (ok) { $('dlgSettings').close(); toast('Сохранено'); }
+}
+async function deleteGroup(g) {
+  const snaps = snapsOf(g.id);
+  if (db) {
+    if (!await dbWrite(() => db.collection('groups').doc(g.id).delete())) return;
+    for (const x of snaps) await dbWrite(() => db.collection('snaps').doc(x.id).delete());
+  }
+  state.groups = state.groups.filter(x => x.id !== g.id); state.snaps = state.snaps.filter(x => x.group !== g.id);
+  if (state.view === g.id) state.view = 'all';
+  $('dlgSettings').close(); render(); toast('Группа удалена');
+}
+
+/* ---------- wiring ---------- */
+try { const s0 = localStorage.getItem('sort'); if (s0) state.sort = s0; } catch (e) { /* ignore */ }
+$('btnUpload').addEventListener('click', () => $('fileInput').click());
+$('fileInput').addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = ''; });
+$('upForm').addEventListener('submit', e => { e.preventDefault(); savePending(); });
+$('btnSettings').addEventListener('click', openSettings);
+$('setForm').addEventListener('submit', e => { e.preventDefault(); saveSettings(); });
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { if ([...(e.dataTransfer && e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); const b = $('dropBox'); if (b) b.classList.add('over'); } }));
+['dragleave', 'drop'].forEach(ev => document.addEventListener(ev, e => { const b = $('dropBox'); if (b && (ev === 'drop' || e.target === b)) b.classList.remove('over'); }));
+document.addEventListener('drop', e => { if (e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); handleFiles(e.dataTransfer.files); } });
+render();
+initDb();
+</script>
