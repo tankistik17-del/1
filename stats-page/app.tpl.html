@@ -191,6 +191,8 @@ dialog::backdrop { background: rgba(10, 12, 16, .45); }
 .seg button { border: 0; background: var(--surface); padding: 6px 12px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--ink-2); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
 [hidden] { display: none !important; }
+.nodialog dialog:not([open]) { display: none; }
+.nodialog dialog[open] { display: block; position: fixed; inset: 16px 0 auto; margin: 0 auto; z-index: 40; overflow: auto; box-shadow: 0 0 0 100vmax rgba(10, 12, 16, .45); }
 .toast { position: fixed; left: 50%; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-size: 14px; z-index: 50; box-shadow: var(--shadow); max-width: calc(100vw - 32px); }
 @media (prefers-reduced-motion: no-preference) { .card, .gcard { transition: border-color .15s; } }
 </style>
@@ -280,6 +282,7 @@ function hash(str) { let h1 = 0x811c9dc5; for (let i = 0; i < str.length; i++) {
 /* ---------- state & storage ---------- */
 const state = { groups: [], snaps: [], settings: Object.assign({}, P.DEFAULTS), view: 'all', db: null, dbReady: false, loadFailed: false, sort: 'status', isOwner: null, local: false, personal: false };
 let queuedFiles = null;
+const SHEET_TYPES = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/vnd.oasis.opendocument.spreadsheet'];
 let db = null;
 const sortedGroups = () => state.groups.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'ru'));
 const groupColor = g => SERIES[Math.max(0, sortedGroups().findIndex(x => x.id === g.id)) % SERIES.length];
@@ -339,21 +342,33 @@ function importBackup(file) {
     state.groups = state.groups.filter(g => !gIds.has(g.id)).concat(gs);
     state.snaps = state.snaps.filter(x => !sIds.has(x.id)).concat(ss.filter(x => state.groups.some(g => g.id === x.group)));
     if (d.settings) state.settings = Object.assign({}, P.DEFAULTS, cleanSettings(d.settings));
-    metricsCache.clear(); persistLocal();
-    $('dlgSettings').close(); render(); toast(`Копия загружена: ${gs.length} ${plural(gs.length, 'группа', 'группы', 'групп')}, ${ss.length} ${plural(ss.length, 'загрузка', 'загрузки', 'загрузок')}.`);
+    metricsCache.clear(); const okP = persistLocal();
+    $('dlgSettings').close(); render(); if (okP) toast(`Копия загружена: ${gs.length} ${plural(gs.length, 'группа', 'группы', 'групп')}, ${ss.length} ${plural(ss.length, 'загрузка', 'загрузки', 'загрузок')}.`);
   };
   fr.readAsText(file);
 }
 
+// true = the artifact's owner, false = someone else, null = the platform did not say (in time)
+function ownerCheck() {
+  return new Promise(res => {
+    const t = setTimeout(() => res(null), 4000);
+    Promise.resolve(window.claude.use('user')).then(async u => { const own = u ? await u.isOwner() : null; clearTimeout(t); res(own); }).catch(() => { clearTimeout(t); res(null); });
+  });
+}
 async function initDb() {
   if (!window.claude || !window.claude.use) { initLocal(); return; }
+  const ownerP = ownerCheck();
   try { db = await window.claude.use('db'); } catch (e) { db = null; }
-  if (!db) { state.personal = true; showBanner(PERSONAL_TEXT, false); initLocal(); return; }
+  if (!db) {
+    state.isOwner = await ownerP;
+    if (state.isOwner === true) { state.loadFailed = true; showBanner('Не удалось подключиться к твоим сохранённым данным. Обнови страницу: пока загрузить таблицы не получится.', true); markReady(); return; }
+    state.personal = true; showBanner(state.isOwner === false ? PERSONAL_TEXT : NOSTORE_TEXT, false); initLocal(); return;
+  }
   state.db = db;
-  // not the owner → personal copy (the owner's data is unreadable for them anyway); checked without delaying the owner's view
-  Promise.resolve(window.claude.use('user')).then(async u => { if (!u) return; const own = await u.isOwner(); state.isOwner = own; if (own === false) switchToLocal(); }).catch(() => {});
-  const got = { groups: false, settings: false };
-  const arrived = k => { got[k] = true; if (got.groups && got.settings && !state.dbReady) markReady(); else render(); };
+  const got = { groups: false, settings: false, owner: false };
+  const arrived = k => { got[k] = true; if (state.personal) return; if (got.groups && got.settings && got.owner && !state.dbReady) markReady(); else render(); };
+  // someone else → personal copy (the owner's data is unreadable for them anyway); uploads wait for this answer
+  ownerP.then(own => { state.isOwner = own; if (own === false) switchToLocal(); else arrived('owner'); });
   const fail = e => {
     if (state.personal) return;
     if (e && e.code === 'revoked') { db = null; state.db = null; showBanner('Доступ к сохранённым данным закрыт для этого просмотра.', true); }
@@ -366,13 +381,44 @@ async function initDb() {
 }
 function markReady() {
   state.dbReady = true; render();
+  if (db && state.isOwner === true) offerLocalMove();
   if (queuedFiles) { const f = queuedFiles; queuedFiles = null; handleFiles(f); }
 }
+// The owner once saved uploads on this device while the store was unreachable: offer to move them into the store.
+function offerLocalMove() {
+  let d = null; try { d = JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null'); } catch (e) { return; }
+  const gs = d ? cleanGroups(d.groups) : []; if (!gs.length) return;
+  const ss = cleanSnaps(d.snaps), b = $('banner');
+  b.textContent = ''; b.className = 'banner warn'; b.hidden = false;
+  b.append(h('p', { text: 'На этом устройстве есть таблицы, сохранённые, пока твои данные были недоступны: ' + gs.map(g => g.name).join(', ') + '.' }),
+    h('div', { class: 'flex', style: 'margin-top:8px' }, h('button', { type: 'button', class: 'btn primary', text: 'Перенести к себе', onclick: () => moveLocal(gs, ss) }),
+      h('button', { type: 'button', class: 'btn quiet', text: 'Удалить с устройства', onclick: () => { try { localStorage.removeItem(LOCAL_KEY); } catch (e) { /* ignore */ } b.hidden = true; } })));
+}
+async function moveLocal(gs, ss) {
+  let moved = 0;
+  for (const lg of gs) {
+    let best = null, bestO = 0; for (const g of state.groups) { const o = overlap(g.model, lg.model); if (o > bestO) { bestO = o; best = g; } }
+    const target = bestO >= 0.5 ? best : null, id = target ? target.id : lg.id;
+    const src = !target || (lg.updatedAt || '') > (target.updatedAt || '') ? lg : target;
+    const body = { name: target ? target.name : lg.name, order: target ? (target.order ?? 0) : state.groups.length + moved, model: src.model, fileName: src.fileName || '', updatedAt: src.updatedAt || new Date().toISOString(), snapDate: src.snapDate || todayISO() };
+    if (!await dbWrite(() => db.collection('groups').doc(id).set(body))) return;
+    for (const x of ss.filter(x => x.group === lg.id)) {
+      const sid = 's-' + id.slice(2) + '-' + x.date.replace(/-/g, '');
+      if (state.snaps.some(y => y.id === sid)) continue; // the store already has that day
+      const { id: _drop, ...rest } = x;
+      if (!await dbWrite(() => db.collection('snaps').doc(sid).set({ ...rest, group: id }))) return;
+    }
+    moved++;
+  }
+  try { localStorage.removeItem(LOCAL_KEY); } catch (e) { /* ignore */ }
+  $('banner').hidden = true; toast('Перенесено групп: ' + moved);
+}
 // Anyone but the owner gets a personal copy: their uploads stay in their own browser and never touch the owner's data.
-const PERSONAL_TEXT = 'Это твоя личная копия: таблицы, которые ты загружаешь, хранятся только в этом браузере на этом устройстве и никому не видны.';
+const PERSONAL_TEXT = 'Это твоя личная копия: таблицы, которые ты загружаешь, хранятся только в этом браузере на этом устройстве. Владелец страницы их не видит.';
+const NOSTORE_TEXT = 'Сохранённые данные в этом просмотре недоступны, поэтому таблицы сохранятся только в этом браузере на этом устройстве.';
 function switchToLocal() {
-  if (!db) return;
-  db = null; state.db = null; state.personal = true; state.groups = []; state.snaps = []; state.settings = Object.assign({}, P.DEFAULTS);
+  if (state.personal) return;
+  db = null; state.db = null; state.personal = true; state.loadFailed = false; state.groups = []; state.snaps = []; state.settings = Object.assign({}, P.DEFAULTS);
   showBanner(PERSONAL_TEXT, false); initLocal();
 }
 function showBanner(text, warn) { const b = $('banner'); b.textContent = text; b.className = 'banner' + (warn ? ' warn' : ''); b.hidden = false; }
@@ -382,9 +428,8 @@ async function dbWrite(fn) {
     if (e && e.code === 'unavailable') { await new Promise(r => setTimeout(r, 400 + Math.random() * 600)); try { await fn(); return true; } catch (e2) { e = e2; } }
     const code = e && e.code;
     toast(code === 'quota_exceeded' ? 'Хранилище заполнено: удали старые группы в настройках.'
-      : code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied' ? 'Не получилось сохранить: нет прав на запись в этой странице.'
+      : code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied' ? 'Не получилось сохранить: данные успели измениться или нет прав на запись. Обнови страницу и попробуй ещё раз.'
       : 'Не получилось сохранить: ' + ((e && e.message) || 'ошибка') + '. Попробуй ещё раз.');
-    if ((code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied') && state.isOwner !== true) switchToLocal();
     return false;
   }
 }
@@ -425,7 +470,7 @@ function nameFromFile(name) {
   return /[a-zа-яё]{2,}/i.test(base) ? base : 'Группа ' + (base.replace(/\D+/g, ' ').trim() || (state.groups.length + 1));
 }
 async function handleFiles(files) {
-  const list = [...files].filter(f => /\.(xlsx|xls|ods)$/i.test(f.name));
+  const list = [...files].filter(f => /\.(xlsx|xls|ods)$/i.test(f.name) || SHEET_TYPES.includes(f.type));
   if (!list.length) { toast('Нужны файлы .xlsx — в Google Таблицах: Файл → Скачать → Microsoft Excel.'); return; }
   if (!state.dbReady) { queuedFiles = list; toast('Секунду — загружаю сохранённые группы, потом открою файлы.'); return; }
   if (state.loadFailed) { toast('Сохранённые данные не загрузились — обнови страницу и загрузи файлы снова.'); return; }
@@ -484,7 +529,7 @@ async function savePending() {
   }
   saving = false;
   metricsCache.clear();
-  if (!db && okCount) persistLocal();
+  if (!db && okCount && !persistLocal()) { $('dlgUpload').close(); render(); return; } // the toast says there is no room
   if (okCount < ready.length) {
     // keep the dialog open so nothing is lost; the toast from dbWrite says why
     $('upSave').disabled = false;
@@ -877,7 +922,7 @@ async function saveSettings() {
     if (nm && nm !== g.name) { if (db) ok = await dbWrite(() => db.collection('groups').doc(g.id).update({ name: nm })); if (ok) g.name = nm; }
   }
   savingSettings = false; $('setSave').disabled = false;
-  if (!db) persistLocal();
+  if (!db && !persistLocal()) ok = false;
   metricsCache.clear(); render();
   if (ok) { $('dlgSettings').close(); toast('Сохранено'); }
 }
@@ -888,12 +933,21 @@ async function deleteGroup(g) {
     for (const x of snaps) await dbWrite(() => db.collection('snaps').doc(x.id).delete());
   }
   state.groups = state.groups.filter(x => x.id !== g.id); state.snaps = state.snaps.filter(x => x.group !== g.id);
-  if (!db) persistLocal();
+  const okP = db || persistLocal();
   if (state.view === g.id) state.view = 'all';
-  $('dlgSettings').close(); render(); toast('Группа удалена');
+  $('dlgSettings').close(); render(); if (okP) toast('Группа удалена');
 }
 
 /* ---------- wiring ---------- */
+if (!window.HTMLDialogElement || !HTMLDialogElement.prototype.showModal) {
+  document.documentElement.classList.add('nodialog');
+  document.querySelectorAll('dialog').forEach(d => {
+    Object.defineProperty(d, 'open', { get: () => d.hasAttribute('open') });
+    d.showModal = () => { d.setAttribute('open', ''); d.scrollTop = 0; };
+    d.close = () => { d.removeAttribute('open'); };
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('dialog[open]').forEach(d => d.close()); });
+}
 try { const s0 = localStorage.getItem('sort'); if (s0) state.sort = s0; } catch (e) { /* ignore */ }
 $('btnUpload').addEventListener('click', () => $('fileInput').click());
 $('fileInput').addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = ''; });
