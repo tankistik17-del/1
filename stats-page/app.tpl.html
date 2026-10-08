@@ -203,7 +203,7 @@ dialog::backdrop { background: rgba(10, 12, 16, .45); }
     </div>
     <button type="button" class="btn primary" id="btnUpload"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 11V2.5M4.5 6 8 2.5 11.5 6M2.5 13.5h11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Загрузить таблицы</button>
     <button type="button" class="btn quiet" id="btnSettings">Настройки</button>
-    <input type="file" id="fileInput" accept=".xlsx,.xls,.ods" multiple hidden>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.ods,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,application/vnd.oasis.opendocument.spreadsheet" multiple hidden>
   </header>
   <div id="banner" hidden></div>
   <div id="dropzone"></div>
@@ -229,6 +229,10 @@ dialog::backdrop { background: rgba(10, 12, 16, .45); }
     <label class="field">«Внимание», если сдано ДЗ меньше, %<input id="setHw" type="number" min="0" max="100" step="1"></label>
   </div>
   <div class="card"><div class="hd"><h3>Группы</h3></div><div class="bd" id="setGroups"></div></div>
+  <div class="card" id="setBackup" hidden><div class="hd"><h3>Резервная копия</h3></div><div class="bd" style="display:grid;gap:10px">
+    <p class="muted small" id="backupNote"></p>
+    <div class="flex"><button type="button" class="btn" id="btnExport">Скачать копию</button><button type="button" class="btn quiet" id="btnImport">Загрузить копию</button><input type="file" id="importInput" accept=".json,application/json" hidden></div>
+  </div></div>
   <div class="flex"><button type="submit" class="btn primary" id="setSave">Сохранить</button><button type="button" class="btn quiet" data-close>Отмена</button></div>
 </form></dialog>
 
@@ -274,7 +278,7 @@ async function copyText(text, btn, fallback) {
 function hash(str) { let h1 = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h1 ^= str.charCodeAt(i); h1 = Math.imul(h1, 0x01000193); } return (h1 >>> 0).toString(36); }
 
 /* ---------- state & storage ---------- */
-const state = { groups: [], snaps: [], settings: Object.assign({}, P.DEFAULTS), view: 'all', db: null, dbReady: false, loadFailed: false, sort: 'status' };
+const state = { groups: [], snaps: [], settings: Object.assign({}, P.DEFAULTS), view: 'all', db: null, dbReady: false, loadFailed: false, sort: 'status', isOwner: null, local: false, personal: false };
 let queuedFiles = null;
 let db = null;
 const sortedGroups = () => state.groups.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name, 'ru'));
@@ -288,24 +292,88 @@ function metricsOf(g) {
 function snapsOf(gid) { return state.snaps.filter(x => x.group === gid).sort((a, b) => a.date < b.date ? -1 : 1); }
 function prevSnap(g) { const list = snapsOf(g.id); const cur = list.filter(x => x.date <= (g.snapDate || todayISO())).pop(); return list.filter(x => cur ? x.date < cur.date : true).pop() || null; }
 
+/* Opened as a plain file (no Claude around): everything stays in this browser's localStorage. */
+const LOCAL_KEY = 'tutor-stats/v1';
+const cleanSettings = x => ({ scale: x && x.scale === 'base' ? 'base' : 'oge', ...['riskAtt', 'warnAtt', 'warnHw', 'streak'].reduce((o, k) => { const v = x && Number(x[k]); if (isFinite(v) && v >= 0 && v <= (k === 'streak' ? 20 : 1)) o[k] = v; return o; }, {}) });
+const cleanGroups = list => (Array.isArray(list) ? list : []).filter(g => g && typeof g.id === 'string' && g.model && Array.isArray(g.model.students) && Array.isArray(g.model.sessions) && Array.isArray(g.model.tasks)).map(g => ({ ...g, name: String(g.name || 'Группа') }));
+const cleanSnaps = list => (Array.isArray(list) ? list : []).filter(x => x && typeof x.id === 'string' && typeof x.group === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.date) && x.kpi && x.students);
+function initLocal() {
+  try {
+    const raw = localStorage.getItem(LOCAL_KEY);
+    let d = null; try { d = raw ? JSON.parse(raw) : null; } catch (e) { localStorage.setItem(LOCAL_KEY + ':broken', raw); toast('Сохранённые данные повреждены — начинаю с чистого листа. Можно загрузить резервную копию в «Настройках».'); }
+    if (d) { state.groups = cleanGroups(d.groups); state.snaps = cleanSnaps(d.snaps); state.settings = Object.assign({}, P.DEFAULTS, cleanSettings(d.settings)); }
+    localStorage.setItem(LOCAL_KEY + ':probe', '1'); localStorage.removeItem(LOCAL_KEY + ':probe');
+    state.local = true;
+  } catch (e) {
+    state.local = false;
+    showBanner('Браузер не даёт сохранять данные, поэтому всё пропадёт после закрытия страницы. Перед закрытием можно скачать резервную копию в «Настройках».', true);
+  }
+  markReady();
+}
+function persistLocal() {
+  if (!state.local) return true;
+  try {
+    localStorage.setItem(LOCAL_KEY, JSON.stringify({ v: 1, savedAt: new Date().toISOString(), groups: state.groups, snaps: state.snaps, settings: cleanSettings(state.settings) }));
+    return true;
+  } catch (e) { toast('В браузере не хватило места. Удали старые группы в «Настройках» или скачай резервную копию.'); return false; }
+}
+// another tab of the same file changed the data: pick it up
+window.addEventListener('storage', e => { if (state.local && e.key === LOCAL_KEY) { try { const d = JSON.parse(e.newValue || '{}'); state.groups = cleanGroups(d.groups); state.snaps = cleanSnaps(d.snaps); state.settings = Object.assign({}, P.DEFAULTS, cleanSettings(d.settings)); metricsCache.clear(); render(); } catch (er) { /* ignore */ } } });
+async function exportBackup() {
+  const data = JSON.stringify({ kind: 'tutor-stats-backup', v: 1, savedAt: new Date().toISOString(), groups: state.groups, snaps: state.snaps, settings: cleanSettings(state.settings) });
+  const filename = 'статистика-групп-копия-' + todayISO() + '.json';
+  if (window.claude && window.claude.use) {
+    let dl = null; try { dl = await window.claude.use('downloads'); } catch (e) { dl = null; }
+    if (dl) { try { await dl.save({ filename, data }); } catch (e) { if (!e || e.code !== 'declined') toast('Не получилось скачать копию.'); } return; }
+  }
+  const a = h('a', { href: URL.createObjectURL(new Blob([data], { type: 'application/json' })), download: filename });
+  document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function importBackup(file) {
+  const fr = new FileReader();
+  fr.onload = () => {
+    let d; try { d = JSON.parse(fr.result); } catch (e) { d = null; }
+    if (!d || d.kind !== 'tutor-stats-backup') { toast('Это не резервная копия статистики.'); return; }
+    const gs = cleanGroups(d.groups), ss = cleanSnaps(d.snaps);
+    const gIds = new Set(gs.map(g => g.id)), sIds = new Set(ss.map(x => x.id));
+    state.groups = state.groups.filter(g => !gIds.has(g.id)).concat(gs);
+    state.snaps = state.snaps.filter(x => !sIds.has(x.id)).concat(ss.filter(x => state.groups.some(g => g.id === x.group)));
+    if (d.settings) state.settings = Object.assign({}, P.DEFAULTS, cleanSettings(d.settings));
+    metricsCache.clear(); persistLocal();
+    $('dlgSettings').close(); render(); toast(`Копия загружена: ${gs.length} ${plural(gs.length, 'группа', 'группы', 'групп')}, ${ss.length} ${plural(ss.length, 'загрузка', 'загрузки', 'загрузок')}.`);
+  };
+  fr.readAsText(file);
+}
+
 async function initDb() {
-  try { db = window.claude && window.claude.use ? await window.claude.use('db') : null; } catch (e) { db = null; }
+  if (!window.claude || !window.claude.use) { initLocal(); return; }
+  try { db = await window.claude.use('db'); } catch (e) { db = null; }
+  if (!db) { state.personal = true; showBanner(PERSONAL_TEXT, false); initLocal(); return; }
   state.db = db;
-  if (!db) { showBanner('Сейчас данные хранятся только до закрытия страницы. Чтобы история сохранялась, открой страницу в Claude, войдя в свой аккаунт.', true); markReady(); return; }
+  // not the owner → personal copy (the owner's data is unreadable for them anyway); checked without delaying the owner's view
+  Promise.resolve(window.claude.use('user')).then(async u => { if (!u) return; const own = await u.isOwner(); state.isOwner = own; if (own === false) switchToLocal(); }).catch(() => {});
   const got = { groups: false, settings: false };
   const arrived = k => { got[k] = true; if (got.groups && got.settings && !state.dbReady) markReady(); else render(); };
   const fail = e => {
+    if (state.personal) return;
     if (e && e.code === 'revoked') { db = null; state.db = null; showBanner('Доступ к сохранённым данным закрыт для этого просмотра.', true); }
     else { state.loadFailed = true; showBanner('Не удалось загрузить сохранённые данные. Обнови страницу.', true); }
     markReady();
   };
-  db.collection('groups').onSnapshot(snap => { state.groups = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.model && g.model.students); metricsCache.clear(); arrived('groups'); }, fail);
-  db.collection('snaps').onSnapshot(snap => { state.snaps = snap.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, fail);
-  db.doc('meta/settings').onSnapshot(d => { if (d.exists) { state.settings = Object.assign({}, P.DEFAULTS, d.data()); metricsCache.clear(); } arrived('settings'); }, fail);
+  db.collection('groups').onSnapshot(snap => { if (state.personal) return; state.groups = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(g => g.model && g.model.students); metricsCache.clear(); arrived('groups'); }, fail);
+  db.collection('snaps').onSnapshot(snap => { if (state.personal) return; state.snaps = snap.docs.map(d => ({ id: d.id, ...d.data() })); render(); }, fail);
+  db.doc('meta/settings').onSnapshot(d => { if (state.personal) return; if (d.exists) { state.settings = Object.assign({}, P.DEFAULTS, d.data()); metricsCache.clear(); } arrived('settings'); }, fail);
 }
 function markReady() {
   state.dbReady = true; render();
   if (queuedFiles) { const f = queuedFiles; queuedFiles = null; handleFiles(f); }
+}
+// Anyone but the owner gets a personal copy: their uploads stay in their own browser and never touch the owner's data.
+const PERSONAL_TEXT = 'Это твоя личная копия: таблицы, которые ты загружаешь, хранятся только в этом браузере на этом устройстве и никому не видны.';
+function switchToLocal() {
+  if (!db) return;
+  db = null; state.db = null; state.personal = true; state.groups = []; state.snaps = []; state.settings = Object.assign({}, P.DEFAULTS);
+  showBanner(PERSONAL_TEXT, false); initLocal();
 }
 function showBanner(text, warn) { const b = $('banner'); b.textContent = text; b.className = 'banner' + (warn ? ' warn' : ''); b.hidden = false; }
 async function dbWrite(fn) {
@@ -316,6 +384,7 @@ async function dbWrite(fn) {
     toast(code === 'quota_exceeded' ? 'Хранилище заполнено: удали старые группы в настройках.'
       : code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied' ? 'Не получилось сохранить: нет прав на запись в этой странице.'
       : 'Не получилось сохранить: ' + ((e && e.message) || 'ошибка') + '. Попробуй ещё раз.');
+    if ((code === 'invalid_argument' || code === 'not_granted' || code === 'permission_denied') && state.isOwner !== true) switchToLocal();
     return false;
   }
 }
@@ -381,7 +450,7 @@ async function handleFiles(files) {
     if (warn.length) row.append(h('ul', { class: 'warnlist' }, warn.slice(0, 6).map(w => h('li', { text: w }))));
     box.append(row);
   });
-  $('upNote').textContent = db ? '' : 'Без входа в Claude данные пропадут после закрытия страницы.';
+  $('upNote').textContent = db ? '' : state.local ? 'Сохранится только в этом браузере на этом устройстве.' : 'Данные пропадут после закрытия страницы.';
   $('upNote').classList.remove('err');
   $('upSave').disabled = !pending.some(p => !p.skip);
   $('dlgUpload').showModal();
@@ -400,18 +469,22 @@ async function savePending() {
       : { id: 'g-' + hash(p.name + now + Math.random()), name: (p.name || '').trim() || nameFromFile(p.file.name), order: state.groups.length, model: p.model, fileName: p.file.name, updatedAt: now, snapDate: date };
     const snap = makeSnap(g, date);
     const sid = 's-' + g.id.slice(2) + '-' + date.replace(/-/g, '');
+    let ok = false;
     if (db) {
       const body = { name: g.name, order: g.order ?? 0, model: g.model, fileName: g.fileName, updatedAt: g.updatedAt, snapDate: g.snapDate };
-      const ok = await dbWrite(() => db.collection('groups').doc(g.id).set(body)) && await dbWrite(() => db.collection('snaps').doc(sid).set(snap));
-      if (!ok) break;
-    } else {
+      ok = await dbWrite(() => db.collection('groups').doc(g.id).set(body)) && await dbWrite(() => db.collection('snaps').doc(sid).set(snap));
+    }
+    if (!db) { // the local copy (or we just switched to it because the shared store refused this viewer)
       state.groups = state.groups.filter(x => x.id !== g.id).concat([g]);
       state.snaps = state.snaps.filter(x => x.id !== sid).concat([{ id: sid, ...snap }]);
+      ok = true;
     }
+    if (!ok) break;
     p.saved = true; okCount++; lastId = g.id;
   }
   saving = false;
   metricsCache.clear();
+  if (!db && okCount) persistLocal();
   if (okCount < ready.length) {
     // keep the dialog open so nothing is lost; the toast from dbWrite says why
     $('upSave').disabled = false;
@@ -579,6 +652,7 @@ function renderDrop(has) {
   const box = h('div', { class: 'drop big', id: 'dropBox' },
     h('h2', { text: 'Перетащи сюда таблицы групп' }),
     h('p', { class: 'muted', text: 'Можно сразу несколько файлов: каждый — одна группа. Раз в неделю загружай свежие версии, и здесь соберётся история.' }),
+    state.local ? h('p', { class: 'muted small', text: 'Файлы никуда не отправляются: всё считается и хранится в этом браузере на этом устройстве.' }) : null,
     h('ol', null, h('li', { text: 'В Google Таблице группы: Файл → Скачать → Microsoft Excel (.xlsx).' }), h('li', { text: 'Повтори для каждой группы.' }), h('li', { text: 'Нажми «Загрузить таблицы» или перетащи файлы сюда.' })),
     h('button', { type: 'button', class: 'btn primary', onclick: () => $('fileInput').click() }, 'Выбрать файлы'));
   z.append(box);
@@ -773,6 +847,8 @@ function openStudent(g, i) {
 function openSettings() {
   const S = state.settings;
   $('setScale').value = S.scale; $('setRisk').value = Math.round(S.riskAtt * 100); $('setWarn').value = Math.round(S.warnAtt * 100); $('setHw').value = Math.round(S.warnHw * 100);
+  $('setBackup').hidden = !!db;
+  $('backupNote').textContent = state.local ? 'Все данные лежат только в этом браузере. Копия — это файл со всеми группами и историей: его можно сохранить на всякий случай или перенести на другой компьютер.' : 'Сейчас данные не сохраняются после закрытия страницы. Скачай копию, чтобы потом загрузить её обратно.';
   const box = $('setGroups'); box.textContent = '';
   if (!state.groups.length) box.append(h('p', { class: 'empty', text: 'Групп пока нет.' }));
   sortedGroups().forEach(g => {
@@ -801,6 +877,7 @@ async function saveSettings() {
     if (nm && nm !== g.name) { if (db) ok = await dbWrite(() => db.collection('groups').doc(g.id).update({ name: nm })); if (ok) g.name = nm; }
   }
   savingSettings = false; $('setSave').disabled = false;
+  if (!db) persistLocal();
   metricsCache.clear(); render();
   if (ok) { $('dlgSettings').close(); toast('Сохранено'); }
 }
@@ -811,6 +888,7 @@ async function deleteGroup(g) {
     for (const x of snaps) await dbWrite(() => db.collection('snaps').doc(x.id).delete());
   }
   state.groups = state.groups.filter(x => x.id !== g.id); state.snaps = state.snaps.filter(x => x.group !== g.id);
+  if (!db) persistLocal();
   if (state.view === g.id) state.view = 'all';
   $('dlgSettings').close(); render(); toast('Группа удалена');
 }
@@ -821,6 +899,9 @@ $('btnUpload').addEventListener('click', () => $('fileInput').click());
 $('fileInput').addEventListener('change', e => { if (e.target.files.length) handleFiles(e.target.files); e.target.value = ''; });
 $('upForm').addEventListener('submit', e => { e.preventDefault(); savePending(); });
 $('btnSettings').addEventListener('click', openSettings);
+$('btnExport').addEventListener('click', exportBackup);
+$('btnImport').addEventListener('click', () => $('importInput').click());
+$('importInput').addEventListener('change', e => { if (e.target.files.length) importBackup(e.target.files[0]); e.target.value = ''; });
 $('setForm').addEventListener('submit', e => { e.preventDefault(); saveSettings(); });
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
 ['dragenter', 'dragover'].forEach(ev => document.addEventListener(ev, e => { if ([...(e.dataTransfer && e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); const b = $('dropBox'); if (b) b.classList.add('over'); } }));
