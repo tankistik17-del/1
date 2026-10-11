@@ -129,7 +129,21 @@ table.tbl { border-collapse: separate; border-spacing: 0; width: 100%; font-size
 .tbl.students { --c1: 112px; }
 .tbl.students tr > :nth-child(2) { position: sticky; left: var(--c1); z-index: 1; box-shadow: 1px 0 0 var(--rule); }
 .tbl.students tr > :first-child { width: var(--c1); min-width: var(--c1); max-width: var(--c1); }
-.tbl td.bad { background: var(--cr-bg); color: var(--cr-ink); } .tbl td.meh { background: var(--wa-bg); color: var(--wa-ink); }
+.tbl td.bad { background: var(--cr-bg); color: var(--cr-ink); } .tbl td.meh { background: var(--wa-bg); color: var(--wa-ink); } .tbl td.good { background: var(--ok-bg); color: var(--ok-ink); }
+.tbl.weeks { width: auto; border-spacing: 2px; font-size: 13px; }
+.tbl.weeks th, .tbl.weeks td { padding: 6px 8px; border-bottom: 0; text-align: center; font-variant-numeric: tabular-nums; }
+.tbl.weeks td { min-width: 62px; border-radius: 4px; }
+.tbl.weeks td.none { color: var(--ink-3); }
+.tbl.weeks tr > :first-child { text-align: left; font-size: 12px; font-weight: 600; color: var(--ink-3); }
+.stchg { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+.stchg b { font-weight: 600; }
+.issues { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 14px; }
+.issues li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; align-items: baseline; }
+.issues .cell { font: 600 12.5px/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--sunk); border: 1px solid var(--rule); border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+.issues .what { color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.issues .what b { color: var(--ink); font-weight: 600; }
+.iss-sheet { font-size: 13px; font-weight: 650; color: var(--ink-3); margin: 12px 0 6px; }
+.iss-sheet:first-child { margin-top: 0; }
 .strip { display: flex; gap: 2px; align-items: center; }
 .strip i { width: 9px; height: 14px; border-radius: 2px; background: var(--track); display: block; }
 .strip i.p { background: var(--good); } .strip i.a { background: var(--crit); } .strip i.y { background: var(--warn); }
@@ -492,6 +506,8 @@ async function handleFiles(files) {
     row.append(h('div', { class: 'grid2' }, h('label', { class: 'field' }, 'Куда загрузить', sel), h('label', { class: 'field' }, 'Название группы', nameIn)));
     row.append(h('p', { class: 'meta', text: `Учеников: ${m.students.length} · занятий: ${m.sessions.length} · ДЗ: ${m.tasks.filter(t => t.type === 'hw').length} · последнее занятие: ${ruDate(m.referenceDate)}` + (bestO >= 0.5 ? ` · совпадает с «${best.name}» на ${Math.round(bestO * 100)}%` : '') }));
     const warn = m.warnings.concat(m.students.filter(s => s.flags.length).map(s => s.name + ': ' + s.flags.join(', ')));
+    const nIss = (m.issues || []).length;
+    if (nIss) warn.push(`${nIss} ${plural(nIss, 'ячейку', 'ячейки', 'ячеек')} в таблице стоит проверить — список с адресами во вкладке группы, в «Что поправить в таблице».`);
     if (warn.length) row.append(h('ul', { class: 'warnlist' }, warn.slice(0, 6).map(w => h('li', { text: w }))));
     box.append(row);
   });
@@ -668,6 +684,59 @@ function upcomingBirthdays(groups, days) {
   }));
   return out.sort((a, b) => a.left - b.left);
 }
+// "AB12" → [12, 28], to keep a sheet's issues in reading order
+const cellPos = a => { const m = /^([A-Z]+)(\d+)$/.exec(a || ''); if (!m) return [0, 0]; let c = 0; for (const ch of m[1]) c = c * 26 + ch.charCodeAt(0) - 64; return [+m[2], c]; };
+function sortedIssues(model, list) {
+  const order = []; list.forEach(it => { if (!order.includes(it.sheet)) order.push(it.sheet); });
+  return list.slice().sort((a, b) => order.indexOf(a.sheet) - order.indexOf(b.sheet) || cellPos(a.cell)[0] - cellPos(b.cell)[0] || cellPos(a.cell)[1] - cellPos(b.cell)[1]);
+}
+/** Issues grouped by sheet: «Лист» then rows of [cell] Student — what is wrong. Long lists start folded. */
+function issuesView(model, list, opts) {
+  opts = opts || {};
+  const all = sortedIssues(model, list), box = h('div');
+  const draw = limit => {
+    box.textContent = ''; let shown = 0, cur = null, ul = null;
+    for (const it of all) {
+      if (shown >= limit) break;
+      if (it.sheet !== cur) { cur = it.sheet; box.append(h('p', { class: 'iss-sheet', text: '«' + it.sheet + '»' })); ul = h('ul', { class: 'issues' }); box.append(ul); }
+      const who = !opts.noName && it.s != null && model.students[it.s] ? model.students[it.s].name : null;
+      ul.append(h('li', null, h('span', { class: 'cell', text: it.cell, title: 'ячейка ' + it.cell + ' на листе «' + it.sheet + '»' }), h('span', { class: 'what' }, who ? h('b', { text: who + ' — ' }) : null, it.text)));
+      shown++;
+    }
+    if (all.length > limit) box.append(h('button', { type: 'button', class: 'btn quiet', style: 'margin-top:10px', text: `Показать все (${all.length})`, onclick: () => draw(Infinity) }));
+  };
+  draw(opts.limit || 12);
+  return box;
+}
+function weekGrid(weeks) {
+  const pair = (v, what) => v ? { text: v[0] + '/' + v[1], cls: v[0] === v[1] ? 'good' : v[0] === 0 ? 'bad' : 'meh', tip: `${what} ${v[0]} из ${v[1]}` } : null;
+  const rows = [
+    ['Занятия', w => pair(w.att, 'посещено')],
+    ['ДЗ', w => pair(w.hw, 'ДЗ сдано')],
+    ['Конспекты', w => pair(w.notes, 'конспектов прислано')],
+    ['На уроке', w => w.cw == null ? null : { text: pct(w.cw), cls: w.cw >= 0.75 ? 'good' : w.cw >= 0.5 ? 'meh' : 'bad', tip: 'верно на уроке ' + pct(w.cw) }],
+  ].filter(([, f]) => weeks.some(w => f(w)));
+  const wrap = h('div', { class: 'scroll' }, h('table', { class: 'tbl weeks' },
+    h('thead', null, h('tr', null, h('th', { text: 'Неделя' }), weeks.map(w => h('th', { text: w.short.replace(/\s*-\s*/, '–') })))),
+    h('tbody', null, rows.map(([label, f]) => h('tr', null, h('th', { scope: 'row', text: label }), weeks.map(w => {
+      const c = f(w), when = w.short.replace(/\s*-\s*/, '–');
+      return c ? h('td', { class: c.cls, text: c.text, title: when + ': ' + c.tip, 'aria-label': when + ': ' + c.tip }) : h('td', { class: 'none', text: '—', title: when + ': нет данных' });
+    }))))));
+  return wrap;
+}
+function studentChanges(g, st, x) {
+  const prev = prevSnap(g);
+  if (!prev) return { title: 'Что изменилось с прошлой загрузки', items: [], note: 'Появится после следующей загрузки таблицы.' };
+  const p = prev.students[hash(P.normName(st.name))], title = 'Что изменилось с ' + ruDate(prev.date);
+  if (!p) return { title, items: [], note: 'В прошлой загрузке этого ученика не было.' };
+  const items = [], same = (a, b) => Math.round(a * 100) === Math.round(b * 100);
+  if (sameRules(prev) && p.st && p.st !== x.status) items.push(['Статус', `${STATUS[p.st]} → ${STATUS[x.status]}`, SEV[x.status] > SEV[p.st] ? 'up' : 'down']);
+  if (p.a != null && x.rate != null && !same(p.a, x.rate)) items.push(['Посещаемость', `${pct(p.a)} → ${pct(x.rate)}`, x.rate > p.a ? 'up' : 'down']);
+  const dAb = x.absent - (p.ab || 0); if (dAb > 0) items.push(['Пропуски', '+' + dAb, 'down']);
+  if (p.hd != null && (p.hd !== x.hwDone || p.ha !== x.hwAll)) items.push(['ДЗ', `${p.hd} из ${p.ha} → ${x.hwDone} из ${x.hwAll}`, x.hwDone > p.hd ? 'up' : x.hwAll > p.ha ? 'down' : 'flat']);
+  if (p.nt != null && x.notesRate != null && !same(p.nt, x.notesRate)) items.push(['Конспекты', `${pct(p.nt)} → ${pct(x.notesRate)}`, x.notesRate > p.nt ? 'up' : 'down']);
+  return { title, items, note: items.length ? null : 'Без изменений.' };
+}
 function card(title, extra, ...body) { return h('section', { class: 'card' }, h('div', { class: 'hd' }, h('h2', { text: title }), h('span', { class: 'sp' }), extra || null), h('div', { class: 'bd' }, body)); }
 
 /* ---------- views ---------- */
@@ -827,7 +896,11 @@ function renderGroup(g) {
   const bdCard = card('Дни рождения', h('span', { class: 'muted small', text: '2 недели' }), bd.length ? h('ul', { class: 'list' }, bd.map(b => h('li', null, h('span', { class: 'num', text: b.date }), h('b', { text: b.st.name }), h('span', { class: 'muted small', text: b.left === 0 ? 'сегодня' : 'через ' + b.left + ' дн.' })))) : h('p', { class: 'empty', text: 'В ближайшие две недели нет.' }));
   // data notes
   const notes = model.warnings.concat(model.students.filter(s2 => s2.flags.length).map(s2 => s2.name + ': ' + s2.flags.join(', ')));
-  root.append(h('div', { class: 'grid2' }, bdCard, card('Что поправить в таблице', null, notes.length ? h('ul', { class: 'warnlist' }, notes.map(n => h('li', { text: n }))) : h('p', { class: 'empty', text: 'Замечаний к таблице нет.' }))));
+  const iss = model.issues || [];
+  root.append(h('div', { class: 'grid2' }, bdCard, card('Что поправить в таблице', iss.length ? h('span', { class: 'muted small', text: `${iss.length} ${plural(iss.length, 'ячейка', 'ячейки', 'ячеек')}` }) : null,
+    notes.length ? h('ul', { class: 'warnlist', style: iss.length ? 'margin-bottom:12px' : '' }, notes.map(n => h('li', { text: n }))) : null,
+    iss.length ? issuesView(model, iss) : null,
+    !notes.length && !iss.length ? h('p', { class: 'empty', text: model.issues ? 'Замечаний к таблице нет.' : 'Адреса ячеек с замечаниями появятся после следующей загрузки этой таблицы.' } ) : null)));
   root.append(h('p', { class: 'muted small', text: `Файл: ${g.fileName || '—'} · последнее отмеченное занятие ${ruDate(model.referenceDate)} · ДЗ идёт в подсчёт, когда за него есть хотя бы одна оценка. Задание, которое не сдал никто, показано отдельно и на статусы не влияет.` }));
   return root;
 }
@@ -854,6 +927,10 @@ function openStudent(g, i) {
   const msg = parentMessage(g, st, x), pre = h('pre', { class: 'msg', text: msg });
   const copyBtn = h('button', { type: 'button', class: 'btn', text: 'Копировать текст', onclick: e => copyText(msg, e.currentTarget, pre) });
   const sc = P.SCALES[state.settings.scale] || P.SCALES.oge;
+  const chg = studentChanges(g, st, x);
+  const wk = P.studentWeeks(model, st, x).filter(w => w.att || w.hw || w.notes || w.cw != null);
+  const weeksBox = wk.length ? weekGrid(wk) : null;
+  const myIss = (model.issues || []).filter(it => it.s === i);
   body.append(...[
     h('div', { class: 'dlg-hd' }, h('div', { class: 'sp' }, h('h2', { id: 'stTitle', text: st.name }), h('div', { class: 'flex small muted' }, pill(x.status), h('span', { text: g.name }), st.goal ? h('span', { text: 'цель «' + st.goal + '»' }) : null, st.nick ? tgLink(st.nick) : null)), h('button', { type: 'button', class: 'x', 'aria-label': 'Закрыть', text: '×', onclick: () => $('dlgStudent').close() })),
     x.reasons.length ? h('p', { class: 'small', text: 'Почему: ' + x.reasons.join(', ') }) : null,
@@ -865,6 +942,11 @@ function openStudent(g, i) {
       h('div', null, h('span', { text: 'Входной пробник' }), h('b', { text: st.entrance == null ? 'нет' : `${st.entrance} · «${x.grade}» (${sc.name})` + (x.gap != null ? (x.gap > 0 ? `, до цели не хватает ${x.gap} б.` : ', на цель уже хватает') : '') })),
       h('div', null, h('span', { text: 'КЭС' }), h('b', { text: x.kesTotal ? `${x.kesDone} из ${x.kesTotal}` : '—' })),
       st.birthday ? h('div', null, h('span', { text: 'День рождения' }), h('b', { text: st.birthday.slice(3) + '.' + st.birthday.slice(0, 2) })) : null),
+    chg ? h('h3', { text: chg.title }) : null,
+    chg ? (chg.items.length ? h('ul', { class: 'stchg' }, chg.items.map(([k, v, dir]) => h('li', null, h('b', { text: k + ': ' }), h('span', { class: 'delta ' + dir, text: v })))) : h('p', { class: 'muted small', text: chg.note })) : null,
+    weeksBox ? h('h3', { text: 'По неделям' }) : null,
+    weeksBox,
+    weeksBox ? h('p', { class: 'muted small', text: 'Сколько из скольких. Зелёный — всё, жёлтый — часть, красный — ничего.' }) : null,
     h('h3', { text: 'Посещения' }),
     h('div', { class: 'timeline' }, model.sessions.map((ses, j) => { const mk = st.att[j]; return h('div', { class: mk === '.' ? '' : mk }, h('span', { text: { p: 'был', a: 'не был', y: 'конспект' }[mk] || '—' }), h('small', { text: ses.label + (ses.kind === 'общее' ? ' общ.' : '') })); })),
     h('div', { class: 'flex' }, h('h3', { text: 'Сообщение родителям' }), copyBtn), pre,
@@ -884,8 +966,11 @@ function openStudent(g, i) {
     model.topics.length ? barList(model.topics.map((t, k) => { const v = st.topics[k]; const done = v && v[0] != null; return { label: t, v: done && v[1] ? v[0] / v[1] : 0, vText: done ? `${v[0]}${v[1] ? '/' + v[1] : ''}` : '—', cls: done ? (v[1] && v[0] / v[1] < 0.5 ? 'bad' : '') : 'de' }; })) : null,
     model.kesSteps.length && st.kes ? h('h3', { text: 'КЭС' }) : null,
     model.kesSteps.length && st.kes ? h('div', { class: 'timeline' }, model.kesSteps.map((k, j) => h('div', { class: st.kes[j] ? 'p' : '' }, h('span', { text: st.kes[j] ? '✓' : '—' }), h('small', { text: k })))) : null,
-    st.flags.length ? h('p', { class: 'small muted', text: 'В таблице: ' + st.flags.join(', ') }) : null].filter(x => x != null && x !== false));
+    st.flags.length || myIss.length ? h('h3', { text: 'Что проверить в таблице' }) : null,
+    st.flags.length ? h('p', { class: 'small muted', text: st.flags.join(', ') }) : null,
+    myIss.length ? issuesView(model, myIss, { noName: true, limit: 20 }) : null].filter(x => x != null && x !== false));
   $('dlgStudent').showModal();
+  if (weeksBox) weeksBox.scrollLeft = weeksBox.scrollWidth; // the latest weeks first
 }
 
 /* ---------- settings ---------- */

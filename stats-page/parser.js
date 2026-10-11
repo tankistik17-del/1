@@ -58,6 +58,13 @@
   let XLSXlib = null;
   function XLSXref() { if (XLSXlib) return XLSXlib; XLSXlib = root.XLSX || (typeof require === 'function' ? require('xlsx') : null); return XLSXlib; }
 
+  /** A real colour (not white, grey or black): such a fill means something, even when colorKind can't name it. */
+  function isColored(hex) {
+    if (!hex || !/^[0-9A-F]{6}$/.test(hex)) return false;
+    const n = parseInt(hex, 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
+    const max = Math.max(r, g, b), d = max - Math.min(r, g, b);
+    return max >= 0.25 && d / max >= 0.12;
+  }
   function colorKind(hex) {
     if (!hex || !/^[0-9A-F]{6}$/.test(hex)) return null;
     const n = parseInt(hex, 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255;
@@ -125,11 +132,20 @@
     if (!views.kes) warnings.push('Нет листа «КЭС» — подключение к чатам не посчитается.');
     if (!views.dr) warnings.push('Нет листа «ДР» — дни рождения не покажу.');
 
+    // Things worth fixing in the workbook, each tied to a cell: {sheet, cell, s: student index | null, text}
+    const issues = [], issueCells = new Set(), nameColOf = {};
+    const cut = (v, n) => { const t = String(v).replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+    const issue = (k, r, c, i, text) => {
+      const cell = enc(r, c), key = k + '!' + cell;
+      if (issueCells.has(key) || issues.length >= 150) return;
+      issueCells.add(key); issues.push({ sheet: String(names[k] || '').trim(), cell, s: i == null ? null : i, text });
+    };
+
     const roster = []; // {name, key, src}
     const claimed = new Set(), typos = [];
-    const add = (name, src) => {
+    const add = (name, src, r) => {
       const m = matchName(name, roster, k => roster[k].src !== src && !claimed.has(src + ':' + k));
-      if (m) { claimed.add(src + ':' + m.i); if (m.how === 'typo') typos.push([m.i, src, name]); return m.i; }
+      if (m) { claimed.add(src + ':' + m.i); if (m.how === 'typo') typos.push([m.i, src, name, r]); return m.i; }
       roster.push({ name: String(name).replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+/g, ' ').trim(), key: normName(name), src });
       claimed.add(src + ':' + (roster.length - 1));
       return roster.length - 1;
@@ -174,7 +190,8 @@
       const lessonDays = new Set(sessions.filter((x, k) => x.kind === 'урок' && typeof sv.v(h.r, x.c) === 'string').map(wd));
       sessions.forEach(x => { if (x.kind === 'урок' && gen.has(wd(x)) && !lessonDays.has(wd(x)) && sessions.filter(y => y.kind === 'общее' && wd(y) === wd(x)).length >= 2) x.kind = 'общее'; });
       const marked = r => sessions.some(x => sv.v(r, x.c) != null || colorKind(sv.fill(r, x.c)));
-      posRows = studentRows(sv, h.r + 1, h.c, marked).map(x => ({ ...x, i: add(x.name, 'pos') }));
+      nameColOf.pos = h.c;
+      posRows = studentRows(sv, h.r + 1, h.c, marked).map(x => ({ ...x, i: add(x.name, 'pos', x.r) }));
       if (!sessions.length) warnings.push('На листе «Посещаемость» не нашлось дат в первой строке.');
       if (!posRows.length) warnings.push('На листе «Посещаемость» нет учеников.');
     } else warnings.push('Нет листа «Посещаемость» — посещаемость не посчитается.');
@@ -202,7 +219,8 @@
           if (cur && weekOf[c] == null) weekOf[c] = cur;
         }
       }
-      uspRows = studentRows(sv, itemRow + 1, nameCol).map(x => ({ ...x, i: add(x.name, 'usp'), goal: ((/\(\s*(?:на|цель)?\s*([2-5](?:\s*[-–\/]\s*[2-5])?\+?)\s*\)/i.exec(x.name) || [])[1] || '').replace(/\s+/g, '').replace('–', '-') || null }));
+      nameColOf.usp = nameCol;
+      uspRows = studentRows(sv, itemRow + 1, nameCol).map(x => ({ ...x, i: add(x.name, 'usp', x.r), goal: ((/\(\s*(?:на|цель)?\s*([2-5](?:\s*[-–\/]\s*[2-5])?\+?)\s*\)/i.exec(x.name) || [])[1] || '').replace(/\s+/g, '').replace('–', '-') || null }));
       for (let c = 0; c < sv.cols; c++) {
         if (c === nameCol || sv.cont(itemRow, c)) continue;
         const head = sv.v(itemRow, c); const h = low(head);
@@ -252,6 +270,7 @@
           topics.push(block);
         }
       }
+      nameColOf.prob = h.c;
       probRows = matchRows(studentRows(sv, Math.max(h.r, sub) + 1, h.c));
     }
 
@@ -269,8 +288,9 @@
         if (at > nickBest) { nickBest = at; kesNick = c; }
       }
       kesSteps = stepCols.map(c => ({ c, label: String(sv.v(0, c)).replace(/\s+/g, ' ').trim() }));
-      kesRows = matchRows(studentRows(sv, 1, nameCol)).filter(x => x.m);
-      kesMode = kesRows.some(x => stepCols.some(c => colorKind(sv.fill(x.r, c)) === 'green')) ? 'color' : 'value';
+      nameColOf.kes = nameCol;
+      kesRows = matchRows(studentRows(sv, 1, nameCol));
+      kesMode = kesRows.some(x => x.m && stepCols.some(c => colorKind(sv.fill(x.r, c)) === 'green')) ? 'color' : 'value';
     }
 
     /* ДР */
@@ -283,8 +303,9 @@
         let nameCol = 0, bestN = -1;
         for (let c = 0; c < Math.min(sv.cols, 10); c++) { if (c === dateCol) continue; let n = 0; for (let r = 0; r < Math.min(sv.rows, 80); r++) { const v = sv.v(r, c); if (typeof v === 'string' && matchName(v, roster)) n++; } if (n > bestN) { bestN = n; nameCol = c; } }
         const cand = [];
-        for (let r = 0; r < sv.rows; r++) { const n = sv.v(r, nameCol), d = sv.v(r, dateCol); if (typeof n === 'string' && isDate(d)) cand.push({ name: n, bd: pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) }); }
-        drRows = matchRows(cand).filter(x => x.m).map(x => ({ i: x.m.i, bd: x.bd }));
+        for (let r = 0; r < sv.rows; r++) { const n = sv.v(r, nameCol), d = sv.v(r, dateCol); if (typeof n === 'string' && /[a-zа-яё]/i.test(n) && isDate(d)) cand.push({ r, name: n, bd: pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) }); }
+        nameColOf.dr = nameCol;
+        drRows = matchRows(cand);
       }
     }
 
@@ -296,46 +317,84 @@
       for (const ses of sessions) {
         const v = sv.v(x.r, ses.c); let m = '';
         if (v != null) { const t = low(v); if (/^(был|была|\+|1|да|true|присутств)/.test(t) || v === true || v === 1) m = 'p'; else if (/^(н|нет|0|-|false|отсутств|ув|болел)/.test(t) || v === false || v === 0) m = 'a'; }
-        if (!m) { const k = colorKind(sv.fill(x.r, ses.c)); m = k === 'green' ? 'p' : k === 'yellow' ? 'y' : k === 'red' ? 'a' : '.'; }
+        if (!m) {
+          const hex = sv.fill(x.r, ses.c), k = colorKind(hex); m = k === 'green' ? 'p' : k === 'yellow' ? 'y' : k === 'red' ? 'a' : '.';
+          if (m === '.' && v != null) issue('pos', x.r, ses.c, x.i, `непонятная отметка «${cut(v, 20)}» за ${ses.label} — не посчитана`);
+          else if (m === '.' && isColored(hex)) issue('pos', x.r, ses.c, x.i, `заливка непонятного цвета за ${ses.label} — не посчитана`);
+        }
         s += m;
       }
       students[x.i].att = s;
     }
     for (const st of students) if (st.att.length !== sessions.length) st.att = '.'.repeat(sessions.length);
+    // an unmarked session in the middle of a student's marks, when most students enrolled by then are marked
+    if (views.pos) {
+      const span = posRows.map(x => { const a = students[x.i].att; return [a.search(/[pay]/), Math.max(a.lastIndexOf('p'), a.lastIndexOf('a'), a.lastIndexOf('y'))]; });
+      sessions.forEach((ses, j) => {
+        const enrolled = posRows.filter((x, q) => span[q][0] >= 0 && span[q][0] <= j && span[q][1] >= j);
+        const markedN = enrolled.filter(x => students[x.i].att[j] !== '.').length;
+        if (enrolled.length < 2 || markedN / enrolled.length < 0.5) return;
+        enrolled.forEach(x => { if (students[x.i].att[j] === '.') issue('pos', x.r, ses.c, x.i, `не отмечено занятие ${ses.label}, хотя у остальных отметки есть`); });
+      });
+    }
+    // the same student written twice on one sheet
+    for (const [k, rows] of [['pos', posRows], ['usp', uspRows]]) {
+      const seen = new Map();
+      rows.forEach(x => { const key = normName(x.name); if (seen.has(key)) issue(k, x.r, nameColOf[k], null, `«${cut(x.name, 40)}» записан(а) дважды — ещё в строке ${seen.get(key) + 1}`); else seen.set(key, x.r); });
+    }
     for (const x of uspRows) {
       const sv = views.usp; const st = students[x.i];
       if (x.goal) st.goal = x.goal;
       st.task = tasks.map(t => {
-        const v = sv.v(x.r, t.c);
+        const v = sv.v(x.r, t.c), col = `«${cut(t.label, 34)}»`;
         if (v == null) return null;
-        if (typeof v === 'number') return v;
+        if (typeof v === 'number') {
+          if (t.max != null && v > t.max) issue('usp', x.r, t.c, x.i, `${col}: ${String(v).replace('.', ',')} при максимуме ${t.max}`);
+          else if (v < 0) issue('usp', x.r, t.c, x.i, `${col}: отрицательный балл ${v}`);
+          return v;
+        }
         const s = low(v);
         if (/^[—–-]+$/.test(s)) return '-';
-        if (t.type === 'notes' || /прислал/.test(s)) return /^прислал/.test(s) ? 's' : /^не\s/.test(s) ? 'n' : null;
-        const num = parseFloat(s.replace(',', '.')); return isNaN(num) ? null : num;
+        if (t.type === 'notes' || /прислал/.test(s)) {
+          const r = /^прислал/.test(s) ? 's' : /^не\s/.test(s) ? 'n' : null;
+          if (!r) issue('usp', x.r, t.c, x.i, `${col}: непонятная отметка «${cut(v, 24)}» — не посчитана`);
+          return r;
+        }
+        const num = parseFloat(s.replace(',', '.'));
+        if (isNaN(num)) { issue('usp', x.r, t.c, x.i, `${col}: непонятное значение «${cut(v, 24)}» — посчитано как ${t.type === 'hw' ? '«не сдано»' : 'пустая клетка'}`); return null; }
+        if (t.max != null && num > t.max) issue('usp', x.r, t.c, x.i, `${col}: ${String(num).replace('.', ',')} при максимуме ${t.max}`);
+        return num;
       });
       if (roster[x.i].src === 'usp') flag(x.i, 'нет на листе «Посещаемость»');
     }
     for (const st of students) if (st.task.length !== tasks.length) st.task = tasks.map(() => null);
+    const typoText = name => `имя написано иначе, чем в «Посещаемости»: «${cut(name, 40)}»`;
+    const unknownText = name => `«${cut(name, 40)}» нет среди учеников — строка не учтена`;
     for (const x of probRows) {
-      if (!x.m) continue; const sv = views.prob, st = students[x.m.i];
-      if (x.m.how === 'typo') flag(x.m.i, 'имя в «Пробниках» написано иначе: ' + x.name);
+      if (!x.m) { issue('prob', x.r, nameColOf.prob, null, unknownText(x.name)); continue; }
+      const sv = views.prob, st = students[x.m.i];
+      if (x.m.how === 'typo') issue('prob', x.r, nameColOf.prob, x.m.i, typoText(x.name));
       st.mocks = mocks.map(m => { const v = sv.v(x.r, m.c); return typeof v === 'number' ? v : null; });
       st.topics = topics.map(t => { const raw = sv.v(x.r, t.score), rno = t.rno != null ? sv.v(x.r, t.rno) : null, mx = t.max != null ? sv.v(x.r, t.max) : null; const s = typeof rno === 'number' ? rno : typeof raw === 'number' ? raw : null; return s == null && typeof mx !== 'number' ? null : [s, typeof mx === 'number' ? mx : null]; });
       if (probNick != null) { const n = sv.v(x.r, probNick); if (typeof n === 'string' && /^@\w/.test(n.trim())) st.nick = n.trim(); }
     }
     for (const st of students) { if (st.mocks.length !== mocks.length) st.mocks = mocks.map(() => null); if (st.topics.length !== topics.length) st.topics = topics.map(() => null); }
     for (const x of kesRows) {
+      if (!x.m) { issue('kes', x.r, nameColOf.kes, null, unknownText(x.name)); continue; }
       const sv = views.kes, st = students[x.m.i];
-      if (x.m.how === 'typo') flag(x.m.i, 'имя в «КЭС» написано иначе: ' + x.name);
+      if (x.m.how === 'typo') issue('kes', x.r, nameColOf.kes, x.m.i, typoText(x.name));
       st.kes = kesSteps.map(k => {
         if (kesMode === 'color') return colorKind(sv.fill(x.r, k.c)) === 'green' ? 1 : 0;
         const v = sv.v(x.r, k.c); return v === 1 || v === true || /^(1|да|\+)$/.test(low(v)) ? 1 : 0;
       });
       if (kesNick != null && !st.nick) { const n = sv.v(x.r, kesNick); if (typeof n === 'string' && /^@\w/.test(n.trim())) st.nick = n.trim(); }
     }
-    for (const x of drRows) students[x.i].birthday = x.bd;
-    for (const [i, src, name] of typos) if (src === 'usp') flag(i, 'имя в «Успеваемости» написано иначе: ' + String(name).replace(/\s*\([^)]*\)\s*/g, ' ').trim());
+    for (const x of drRows) {
+      if (!x.m) { issue('dr', x.r, nameColOf.dr, null, unknownText(x.name)); continue; }
+      if (x.m.how === 'typo') issue('dr', x.r, nameColOf.dr, x.m.i, typoText(x.name));
+      students[x.m.i].birthday = x.bd;
+    }
+    for (const [i, src, name, r] of typos) if (src === 'usp') issue('usp', r, nameColOf.usp, i, typoText(String(name).replace(/\s*\([^)]*\)\s*/g, ' ')));
     // entrance mock fallback from «Успеваемость»
     const uspMock = tasks.findIndex(t => t.type === 'mock');
     const mockIdx = mocks.findIndex((m, k) => students.some(s => s.mocks[k] != null));
@@ -344,6 +403,30 @@
       st.entrance = fromProb != null ? fromProb : (uspMock >= 0 && typeof st.task[uspMock] === 'number' ? st.task[uspMock] : null);
     });
     if (views.kes && students.some(s => !s.kes)) students.filter(s => !s.kes).forEach(s => s.flags.push('нет на листе «КЭС»'));
+
+    // classwork vs attendance in the same week (lessons only, when the week has any)
+    if (views.pos && views.usp) {
+      const rowOf = new Map(posRows.map(x => [x.i, x.r]));
+      tasks.forEach((t, k) => {
+        if (t.type !== 'classwork' || !t.weekEnd) return;
+        const end = new Date(t.weekEnd + 'T00:00:00Z'), start = new Date(end); start.setUTCDate(start.getUTCDate() - 6);
+        let J = sessions.map((ses, j) => j).filter(j => { const d = new Date(sessions[j].date + 'T00:00:00Z'); return d >= start && d <= end; });
+        if (J.some(j => sessions[j].kind === 'урок')) J = J.filter(j => sessions[j].kind === 'урок');
+        if (!J.length) return;
+        const was = x => J.filter(j => students[x.i].att[j] === 'p'), missed = x => J.filter(j => 'ay'.includes(students[x.i].att[j]));
+        const presentRows = uspRows.filter(x => was(x).length);
+        const withScore = presentRows.filter(x => typeof students[x.i].task[k] === 'number').length;
+        uspRows.forEach(x => {
+          const v = students[x.i].task[k];
+          if (v == null && was(x).length && presentRows.length >= 2 && withScore / presentRows.length >= 0.5)
+            issue('usp', x.r, t.c, x.i, `«${cut(t.label, 34)}»: пусто, хотя ученик был на занятии ${sessions[was(x)[0]].label}`);
+          else if (typeof v === 'number' && !was(x).length && missed(x).length) {
+            const j = missed(x)[0], pr = rowOf.get(x.i);
+            issue('usp', x.r, t.c, x.i, `«${cut(t.label, 34)}»: есть результат, но за ${sessions[j].label} отмечен пропуск` + (pr != null ? ` («${String(names.pos).trim()}», ${enc(pr, sessions[j].c)})` : ''));
+          }
+        });
+      });
+    }
 
     const held = sessions.map((_, j) => students.some(s => s.att[j] && s.att[j] !== '.'));
     const lastHeld = sessions.filter((_, j) => held[j]).map(s => s.date).pop() || null;
@@ -358,12 +441,12 @@
     });
 
     return {
-      ok: true, version: 1,
+      ok: true, version: 2,
       sheets: Object.fromEntries(Object.entries(names).map(([k, v]) => [k, !!v])),
       sessions: sessions.map(({ date, kind, label }) => ({ date, kind, label })),
       tasks: tasks.map(({ type, label, week, weekEnd: we, max, assigned, pending }) => ({ type, label, week, weekEnd: we, max, assigned, pending: !!pending })),
       mocks: mocks.map(m => m.label), topics: topics.map(t => t.title), kesSteps: kesSteps.map(k => k.label.replace(/^довели до\s*/i, '')), kesMode,
-      referenceDate: ref, warnings,
+      referenceDate: ref, warnings, issues,
       students: students.map(s => ({ name: s.name, goal: s.goal, nick: s.nick, birthday: s.birthday, entrance: s.entrance, att: s.att, task: s.task, mocks: s.mocks, topics: s.topics, kes: s.kes, flags: s.flags })),
     };
   }
@@ -424,6 +507,38 @@
       notesRate: nMarked ? nSent / nMarked : null, kesDone, kesTotal, status, reasons, grade: g, need, gap: need != null && st.entrance != null ? need - st.entrance : null };
   }
 
+  /** Weeks from the «неделя (dd.mm-dd.mm)» labels of «Успеваемость», oldest first, each with its task indexes. */
+  function weeksOf(model) {
+    const weekMap = new Map();
+    model.tasks.forEach((t, k) => { if (!t.week) return; if (!weekMap.has(t.week)) weekMap.set(t.week, { label: t.week, end: t.weekEnd, tasks: [] }); weekMap.get(t.week).tasks.push(k); });
+    return [...weekMap.values()].filter(w => w.end).sort((a, b) => a.end < b.end ? -1 : 1).map(w => {
+      const start = new Date(w.end + 'T00:00:00Z'); start.setUTCDate(start.getUTCDate() - 6);
+      return { ...w, start: iso(start), short: (/\(([^)]*)\)/.exec(w.label) || [])[1] || w.label };
+    });
+  }
+  /** One student week by week: [done, of] pairs for sessions, homework and notes, and the classwork share. */
+  function studentWeeks(model, st, sm) {
+    let weeks = weeksOf(model);
+    if (!weeks.length && model.sessions.length) { // no week labels: calendar weeks (Mon–Sun) of the sessions
+      const byMon = new Map();
+      model.sessions.forEach(s => { const d = new Date(s.date + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); const k = iso(d); if (!byMon.has(k)) { const e = new Date(d); e.setUTCDate(e.getUTCDate() + 6); byMon.set(k, { label: k, start: k, end: iso(e), tasks: [], short: pad(d.getUTCDate()) + '.' + pad(d.getUTCMonth() + 1) + '–' + pad(e.getUTCDate()) + '.' + pad(e.getUTCMonth() + 1) }); } });
+      weeks = [...byMon.values()];
+    }
+    const from = sm && sm.enrolledFrom;
+    return weeks.map(w => {
+      let p = 0, n = 0;
+      model.sessions.forEach((s, j) => { if (s.date < w.start || s.date > w.end) return; const m = st.att[j]; if (m === 'p') { p++; n++; } else if (m === 'a' || m === 'y') n++; });
+      let hd = 0, hn = 0, ns = 0, nm = 0, cg = 0, cm = 0;
+      w.tasks.forEach(k => {
+        const t = model.tasks[k], v = st.task[k], early = t.weekEnd && from && t.weekEnd < from;
+        if (t.type === 'hw') { if (!t.assigned || v === '-' || early) return; hn++; if (typeof v === 'number') hd++; }
+        else if (t.type === 'notes') { if (early) return; if (v === 's') { ns++; nm++; } else if (v === 'n') nm++; }
+        else if (t.type === 'classwork' && typeof v === 'number' && t.max) { cg += v; cm += t.max; }
+      });
+      return { label: w.label, short: w.short, start: w.start, end: w.end, before: !!(from && w.end < from), att: n ? [p, n] : null, hw: hn ? [hd, hn] : null, notes: nm ? [ns, nm] : null, cw: cm ? cg / cm : null };
+    });
+  }
+
   function groupMetrics(model, settings) {
     const ms = model.students.map(st => studentMetrics(model, st, settings));
     const sum = k => ms.reduce((a, m) => a + (m[k] || 0), 0);
@@ -457,15 +572,12 @@
       return { ...t, done, due, rate: due ? done / due : null, avgPct: max ? got / max : null };
     });
     // per week (from task weeks + session dates)
-    const weekMap = new Map();
-    model.tasks.forEach((t, k) => { if (!t.week) return; if (!weekMap.has(t.week)) weekMap.set(t.week, { label: t.week, end: t.weekEnd, tasks: [] }); weekMap.get(t.week).tasks.push(k); });
-    const weeks = [...weekMap.values()].filter(w => w.end).sort((a, b) => a.end < b.end ? -1 : 1).map(w => {
-      const endD = new Date(w.end + 'T00:00:00Z'), start = new Date(endD); start.setUTCDate(start.getUTCDate() - 6);
+    const weeks = weeksOf(model).map(w => {
+      const endD = new Date(w.end + 'T00:00:00Z'), start = new Date(w.start + 'T00:00:00Z');
       let p = 0, n = 0; sessions.forEach(s => { const d = new Date(s.date + 'T00:00:00Z'); if (d >= start && d <= endD) { p += s.present; n += s.marked; } });
       const hw = w.tasks.map(k => tasks[k]).filter(t => t.type === 'hw' && t.assigned && t.due);
       const nt = w.tasks.map(k => tasks[k]).filter(t => t.type === 'notes' && t.due);
-      const short = (/\(([^)]*)\)/.exec(w.label) || [])[1] || w.label;
-      return { label: w.label, short, end: w.end, attendance: n ? p / n : null,
+      return { label: w.label, short: w.short, end: w.end, attendance: n ? p / n : null,
         hw: hw.reduce((a, t) => a + t.due, 0) ? hw.reduce((a, t) => a + t.done, 0) / hw.reduce((a, t) => a + t.due, 0) : null,
         notes: nt.reduce((a, t) => a + t.due, 0) ? nt.reduce((a, t) => a + t.done, 0) / nt.reduce((a, t) => a + t.due, 0) : null };
     });
@@ -478,6 +590,6 @@
     return { students: ms, kpi, sessions, tasks, weeks, topics, kesSteps };
   }
 
-  const api = { parseWorkbook, studentMetrics, groupMetrics, normName, matchName, colorKind, plural, SCALES, DEFAULTS, grade };
+  const api = { parseWorkbook, studentMetrics, studentWeeks, groupMetrics, normName, matchName, colorKind, plural, SCALES, DEFAULTS, grade };
   if (typeof module === 'object' && module.exports) module.exports = api; else root.TutorParser = api;
 })(typeof window !== 'undefined' ? window : globalThis);
